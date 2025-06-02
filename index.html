@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trail Replay - GPX Visualization</title>
-    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.1.1/dist/maplibre-gl.css">
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.1.3/dist/maplibre-gl.css">
     <link rel="stylesheet" href="./src/styles.css">
 </head>
 <body>
@@ -47,7 +47,16 @@
                         <div class="tracks-list" id="tracksList">
                             <div class="tracks-header">
                                 <span data-i18n="journey.tracks">Uploaded Tracks</span>
-                                <button id="clearTracksBtn" class="btn-secondary">Clear All</button>
+                                <div class="journey-actions">
+                                    <button id="clearTracksBtn" class="btn-secondary">
+                                        <span>🗑️ Clear All</span>
+                                    </button>
+                                    
+                                    <div class="auto-preview-status" id="autoPreviewStatus">
+                                        <span class="status-icon">🔄</span>
+                                        <span class="status-text">Auto-updating journey...</span>
+                                    </div>
+                                </div>
                             </div>
                             <div class="tracks-items" id="tracksItems">
                                 <!-- Track items will be added here -->
@@ -57,10 +66,12 @@
                         <div class="journey-segments" id="journeySegments">
                             <div class="segments-header">
                                 <span data-i18n="journey.segments">Journey Segments</span>
-                                <button id="previewJourneyBtn" class="btn-primary">Preview Journey</button>
                             </div>
                             <div class="segments-list" id="segmentsList">
                                 <!-- Journey segments will be built here -->
+                            </div>
+                            <div class="segments-actions">
+                                <!-- The Preview Journey button is removed as it's now automatic -->
                             </div>
                         </div>
 
@@ -82,29 +93,23 @@
                     <div class="controls-panel">
                         <!-- Row 1: Basic Controls -->
                         <div class="control-group">
-                            <label data-i18n="controls.activity">Activity Type:</label>
+                            <label for="activityType">Activity Type:</label>
                             <select id="activityType">
                                 <option value="running">🏃‍♂️ Running</option>
                                 <option value="cycling">🚴‍♂️ Cycling</option>
                                 <option value="swimming">🏊‍♂️ Swimming</option>
-                                <option value="triathlon">🏆 Triathlon</option>
                                 <option value="hiking">🥾 Hiking</option>
+                                <option value="triathlon">🏆 Triathlon</option>
                             </select>
                         </div>
                         
                         <div class="control-group">
-                            <label data-i18n="controls.terrain">Terrain Style:</label>
+                            <label for="terrainStyle">Map Style:</label>
                             <select id="terrainStyle">
-                                <option value="satellite" selected>🛰️ Satellite</option>
-                                <option value="terrain">🏔️ Terrain</option>
-                                <option value="street">🗺️ Streets</option>
+                                <option value="satellite">🛰️ Satellite</option>
+                                <option value="terrain">🗻 Terrain</option>
+                                <option value="street">🗺️ Street</option>
                             </select>
-                        </div>
-
-                        <div class="control-group">
-                            <label data-i18n="controls.totalTime">Total Time:</label>
-                            <input type="range" id="animationSpeed" min="0.1" max="5" step="0.1" value="1">
-                            <span id="speedValue">1x</span>
                         </div>
 
                         <!-- Row 2: Visual Customization -->
@@ -148,6 +153,23 @@
                                 <input type="checkbox" id="showCircle" checked>
                                 <label for="showCircle" class="toggle-slider"></label>
                             </div>
+                        </div>
+
+                        <div class="control-group">
+                            <label data-i18n="controls.terrain3d">3D Terrain:</label>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="terrain3d">
+                                <label for="terrain3d" class="toggle-slider"></label>
+                            </div>
+                        </div>
+
+                        <!-- Terrain Source Selection (shown when 3D is enabled) -->
+                        <div class="control-group" id="terrainSourceGroup" style="display: none;">
+                            <label data-i18n="controls.terrainSource">Elevation Data:</label>
+                            <select id="terrainSource" class="terrain-source-select">
+                                <option value="mapzen">Mapzen Terrarium (Global)</option>
+                                <option value="opentopo">OpenTopography SRTM (Global)</option>
+                            </select>
                         </div>
 
                         <!-- Action Buttons -->

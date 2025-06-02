@@ -14,6 +14,11 @@ export class JourneyBuilder {
         this.isDrawingRoute = false;
         this.currentDrawnRoute = [];
         
+        // Auto-preview functionality
+        this.autoPreviewEnabled = true;
+        this.previewTimeout = null;
+        this.previewDelay = 1000; // 1 second delay for debouncing
+        
         this.initializeEventListeners();
     }
 
@@ -21,11 +26,6 @@ export class JourneyBuilder {
         // Clear tracks button
         document.getElementById('clearTracksBtn')?.addEventListener('click', () => {
             this.clearAllTracks();
-        });
-
-        // Preview journey button
-        document.getElementById('previewJourneyBtn')?.addEventListener('click', () => {
-            this.previewJourney();
         });
 
         // Transportation mode buttons
@@ -75,9 +75,14 @@ export class JourneyBuilder {
         this.updateSegments();
         this.showJourneyPlanningSection();
         
+        // Auto-preview the journey
+        this.autoPreviewJourney();
+        
         // Show helpful message if this is the first track
         if (this.tracks.length === 1) {
-            this.showMessage('Track added! Add more tracks or click "Preview Journey" to see it on the map.', 'info');
+            this.showMessage('Track added! The journey will preview automatically.', 'info');
+        } else {
+            this.showMessage('Track added! Journey updating...', 'info');
         }
     }
 
@@ -89,6 +94,9 @@ export class JourneyBuilder {
         
         if (this.tracks.length === 0) {
             this.hideJourneyPlanningSection();
+        } else {
+            // Auto-preview if there are still tracks
+            this.autoPreviewJourney();
         }
     }
 
@@ -176,6 +184,9 @@ export class JourneyBuilder {
 
         this.renderTracksList();
         this.updateSegments();
+        
+        // Auto-preview with new track order
+        this.autoPreviewJourney();
     }
 
     // Setup drag and drop for reordering tracks
@@ -216,6 +227,9 @@ export class JourneyBuilder {
 
         this.renderTracksList();
         this.updateSegments();
+        
+        // Auto-preview with new track order
+        this.autoPreviewJourney();
     }
 
     // Update segments based on track order and add transportation options
@@ -232,20 +246,8 @@ export class JourneyBuilder {
                 endPoint: this.tracks[i].endPoint
             });
 
-            // Add transportation segment between tracks (except after last track)
-            if (i < this.tracks.length - 1) {
-                const startPoint = this.tracks[i].endPoint;
-                const endPoint = this.tracks[i + 1].startPoint;
-                
-                this.segments.push({
-                    id: `transport_${i}`,
-                    type: 'transportation',
-                    mode: null, // Will be set when user selects transportation
-                    startPoint,
-                    endPoint,
-                    route: null
-                });
-            }
+            // DON'T automatically add transportation segments
+            // Only add them when user explicitly chooses a transport mode
         }
 
         this.renderSegmentsList();
@@ -274,72 +276,88 @@ export class JourneyBuilder {
         `;
         segmentsList.appendChild(summaryElement);
 
-        this.segments.forEach((segment, index) => {
-            const segmentElement = document.createElement('div');
+        // Group segments and add transportation options between tracks
+        const trackSegments = this.segments.filter(s => s.type === 'track');
+        
+        trackSegments.forEach((trackSegment, trackIndex) => {
+            // Add track segment
+            const estimatedTime = this.calculateTrackTime(trackSegment.data);
             
-            if (segment.type === 'track') {
-                // Calculate estimated time for track based on distance and activity
-                const estimatedTime = this.calculateTrackTime(segment.data);
-                
-                segmentElement.className = 'segment-item track';
-                segmentElement.innerHTML = `
-                    <div class="segment-icon">${this.getTrackIcon(segment.data.data.activityType)}</div>
-                    <div class="segment-content">
-                        <div class="segment-title">${segment.data.name}</div>
-                        <div class="segment-description">
-                            GPX Track • ${this.formatDistance(segment.data.stats.totalDistance)}
-                        </div>
-                        <div class="segment-timing">
-                            <label>Animation Time:</label>
-                            <input type="number" class="segment-time-input" 
-                                   value="${segment.userTime || estimatedTime}" 
-                                   min="5" max="600" step="5" 
-                                   onchange="journeyBuilder.updateSegmentTime(${index}, this.value, 'track')">
-                            <span>seconds</span>
-                        </div>
+            const trackElement = document.createElement('div');
+            trackElement.className = 'segment-item track';
+            trackElement.innerHTML = `
+                <div class="segment-icon">${this.getTrackIcon(trackSegment.data.data.activityType)}</div>
+                <div class="segment-content">
+                    <div class="segment-title">${trackSegment.data.name}</div>
+                    <div class="segment-description">
+                        GPX Track • ${this.formatDistance(trackSegment.data.stats.totalDistance)}
                     </div>
-                `;
-            } else {
-                segmentElement.className = 'segment-item transport';
-                const distance = this.calculateDistance(segment.startPoint, segment.endPoint);
+                    <div class="segment-timing">
+                        <label>Animation Time:</label>
+                        <input type="number" class="segment-time-input" 
+                               value="${trackSegment.userTime || estimatedTime}" 
+                               min="5" max="600" step="5" 
+                               onchange="journeyBuilder.updateSegmentTime(${this.segments.indexOf(trackSegment)}, this.value, 'track')">
+                        <span>seconds</span>
+                    </div>
+                </div>
+            `;
+            segmentsList.appendChild(trackElement);
+            
+            // Add transportation between this track and the next (if not last track)
+            if (trackIndex < trackSegments.length - 1) {
+                // Check if there's already a transport segment between these tracks
+                const nextTrackSegment = trackSegments[trackIndex + 1];
+                const existingTransport = this.segments.find(s => 
+                    s.type === 'transportation' && 
+                    s.startPoint === trackSegment.endPoint && 
+                    s.endPoint === nextTrackSegment.startPoint
+                );
                 
-                if (segment.mode) {
+                if (existingTransport) {
+                    // Show existing transport segment
+                    const distance = this.calculateDistance(existingTransport.startPoint, existingTransport.endPoint);
                     let routeInfo = '';
                     let transportTime = 0;
                     
-                    if (segment.route) {
-                        // Has route
-                        routeInfo = ` • ${this.formatDistance(segment.route.distance / 1000)} • ${this.formatDuration(segment.route.duration)}`;
-                        transportTime = segment.route.userTime || this.getDefaultTransportTime(segment.mode, distance);
+                    if (existingTransport.route) {
+                        routeInfo = ` • ${this.formatDistance(existingTransport.route.distance / 1000)} • ${this.formatDuration(existingTransport.route.duration)}`;
+                        transportTime = existingTransport.route.userTime || existingTransport.userTime || this.getDefaultTransportTime(existingTransport.mode, distance);
                     } else {
-                        // Has mode but no route yet - show estimated info
-                        routeInfo = ` • ~${distance.toFixed(1)}km • Estimated`;
-                        transportTime = this.getDefaultTransportTime(segment.mode, distance);
+                        routeInfo = ` • ~${distance.toFixed(1)}km`;
+                        transportTime = existingTransport.userTime || this.getDefaultTransportTime(existingTransport.mode, distance);
                     }
                     
-                    segmentElement.innerHTML = `
-                        <div class="segment-icon">${this.getTransportIcon(segment.mode)}</div>
+                    const transportElement = document.createElement('div');
+                    transportElement.className = 'segment-item transport';
+                    transportElement.innerHTML = `
+                        <div class="segment-icon">${this.getTransportIcon(existingTransport.mode)}</div>
                         <div class="segment-content">
-                            <div class="segment-title">Transportation: ${segment.mode}</div>
+                            <div class="segment-title">Transportation: ${existingTransport.mode}</div>
                             <div class="segment-description">
-                                ${segment.route ? 'Route via ' + (segment.route.provider || 'roads') : `Distance: ~${distance.toFixed(1)}km`}${routeInfo}
+                                ${existingTransport.route ? 'Route via ' + (existingTransport.route.provider || 'roads') : `Distance: ~${distance.toFixed(1)}km`}${routeInfo}
                             </div>
                             <div class="segment-timing">
                                 <label>Animation Time:</label>
                                 <input type="number" class="segment-time-input" 
                                        value="${transportTime}" 
                                        min="5" max="600" step="5" 
-                                       onchange="journeyBuilder.updateSegmentTime(${index}, this.value, 'transport')">
+                                       onchange="journeyBuilder.updateSegmentTime(${this.segments.indexOf(existingTransport)}, this.value, 'transport')">
                                 <span>seconds</span>
                             </div>
                         </div>
                         <div class="segment-actions">
-                            <button class="track-action-btn" onclick="journeyBuilder.editTransportation(${index})" title="Edit">✏️</button>
-                            <button class="track-action-btn" onclick="journeyBuilder.removeTransportation(${index})" title="Remove">🗑️</button>
+                            <button class="track-action-btn" onclick="journeyBuilder.editTransportation(${this.segments.indexOf(existingTransport)})" title="Edit">✏️</button>
+                            <button class="track-action-btn" onclick="journeyBuilder.removeTransportation(${this.segments.indexOf(existingTransport)})" title="Remove">🗑️</button>
                         </div>
                     `;
+                    segmentsList.appendChild(transportElement);
                 } else {
-                    segmentElement.innerHTML = `
+                    // Show "Add Transportation" button
+                    const distance = this.calculateDistance(trackSegment.endPoint, nextTrackSegment.startPoint);
+                    const addTransportElement = document.createElement('div');
+                    addTransportElement.className = 'segment-item transport-add';
+                    addTransportElement.innerHTML = `
                         <div class="segment-icon">❓</div>
                         <div class="segment-content">
                             <div class="segment-title">Add Transportation</div>
@@ -348,13 +366,12 @@ export class JourneyBuilder {
                             </div>
                         </div>
                         <div class="segment-actions">
-                            <button class="track-action-btn" onclick="journeyBuilder.showTransportationOptions(${index})" title="Add Transport">➕</button>
+                            <button class="track-action-btn" onclick="journeyBuilder.showTransportationOptions(${trackIndex})" title="Add Transport">➕</button>
                         </div>
                     `;
+                    segmentsList.appendChild(addTransportElement);
                 }
             }
-
-            segmentsList.appendChild(segmentElement);
         });
     }
 
@@ -395,6 +412,19 @@ export class JourneyBuilder {
     renderTimelineSegments() {
         const timelineSegments = document.getElementById('timelineSegments');
         if (!timelineSegments) return;
+        
+        // Store existing event listeners before clearing
+        const existingListeners = [];
+        const existingSegments = timelineSegments.querySelectorAll('.timeline-segment');
+        existingSegments.forEach(segment => {
+            const segmentIndex = parseInt(segment.getAttribute('data-segment-index'));
+            if (!isNaN(segmentIndex)) {
+                existingListeners[segmentIndex] = {
+                    element: segment,
+                    listeners: segment.cloneNode(false) // Store reference for potential listener transfer
+                };
+            }
+        });
         
         // Clear existing segments but keep progress indicator
         const progressIndicator = document.getElementById('timelineProgressIndicator');
@@ -484,7 +514,7 @@ export class JourneyBuilder {
                 segmentElement.style.borderStyle = 'dashed';
             }
             
-            // Add drag and resize functionality
+            // ALWAYS add drag and resize functionality - this ensures event listeners are reattached
             this.setupTimelineSegmentInteraction(segmentElement, index);
             
             timelineSegments.appendChild(segmentElement);
@@ -494,8 +524,10 @@ export class JourneyBuilder {
         // Update ruler
         this.updateTimelineRuler(totalDuration, pixelsPerSecond);
         
-        // Setup timeline clicking for scrubbing
+        // ALWAYS re-setup timeline clicking for scrubbing after re-rendering
         this.setupTimelineScrubbing();
+        
+        console.log('Timeline segments re-rendered with fresh event listeners');
     }
 
     // Setup timeline clicking for scrubbing
@@ -519,7 +551,21 @@ export class JourneyBuilder {
             const pixelsPerSecond = 3 * (this.timelineScale || 1);
             const clickTime = clickX / pixelsPerSecond;
             const totalDuration = this.calculateJourneyTiming().totalDuration;
+            
+            if (totalDuration <= 0) {
+                console.warn('Invalid total duration for timeline seeking:', totalDuration);
+                return;
+            }
+            
             const progress = Math.max(0, Math.min(1, clickTime / totalDuration));
+            
+            console.log('Timeline click calculation:', {
+                clickX,
+                pixelsPerSecond,
+                clickTime,
+                totalDuration,
+                progress: progress.toFixed(3)
+            });
             
             // Dispatch event to seek to this position
             const seekEvent = new CustomEvent('timelineSeek', {
@@ -533,22 +579,35 @@ export class JourneyBuilder {
 
     // Setup drag and resize for timeline segments
     setupTimelineSegmentInteraction(element, segmentIndex) {
+        // Remove any existing listeners to prevent duplicates
+        element.removeAttribute('data-listeners-attached');
+        
         // Drag functionality
-        element.addEventListener('mousedown', (e) => {
+        const handleMouseDown = (e) => {
+            e.preventDefault();
             if (e.target.classList.contains('timeline-segment-resize-handle')) {
                 this.startResize(e, element, segmentIndex);
             } else {
                 this.startDrag(e, element, segmentIndex);
             }
-        });
+        };
         
         // Click to edit
-        element.addEventListener('dblclick', () => {
+        const handleDoubleClick = () => {
             const segment = this.segments[segmentIndex];
-            if (segment.type === 'transportation') {
+            if (segment && segment.type === 'transportation') {
                 this.editTransportation(segmentIndex);
             }
-        });
+        };
+        
+        // Attach event listeners
+        element.addEventListener('mousedown', handleMouseDown);
+        element.addEventListener('dblclick', handleDoubleClick);
+        
+        // Mark as having listeners attached
+        element.setAttribute('data-listeners-attached', 'true');
+        
+        console.log(`Event listeners attached to timeline segment ${segmentIndex}`);
     }
 
     // Start dragging segment
@@ -588,6 +647,10 @@ export class JourneyBuilder {
         const startWidth = element.offsetWidth;
         const pixelsPerSecond = 3 * (this.timelineScale || 1);
         
+        // Store original segment data for fallback
+        const originalSegment = this.segments[segmentIndex];
+        const originalDuration = element.querySelector('.timeline-segment-duration').textContent;
+        
         const handleMouseMove = (e) => {
             const deltaX = e.clientX - startX;
             const newWidth = Math.max(30, startWidth + deltaX); // Minimum 30px
@@ -603,13 +666,25 @@ export class JourneyBuilder {
             document.removeEventListener('mousemove', handleMouseMove);
             document.removeEventListener('mouseup', handleMouseUp);
             
-            // Update segment duration using the same method as input changes
-            const newWidth = element.offsetWidth;
-            const newDuration = Math.max(5, Math.round(newWidth / pixelsPerSecond));
-            const segmentType = this.segments[segmentIndex].type === 'track' ? 'track' : 'transport';
-            
-            // Use the same updateSegmentTime method to keep everything in sync
-            this.updateSegmentTime(segmentIndex, newDuration, segmentType);
+            try {
+                // Calculate final duration
+                const finalWidth = element.offsetWidth;
+                const finalDuration = Math.max(5, Math.round(finalWidth / pixelsPerSecond));
+                const segmentType = this.segments[segmentIndex].type === 'track' ? 'track' : 'transport';
+                
+                console.log(`Timeline resize: segment ${segmentIndex} (${segmentType}) duration changed to ${finalDuration}s`);
+                
+                // Use the same updateSegmentTime method to keep everything in sync
+                // This will trigger a re-render but the event listeners will be reattached
+                this.updateSegmentTime(segmentIndex, finalDuration, segmentType);
+                
+            } catch (error) {
+                console.error('Error updating segment timing from resize:', error);
+                // Restore original state
+                element.style.width = startWidth + 'px';
+                element.querySelector('.timeline-segment-duration').textContent = originalDuration;
+                this.showMessage('Error updating segment timing', 'error');
+            }
         };
         
         document.addEventListener('mousemove', handleMouseMove);
@@ -656,27 +731,48 @@ export class JourneyBuilder {
         
         timelineSegmentElements.forEach((element, index) => {
             const segmentIndex = parseInt(element.getAttribute('data-segment-index'));
-            segmentPositions.push({
-                element,
-                segmentIndex,
-                position: element.offsetLeft
-            });
+            if (!isNaN(segmentIndex) && this.segments[segmentIndex]) {
+                segmentPositions.push({
+                    element,
+                    segmentIndex,
+                    segment: this.segments[segmentIndex],
+                    position: element.offsetLeft
+                });
+            }
         });
         
         // Sort by position
         segmentPositions.sort((a, b) => a.position - b.position);
         
+        // Check if order actually changed
+        const newOrder = segmentPositions.map(item => item.segmentIndex);
+        const currentOrder = this.segments.map((_, index) => index);
+        const orderChanged = !newOrder.every((value, index) => value === currentOrder[index]);
+        
+        if (!orderChanged) {
+            console.log('Segment order unchanged, skipping reorder');
+            return;
+        }
+        
+        console.log('Reordering segments from timeline positions');
+        
         // Reorder segments array
         const newSegments = [];
         segmentPositions.forEach(item => {
-            newSegments.push(this.segments[item.segmentIndex]);
+            newSegments.push(item.segment);
         });
         
         this.segments = newSegments;
         
-        // Re-render timeline and notify main app
+        // Re-render everything to ensure consistency
+        this.renderSegmentsList();
         this.renderTimelineSegments();
+        
+        // Notify main app of the change
         this.notifySegmentOrderChanged();
+        
+        // Auto-preview with new segment order
+        this.autoPreviewJourney();
     }
 
     // Notify main app that segment order changed
@@ -714,15 +810,36 @@ export class JourneyBuilder {
         const transportOptions = document.getElementById('transportationOptions');
         const segmentIndex = parseInt(transportOptions.getAttribute('data-segment-index'));
         
-        if (segmentIndex !== null && this.segments[segmentIndex]) {
-            this.segments[segmentIndex].mode = mode;
+        // Find which tracks this transportation connects
+        const trackIndex = Math.floor(segmentIndex / 2); // Approximate track index
+        
+        if (trackIndex >= 0 && trackIndex < this.tracks.length - 1) {
+            const startPoint = this.tracks[trackIndex].endPoint;
+            const endPoint = this.tracks[trackIndex + 1].startPoint;
+            
+            // Create a new transportation segment
+            const transportSegment = {
+                id: `transport_${trackIndex}`,
+                type: 'transportation',
+                mode: mode,
+                startPoint: startPoint,
+                endPoint: endPoint,
+                route: null,
+                userTime: this.getDefaultTransportTime(mode, 0) // Use default time
+            };
+            
+            // Add the transport segment at the right position in the segments array
+            const insertPosition = (trackIndex * 2) + 1; // After the track, before next track
+            this.segments.splice(insertPosition, 0, transportSegment);
+            
+            console.log(`Added ${mode} transport between track ${trackIndex} and ${trackIndex + 1}`);
             
             // Automatically calculate route for car/walking/cycling
             if (['car', 'walk', 'cycling'].includes(mode)) {
-                this.calculateRoute(segmentIndex, mode);
+                this.calculateRoute(insertPosition, mode);
             } else if (['boat', 'plane'].includes(mode)) {
                 // Check if we have map access for route drawing
-                this.checkMapAccessAndDraw(segmentIndex, mode);
+                this.checkMapAccessAndDraw(insertPosition, mode);
             }
         }
 
@@ -732,6 +849,9 @@ export class JourneyBuilder {
         transportOptions.removeAttribute('data-previous-mode');
         
         this.renderSegmentsList();
+        
+        // Auto-preview the updated journey
+        this.autoPreviewJourney();
     }
 
     // Check if map is available for route drawing, auto-preview if needed
@@ -804,6 +924,9 @@ export class JourneyBuilder {
             console.log(`Route calculated for ${mode}:`, route);
             this.renderSegmentsList();
             
+            // Auto-preview with new route
+            this.autoPreviewJourney();
+            
         } catch (error) {
             console.error('Error calculating route:', error);
             // Fallback to realistic route
@@ -821,6 +944,9 @@ export class JourneyBuilder {
             
             segment.route = fallbackRoute;
             this.renderSegmentsList();
+            
+            // Auto-preview with fallback route
+            this.autoPreviewJourney();
         }
     }
 
@@ -1201,6 +1327,9 @@ export class JourneyBuilder {
         
         this.renderSegmentsList();
         this.showMessage(`${this.currentDrawingMode === 'boat' ? 'Boat route' : 'Flight path'} completed in ${travelTimeSeconds} seconds!`, 'success');
+        
+        // Auto-preview with new route
+        this.autoPreviewJourney();
     }
 
     // Cleanup route drawing mode
@@ -1519,77 +1648,143 @@ export class JourneyBuilder {
         return Math.round(animationTime);
     }
 
-    // Get default transport time for animation
+    // Get default transport time for animation - simplified to just return a fixed value
     getDefaultTransportTime(mode, distanceKm) {
-        // These are animation times, not real travel times
-        const baseTimes = {
+        // Simple fixed times for different transport modes (animation time in seconds)
+        const fixedTimes = {
             car: 30,
-            walk: 20,
+            walk: 20, 
             cycling: 25,
             boat: 40,
-            plane: 20,
+            plane: 25,
             train: 35
         };
-        
-        // Scale based on distance
-        const baseTime = baseTimes[mode] || 30;
-        const scaledTime = baseTime + (distanceKm * 2); // Add 2 seconds per km
-        return Math.max(10, Math.min(120, Math.round(scaledTime))); // 10-120 seconds
+        return fixedTimes[mode] || 30; // Default 30 seconds
     }
 
     // Update segment time (called from both input changes and drag/drop)
     updateSegmentTime(segmentIndex, newTime, segmentType) {
         const segment = this.segments[segmentIndex];
-        if (!segment) return;
+        if (!segment) {
+            console.error('Segment not found at index:', segmentIndex);
+            return;
+        }
         
         const timeValue = parseInt(newTime);
-        if (isNaN(timeValue) || timeValue < 5) return;
+        if (isNaN(timeValue) || timeValue < 5) {
+            console.error('Invalid time value:', newTime);
+            return;
+        }
+        
+        console.log(`Updating segment ${segmentIndex} (${segmentType}) time to exactly ${timeValue} seconds`);
         
         if (segmentType === 'track') {
+            // Store exact user input for tracks
             segment.userTime = timeValue;
+            console.log(`✅ Track segment ${segmentIndex}: userTime set to ${timeValue}s`);
+            
         } else if (segmentType === 'transport') {
             if (segment.route) {
-                // Has route - update route timing
+                // Store exact user input in route
                 segment.route.userTime = timeValue;
-                segment.route.duration = timeValue; // Store as seconds for animation
-            } else if (segment.mode && segment.startPoint && segment.endPoint) {
-                // Has mode but no route - create a fallback route with timing
-                const distance = this.calculateDistance(segment.startPoint, segment.endPoint) * 1000; // in meters
-                
-                segment.route = {
-                    coordinates: [segment.startPoint, segment.endPoint],
-                    distance: distance,
-                    duration: timeValue,
-                    userTime: timeValue,
-                    provider: 'fallback',
-                    type: segment.mode
-                };
+                segment.route.duration = timeValue; // Keep both for compatibility
+                console.log(`✅ Transport segment ${segmentIndex}: route.userTime set to ${timeValue}s`);
             } else {
-                // Fallback - store time directly on segment
+                // Store exact user input directly on segment as fallback
                 segment.userTime = timeValue;
+                console.log(`✅ Transport segment ${segmentIndex}: segment.userTime set to ${timeValue}s`);
+                
+                // If we have enough info, create a basic route
+                if (segment.mode && segment.startPoint && segment.endPoint) {
+                    const distance = this.calculateDistance(segment.startPoint, segment.endPoint) * 1000;
+                    segment.route = {
+                        coordinates: [segment.startPoint, segment.endPoint],
+                        distance: distance,
+                        duration: timeValue, // Exact user input
+                        userTime: timeValue, // Exact user input
+                        provider: 'fallback',
+                        type: segment.mode
+                    };
+                    console.log(`✅ Created fallback route with exact user time: ${timeValue}s`);
+                }
             }
         }
         
-        console.log(`Updated ${segmentType} segment ${segmentIndex} time to ${timeValue} seconds`);
+        // Calculate new total as simple sum of all segment times
+        const newJourneyTiming = this.calculateJourneyTiming();
+        console.log(`Total journey time is now: ${newJourneyTiming.totalDuration}s (sum of all segments)`);
         
-        // Re-render segments list
+        // IMMEDIATE: Update UI elements directly with the exact calculated total
+        console.log('Updating UI elements with exact total...');
+        
+        const totalTimeElement = document.getElementById('totalTime');
+        if (totalTimeElement) {
+            const exactTimeText = this.formatDuration(newJourneyTiming.totalDuration);
+            totalTimeElement.textContent = exactTimeText;
+            console.log('✅ Updated totalTime element to exact total:', exactTimeText);
+        }
+        
+        // Update timing breakdown panel with exact values
+        const timingPanel = document.getElementById('journeyTimingPanel');
+        if (timingPanel) {
+            const totalDurationSpan = timingPanel.querySelector('.total-duration');
+            if (totalDurationSpan) {
+                totalDurationSpan.textContent = this.formatDuration(newJourneyTiming.totalDuration);
+                console.log('✅ Updated timing panel to exact total');
+            }
+        }
+        
+        // Show feedback with exact total
+        this.showMessage(`Segment: ${timeValue}s | Total: ${newJourneyTiming.totalDuration}s`, 'success');
+        
+        // Re-render UI components
         this.renderSegmentsList();
-        
-        // Re-render timeline if it exists
         if (document.getElementById('timelineSegments')) {
             this.renderTimelineSegments();
         }
         
-        // Notify the main app that timing has changed so it can update the animation system
+        // Notify main app with exact timing
+        console.log('Notifying main app with exact timing values...');
+        
         const timingUpdateEvent = new CustomEvent('segmentTimingUpdate', {
             detail: { 
                 segments: this.segments,
                 segmentIndex: segmentIndex,
                 newTime: timeValue,
-                segmentType: segmentType
+                segmentType: segmentType,
+                totalDuration: newJourneyTiming.totalDuration, // Exact sum
+                newSegmentTiming: newJourneyTiming
             }
         });
-        document.dispatchEvent(timingUpdateEvent);
+        
+        const dispatched = document.dispatchEvent(timingUpdateEvent);
+        console.log('Event dispatched:', dispatched ? '✅ Success' : '❌ Failed');
+        
+        // Direct backup call
+        if (window.app && typeof window.app.handleSegmentTimingUpdate === 'function') {
+            try {
+                window.app.handleSegmentTimingUpdate({
+                    segments: this.segments,
+                    segmentIndex: segmentIndex,
+                    newTime: timeValue,
+                    segmentType: segmentType,
+                    totalDuration: newJourneyTiming.totalDuration,
+                    newSegmentTiming: newJourneyTiming
+                });
+                console.log('✅ Direct call successful');
+            } catch (error) {
+                console.error('❌ Direct call failed:', error);
+            }
+        }
+        
+        // Force update main app's total time
+        if (window.app) {
+            window.app.totalAnimationTime = newJourneyTiming.totalDuration;
+            console.log('✅ Force updated main app totalAnimationTime to exact total:', newJourneyTiming.totalDuration);
+        }
+        
+        this.autoPreviewJourney();
+        console.log('=== Segment timing update completed with exact values ===');
     }
 
     // Calculate total journey timing
@@ -1597,33 +1792,122 @@ export class JourneyBuilder {
         let trackDuration = 0;
         let transportDuration = 0;
         
-        this.segments.forEach(segment => {
+        console.log('Calculating journey timing from segments:', this.segments.length);
+        
+        this.segments.forEach((segment, index) => {
+            let segmentDuration = 0;
+            
             if (segment.type === 'track') {
-                const estimatedTime = this.calculateTrackTime(segment.data);
-                trackDuration += segment.userTime || estimatedTime;
-            } else if (segment.type === 'transportation') {
-                let segmentDuration = 0;
+                // Use exact user-defined time, or calculate default if not set
+                if (segment.userTime !== undefined && segment.userTime !== null) {
+                    segmentDuration = segment.userTime; // Use exact user input
+                    console.log(`Track segment ${index}: using user time ${segmentDuration}s`);
+                } else {
+                    segmentDuration = this.calculateTrackTime(segment.data);
+                    console.log(`Track segment ${index}: calculated default ${segmentDuration}s`);
+                }
+                trackDuration += segmentDuration;
                 
-                if (segment.route && segment.route.userTime) {
-                    // Use existing route time
-                    segmentDuration = segment.route.userTime;
+            } else if (segment.type === 'transportation') {
+                // Use exact user-defined time
+                if (segment.route && segment.route.userTime !== undefined && segment.route.userTime !== null) {
+                    segmentDuration = segment.route.userTime; // Use exact user input
+                    console.log(`Transport segment ${index}: using user time ${segmentDuration}s`);
+                } else if (segment.userTime !== undefined && segment.userTime !== null) {
+                    segmentDuration = segment.userTime; // Fallback user time
+                    console.log(`Transport segment ${index}: using fallback user time ${segmentDuration}s`);
                 } else if (segment.mode && segment.startPoint && segment.endPoint) {
-                    // Calculate fallback time for transportation without route
+                    // Only calculate default if no user time is set
                     const distance = this.calculateDistance(segment.startPoint, segment.endPoint);
                     segmentDuration = this.getDefaultTransportTime(segment.mode, distance);
+                    console.log(`Transport segment ${index}: calculated default ${segmentDuration}s`);
                 } else {
-                    // Default fallback
-                    segmentDuration = 30;
+                    segmentDuration = 30; // Default fallback
+                    console.log(`Transport segment ${index}: using default fallback 30s`);
                 }
-                
                 transportDuration += segmentDuration;
             }
+        });
+        
+        const totalDuration = trackDuration + transportDuration;
+        
+        console.log('Journey timing calculation result:', {
+            trackDuration: `${trackDuration}s`,
+            transportDuration: `${transportDuration}s`,
+            totalDuration: `${totalDuration}s`
         });
         
         return {
             trackDuration,
             transportDuration,
-            totalDuration: trackDuration + transportDuration
+            totalDuration // This is now the exact sum of user inputs
         };
     }
-} 
+
+    // Show auto-preview status
+    showAutoPreviewStatus() {
+        const statusElement = document.getElementById('autoPreviewStatus');
+        if (statusElement) {
+            statusElement.classList.add('visible');
+            statusElement.classList.remove('completed');
+            statusElement.querySelector('.status-icon').textContent = '🔄';
+            statusElement.querySelector('.status-text').textContent = 'Auto-updating journey...';
+        }
+    }
+
+    // Hide auto-preview status with completion feedback
+    hideAutoPreviewStatus() {
+        const statusElement = document.getElementById('autoPreviewStatus');
+        if (statusElement) {
+            statusElement.classList.add('completed');
+            statusElement.querySelector('.status-icon').textContent = '✅';
+            statusElement.querySelector('.status-text').textContent = 'Journey updated!';
+            
+            // Hide after a short delay
+            setTimeout(() => {
+                statusElement.classList.remove('visible', 'completed');
+            }, 2000);
+        }
+    }
+
+    // Automatic journey preview with debouncing
+    autoPreviewJourney() {
+        if (!this.autoPreviewEnabled) return;
+        
+        // Show status immediately
+        this.showAutoPreviewStatus();
+        
+        // Clear existing timeout
+        if (this.previewTimeout) {
+            clearTimeout(this.previewTimeout);
+        }
+        
+        // Set new timeout for debounced preview
+        this.previewTimeout = setTimeout(() => {
+            // Only auto-preview if we have at least one track
+            if (this.tracks.length > 0) {
+                console.log('Auto-previewing journey...');
+                this.previewJourney();
+                
+                // Show completion status
+                setTimeout(() => {
+                    this.hideAutoPreviewStatus();
+                }, 500); // Small delay to show the update completed
+            } else {
+                // Hide status if no tracks
+                const statusElement = document.getElementById('autoPreviewStatus');
+                if (statusElement) {
+                    statusElement.classList.remove('visible');
+                }
+            }
+        }, this.previewDelay);
+    }
+
+    // Toggle auto-preview on/off
+    setAutoPreview(enabled) {
+        this.autoPreviewEnabled = enabled;
+        if (enabled && this.tracks.length > 0) {
+            this.autoPreviewJourney();
+        }
+    }
+}

@@ -86,36 +86,6 @@ class TrailReplayApp {
             }
         });
 
-        // Replace animation speed with total time
-        const timeSlider = document.getElementById('animationSpeed');
-        timeSlider.min = 10;
-        timeSlider.max = 300;
-        timeSlider.value = 60;
-        timeSlider.step = 5;
-        
-        timeSlider.addEventListener('input', (e) => {
-            const totalTime = parseInt(e.target.value);
-            this.totalAnimationTime = totalTime;
-            document.getElementById('speedValue').textContent = `${totalTime}s`;
-            
-            // Update the total time display in the progress bar
-            document.getElementById('totalTime').textContent = this.formatTimeInSeconds(totalTime);
-            
-            // Update animation speed based on total time and track duration
-            if (this.mapRenderer && this.currentTrackData) {
-                // Calculate the speed multiplier to make animation last exactly totalTime seconds
-                // Since animation increments by 0.001 per frame at 60fps, we need to adjust speed
-                const targetDurationMs = totalTime * 1000; // Convert to milliseconds
-                const framesNeeded = (1 / 0.001); // Number of frames to complete (1000 frames for full progress)
-                const frameTime = targetDurationMs / framesNeeded; // Time per frame in ms
-                const speedMultiplier = 16.67 / frameTime; // 16.67ms is roughly 60fps
-                this.mapRenderer.setAnimationSpeed(speedMultiplier);
-            }
-        });
-
-        // Initialize the display
-        document.getElementById('speedValue').textContent = `${this.totalAnimationTime}s`;
-
         // New controls
         const pathColorInput = document.getElementById('pathColor');
         pathColorInput.addEventListener('change', (e) => {
@@ -157,6 +127,54 @@ class TrailReplayApp {
                 this.mapRenderer.setShowCircle(e.target.checked);
             }
         });
+
+        const terrain3dToggle = document.getElementById('terrain3d');
+        terrain3dToggle.addEventListener('change', (e) => {
+            if (this.mapRenderer) {
+                const terrainSourceGroup = document.getElementById('terrainSourceGroup');
+                
+                if (e.target.checked) {
+                    // Check if terrain is supported
+                    if (this.mapRenderer.isTerrainSupported && this.mapRenderer.isTerrainSupported()) {
+                        this.mapRenderer.enable3DTerrain();
+                        terrainSourceGroup.style.display = 'block'; // Show terrain source selector
+                        this.showMessage('3D terrain enabled! The map now has a slight 3D tilt with elevation data.', 'success');
+                    } else {
+                        this.showMessage('3D terrain is not supported by your browser/device', 'error');
+                        e.target.checked = false;
+                    }
+                } else {
+                    this.mapRenderer.disable3DTerrain();
+                    terrainSourceGroup.style.display = 'none'; // Hide terrain source selector
+                    this.showMessage('3D terrain disabled', 'info');
+                }
+            }
+        });
+
+        // Terrain source selection
+        const terrainSourceSelect = document.getElementById('terrainSource');
+        if (terrainSourceSelect) {
+            terrainSourceSelect.addEventListener('change', (e) => {
+                if (this.mapRenderer && this.mapRenderer.is3DMode) {
+                    const sourceType = e.target.value;
+                    console.log('Switching terrain source to:', sourceType);
+                    
+                    // For now, just change the exaggeration instead of switching sources
+                    // This is more reliable and less likely to break navigation
+                    switch (sourceType) {
+                        case 'opentopo':
+                            this.mapRenderer.setTerrainExaggeration && this.mapRenderer.setTerrainExaggeration(0.6);
+                            this.showMessage('Using OpenTopography elevation data (subtle)', 'info');
+                            break;
+                        case 'mapzen':
+                        default:
+                            this.mapRenderer.setTerrainExaggeration && this.mapRenderer.setTerrainExaggeration(0.8);
+                            this.showMessage('Using Mapzen elevation data (default)', 'info');
+                            break;
+                    }
+                }
+            });
+        }
 
         // Map control buttons
         // document.getElementById('centerTrailBtn').addEventListener('click', () => {
@@ -240,6 +258,16 @@ class TrailReplayApp {
         // Listen for current icon updates
         document.addEventListener('currentIconUpdated', (e) => {
             this.updateCurrentIconDisplay(e.detail.icon);
+        });
+
+        // Listen for terrain errors
+        document.addEventListener('terrainError', (e) => {
+            this.showMessage(e.detail.message, 'error');
+            // Reset the 3D toggle
+            const terrain3dToggle = document.getElementById('terrain3d');
+            if (terrain3dToggle) {
+                terrain3dToggle.checked = false;
+            }
         });
     }
 
@@ -514,9 +542,6 @@ class TrailReplayApp {
                 console.log('Loading track into map...');
                 this.mapRenderer.loadTrack(singleFileTrackData);
                 
-                // Update animation speed
-                this.updateAnimationSpeed();
-                
                 // Update UI
                 this.showVisualizationSection();
                 this.updateStats(singleFileTrackData.stats);
@@ -542,26 +567,6 @@ class TrailReplayApp {
         } finally {
             this.showLoading(false);
             this.hideUploadProgress();
-        }
-    }
-
-    updateAnimationSpeed() {
-        if (this.mapRenderer && this.currentTrackData) {
-            try {
-                // Calculate the speed multiplier to make animation last exactly totalTime seconds
-                // Since animation increments by 0.001 per frame at 60fps, we need to adjust speed
-                const targetDurationMs = this.totalAnimationTime * 1000; // Convert to milliseconds
-                const framesNeeded = (1 / 0.001); // Number of frames to complete (1000 frames for full progress)
-                const frameTime = targetDurationMs / framesNeeded; // Time per frame in ms
-                const speedMultiplier = 16.67 / frameTime; // 16.67ms is roughly 60fps
-                
-                console.log('Target animation time (seconds):', this.totalAnimationTime);
-                console.log('Speed multiplier:', speedMultiplier);
-                this.mapRenderer.setAnimationSpeed(speedMultiplier);
-            } catch (error) {
-                console.error('Error updating animation speed:', error);
-                this.mapRenderer.setAnimationSpeed(1);
-            }
         }
     }
 
@@ -610,11 +615,13 @@ class TrailReplayApp {
             this.mapRenderer.stopAnimation();
             playText.textContent = t('controls.play');
             this.isPlaying = false;
+            console.log('Playback paused at progress:', this.mapRenderer.getAnimationProgress().toFixed(3));
         } else {
             this.mapRenderer.startAnimation();
             playText.textContent = t('controls.pause');
             this.isPlaying = true;
             this.startProgressUpdate();
+            console.log('Playback started from progress:', this.mapRenderer.getAnimationProgress().toFixed(3));
         }
     }
 
@@ -661,11 +668,27 @@ class TrailReplayApp {
         if (this.currentTrackData && this.currentTrackData.isJourney && this.mapRenderer.journeyElapsedTime !== undefined) {
             const currentTimeSeconds = Math.floor(this.mapRenderer.journeyElapsedTime);
             document.getElementById('currentTime').textContent = this.formatTimeInSeconds(currentTimeSeconds);
+            
+            // Also ensure the total time reflects the current segment timing
+            if (this.currentTrackData.segmentTiming && this.currentTrackData.segmentTiming.totalDuration) {
+                document.getElementById('totalTime').textContent = this.formatTimeInSeconds(this.currentTrackData.segmentTiming.totalDuration);
+            }
         } else {
             // Fallback: show progress through the selected animation duration in seconds
             const currentTimeSeconds = Math.floor(progress * this.totalAnimationTime);
             document.getElementById('currentTime').textContent = this.formatTimeInSeconds(currentTimeSeconds);
+            
+            // Ensure total time shows the current animation time
+            document.getElementById('totalTime').textContent = this.formatTimeInSeconds(this.totalAnimationTime);
         }
+        
+        console.log('Progress display updated:', {
+            progress: progress.toFixed(3),
+            currentTime: document.getElementById('currentTime').textContent,
+            totalTime: document.getElementById('totalTime').textContent,
+            journeyElapsedTime: this.mapRenderer.journeyElapsedTime,
+            totalAnimationTime: this.totalAnimationTime
+        });
     }
 
     updateProgressBarMarkers() {
@@ -976,13 +999,30 @@ class TrailReplayApp {
         // Helper function to calculate progress from mouse/touch position
         const getProgressFromEvent = (e) => {
             const rect = progressBar.getBoundingClientRect();
-            const x = (e.type.includes('touch') ? e.touches[0].clientX : e.clientX) - rect.left;
-            return Math.max(0, Math.min(1, x / rect.width));
+            const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+            const x = clientX - rect.left;
+            const progress = x / rect.width;
+            
+            // Ensure progress is within bounds
+            const boundedProgress = Math.max(0, Math.min(1, progress));
+            
+            console.log('Progress calculation:', {
+                clientX,
+                rectLeft: rect.left,
+                rectWidth: rect.width,
+                x,
+                rawProgress: progress,
+                boundedProgress: boundedProgress.toFixed(3)
+            });
+            
+            return boundedProgress;
         };
         
         // Helper function to handle seeking to a specific progress
         const seekToProgress = (progress) => {
             if (!this.mapRenderer || !this.currentTrackData) return;
+            
+            console.log('Seeking to progress:', progress.toFixed(3));
             
             // Check if in special modes (icon change or annotation)
             if (this.mapRenderer.isIconChangeMode) {
@@ -1001,9 +1041,30 @@ class TrailReplayApp {
                 return;
             }
             
-            // Normal seeking
+            // Normal seeking - set the animation progress
             this.mapRenderer.setAnimationProgress(progress);
+            
+            // Update progress display immediately
             this.updateProgressDisplay();
+            
+            // Update timeline progress indicator if available
+            if (this.currentTrackData.isJourney) {
+                this.updateTimelineProgressIndicator(progress);
+            }
+            
+            // Force the view to follow the new position (auto-center)
+            if (this.currentTrackData && this.currentTrackData.trackPoints) {
+                const currentPoint = this.mapRenderer.gpxParser.getInterpolatedPoint(progress);
+                if (currentPoint && this.mapRenderer.map) {
+                    console.log('Centering view on seeked position:', currentPoint.lat, currentPoint.lon);
+                    this.mapRenderer.map.easeTo({
+                        center: [currentPoint.lon, currentPoint.lat],
+                        duration: 300 // Smooth transition
+                    });
+                }
+            }
+            
+            console.log('Seek completed to progress:', progress.toFixed(3), 'Animation can now resume from this position');
         };
         
         // Mouse events
@@ -1039,9 +1100,18 @@ class TrailReplayApp {
             
             isDragging = false;
             
+            // Get final position after dragging
+            const finalProgress = getProgressFromEvent(e);
+            seekToProgress(finalProgress);
+            
+            console.log(`Mouse released at progress: ${finalProgress.toFixed(3)}, wasPlaying: ${wasPlaying}`);
+            
             // Resume playback if it was playing before dragging
             if (wasPlaying && !this.isPlaying) {
-                this.togglePlayback();
+                console.log('Resuming playback from seeked position');
+                setTimeout(() => {
+                    this.togglePlayback();
+                }, 100); // Small delay to ensure seek is complete
             }
             
             e.preventDefault();
@@ -1079,9 +1149,19 @@ class TrailReplayApp {
             
             isDragging = false;
             
+            // Get final position after dragging
+            if (e.changedTouches && e.changedTouches.length > 0) {
+                const finalProgress = getProgressFromEvent(e);
+                seekToProgress(finalProgress);
+                console.log(`Touch ended at progress: ${finalProgress.toFixed(3)}, wasPlaying: ${wasPlaying}`);
+            }
+            
             // Resume playback if it was playing before dragging
             if (wasPlaying && !this.isPlaying) {
-                this.togglePlayback();
+                console.log('Resuming playback from seeked position (touch)');
+                setTimeout(() => {
+                    this.togglePlayback();
+                }, 100); // Small delay to ensure seek is complete
             }
             
             e.preventDefault();
@@ -1137,15 +1217,56 @@ class TrailReplayApp {
 
         // Listen for segment timing updates
         document.addEventListener('segmentTimingUpdate', (e) => {
+            console.log('🎯 MAIN APP: Received segmentTimingUpdate event:', e.detail);
+            
+            // Immediate UI update first
+            if (e.detail.totalDuration) {
+                console.log('🎯 MAIN APP: Immediately updating UI with total duration:', e.detail.totalDuration);
+                this.totalAnimationTime = e.detail.totalDuration;
+                
+                // Update UI elements
+                document.getElementById('totalTime').textContent = this.formatTimeInSeconds(e.detail.totalDuration);
+                
+                console.log('🎯 MAIN APP: UI updated successfully');
+            }
+            
+            // Then handle the full timing update
             this.handleSegmentTimingUpdate(e.detail);
         });
 
         // Listen for timeline seeking
         document.addEventListener('timelineSeek', (e) => {
+            console.log('🎯 Received timeline seek event:', e.detail.progress);
             if (this.mapRenderer && this.currentTrackData) {
-                this.mapRenderer.setAnimationProgress(e.detail.progress);
+                // Use the same seeking logic as the progress bar
+                const progress = e.detail.progress;
+                
+                // Pause animation if playing during seek
+                const wasPlaying = this.isPlaying;
+                if (wasPlaying) {
+                    this.togglePlayback();
+                }
+                
+                // Seek to the position
+                this.mapRenderer.setAnimationProgress(progress);
+                this.mapRenderer.updateCurrentPosition();
                 this.updateProgressDisplay();
-                this.updateTimelineProgressIndicator(e.detail.progress);
+                this.updateTimelineProgressIndicator(progress);
+                
+                // Center view on new position
+                if (this.currentTrackData.trackPoints) {
+                    const currentPoint = this.mapRenderer.gpxParser.getInterpolatedPoint(progress);
+                    if (currentPoint && this.mapRenderer.map) {
+                        this.mapRenderer.map.easeTo({
+                            center: [currentPoint.lon, currentPoint.lat],
+                            duration: 300
+                        });
+                    }
+                }
+                
+                console.log('Timeline seek completed to:', progress.toFixed(3));
+                
+                // Don't automatically resume playback after timeline seek
             }
         });
 
@@ -1245,26 +1366,57 @@ class TrailReplayApp {
 
     // Handle segment timing updates
     handleSegmentTimingUpdate(updateData) {
-        if (!this.currentTrackData || !this.currentTrackData.isJourney) return;
+        if (!this.currentTrackData || !this.currentTrackData.isJourney) {
+            console.log('🎯 MAIN APP: No journey data available for timing update');
+            return;
+        }
         
-        // Recalculate segment timing
-        const newSegmentTiming = this.calculateSegmentTiming(updateData.segments);
+        console.log('🎯 MAIN APP: Processing full timing update:', updateData);
+        
+        // Use the provided segment timing if available, otherwise recalculate
+        let newSegmentTiming;
+        if (updateData.newSegmentTiming) {
+            newSegmentTiming = updateData.newSegmentTiming;
+            console.log('🎯 MAIN APP: Using provided segment timing');
+        } else {
+            newSegmentTiming = this.calculateSegmentTiming(updateData.segments);
+            console.log('🎯 MAIN APP: Recalculated segment timing');
+        }
         
         // Update the current track data
         this.currentTrackData.segmentTiming = newSegmentTiming;
+        this.currentTrackData.segments = updateData.segments;
         
-        // Update total animation time
+        // CRITICAL: Update total animation time
         this.totalAnimationTime = newSegmentTiming.totalDuration;
+        console.log('🎯 MAIN APP: Updated totalAnimationTime to:', this.totalAnimationTime);
         
-        // Update the MapRenderer with new segment timing
+        // Update MapRenderer if available
         if (this.mapRenderer) {
+            console.log('🎯 MAIN APP: Updating MapRenderer with new timing...');
+            
+            const wasPlaying = this.isPlaying;
+            const currentProgress = this.mapRenderer.getAnimationProgress();
+            
+            if (wasPlaying) {
+                this.togglePlayback(); // Pause
+            }
+            
+            // Update MapRenderer timing
             this.mapRenderer.setupSegmentAnimation(updateData.segments, newSegmentTiming);
+            
+            // Restore position
+            setTimeout(() => {
+                this.mapRenderer.setAnimationProgress(currentProgress);
+                this.updateProgressDisplay();
+                
+                if (wasPlaying) {
+                    setTimeout(() => this.togglePlayback(), 100); // Resume
+                }
+            }, 50);
         }
         
-        // Update UI controls
-        this.updateTimingControls(newSegmentTiming);
-        
-        console.log('Updated animation system with new segment timing:', newSegmentTiming);
+        console.log('🎯 MAIN APP: Timing update completed successfully');
     }
 
     // Load combined journey data
@@ -1370,6 +1522,8 @@ class TrailReplayApp {
         let transportDuration = 0;
         const segmentTimings = [];
         
+        console.log('MAIN APP: Calculating segment timing from EXACT user inputs only...');
+        
         // First pass: calculate total coordinates to determine progress ratios
         let totalCoordinates = 0;
         segments.forEach(segment => {
@@ -1379,21 +1533,30 @@ class TrailReplayApp {
         
         let currentCoordIndex = 0;
         
-        // Calculate timing for each segment
+        // Calculate timing for each segment using ONLY exact user input values
         segments.forEach((segment, index) => {
             let segmentTime = 0;
             
             if (segment.type === 'track') {
-                // Get user-defined time or calculate default
-                segmentTime = segment.data.userTime || this.calculateDefaultTrackTime(segment.data);
+                // Use ONLY exact user-defined time
+                if (segment.userTime !== undefined && segment.userTime !== null) {
+                    segmentTime = segment.userTime; // EXACT user input
+                } else {
+                    // If no user time, use calculated default
+                    segmentTime = this.calculateDefaultTrackTime(segment.data);
+                }
                 trackDuration += segmentTime;
-            } else if (segment.type === 'transportation' && segment.route) {
-                segmentTime = segment.route.userTime || this.calculateDefaultTransportTime(segment.mode, segment.route.distance / 1000);
-                transportDuration += segmentTime;
-            } else if (segment.type === 'transportation' && segment.mode) {
-                // Transportation without route (fallback)
-                const distance = this.calculateDistanceFromPoints(segment.startPoint, segment.endPoint);
-                segmentTime = this.calculateDefaultTransportTime(segment.mode, distance);
+                
+            } else if (segment.type === 'transportation') {
+                // Use ONLY exact user-defined time  
+                if (segment.route && segment.route.userTime !== undefined && segment.route.userTime !== null) {
+                    segmentTime = segment.route.userTime; // EXACT user input
+                } else if (segment.userTime !== undefined && segment.userTime !== null) {
+                    segmentTime = segment.userTime; // EXACT user input
+                } else {
+                    // If no user time, use simple default
+                    segmentTime = 30; // Fixed 30 seconds default
+                }
                 transportDuration += segmentTime;
             }
             
@@ -1402,10 +1565,10 @@ class TrailReplayApp {
             const progressStartRatio = currentCoordIndex / (totalCoordinates - 1);
             const progressEndRatio = (currentCoordIndex + segmentLength - 1) / (totalCoordinates - 1);
             
-            // Create segment timing with precise coordinate mapping
+            // Create segment timing with exact user input
             segmentTimings.push({
                 ...segment,
-                duration: segmentTime,
+                duration: segmentTime, // EXACT user input or simple default
                 startTime: totalDuration,
                 endTime: totalDuration + segmentTime,
                 coordinateLength: segmentLength,
@@ -1415,30 +1578,19 @@ class TrailReplayApp {
                 endCoordIndex: currentCoordIndex + segmentLength - 1
             });
             
-            totalDuration += segmentTime;
+            totalDuration += segmentTime; // Simple addition of exact values
             currentCoordIndex += segmentLength;
         });
         
-        console.log('Detailed segment timing calculation:', {
-            totalDuration,
-            trackDuration,
-            transportDuration,
-            totalCoordinates,
-            segments: segmentTimings.map(s => ({
-                type: s.type,
-                mode: s.mode,
-                duration: s.duration,
-                startTime: s.startTime,
-                endTime: s.endTime,
-                progressStart: s.progressStartRatio.toFixed(3),
-                progressEnd: s.progressEndRatio.toFixed(3),
-                coordRange: `${s.startCoordIndex}-${s.endCoordIndex}`,
-                coordLength: s.coordinateLength
-            }))
+        console.log('MAIN APP: Segment timing - EXACT SUM:', {
+            totalDuration: `${totalDuration}s`,
+            trackDuration: `${trackDuration}s`, 
+            transportDuration: `${transportDuration}s`,
+            segmentCount: segmentTimings.length
         });
         
         return { 
-            totalDuration, 
+            totalDuration, // Exact sum of user inputs
             trackDuration, 
             transportDuration,
             segments: segmentTimings
@@ -1481,11 +1633,6 @@ class TrailReplayApp {
     updateTimingControls(segmentTiming) {
         // Update the total time display
         document.getElementById('totalTime').textContent = this.formatTimeInSeconds(segmentTiming.totalDuration);
-        
-        // Update the animation speed slider to reflect the total journey time
-        const timeSlider = document.getElementById('animationSpeed');
-        timeSlider.value = segmentTiming.totalDuration;
-        document.getElementById('speedValue').textContent = `${segmentTiming.totalDuration}s`;
         
         // Show segment breakdown in a new timing panel
         this.showTimingBreakdown(segmentTiming);
@@ -1608,6 +1755,105 @@ class TrailReplayApp {
                 (Math.max(...lats) + Math.min(...lats)) / 2
             ]
         };
+    }
+
+    // Force refresh all timing-related UI elements
+    refreshTimingDisplay() {
+        if (!this.currentTrackData) return;
+        
+        console.log('Force refreshing timing display');
+        
+        // Update progress display
+        this.updateProgressDisplay();
+        
+        // Update timeline progress indicator
+        if (this.currentTrackData.isJourney && this.mapRenderer) {
+            const currentProgress = this.mapRenderer.getAnimationProgress();
+            this.updateTimelineProgressIndicator(currentProgress);
+        }
+        
+        console.log('Timing display refreshed - total time:', this.totalAnimationTime);
+    }
+
+    // Validate timing update
+    validateTimingUpdate(newSegmentTiming) {
+        console.log('🔍 Validating timing update...');
+        
+        const issues = [];
+        
+        // Check if totalAnimationTime was updated
+        if (this.totalAnimationTime !== newSegmentTiming.totalDuration) {
+            issues.push(`totalAnimationTime mismatch: ${this.totalAnimationTime} vs ${newSegmentTiming.totalDuration}`);
+        }
+        
+        // Check if MapRenderer has the correct segment timing
+        if (this.mapRenderer && this.mapRenderer.segmentTimings) {
+            if (this.mapRenderer.segmentTimings.totalDuration !== newSegmentTiming.totalDuration) {
+                issues.push(`MapRenderer timing mismatch: ${this.mapRenderer.segmentTimings.totalDuration} vs ${newSegmentTiming.totalDuration}`);
+            }
+        } else {
+            issues.push('MapRenderer segment timing is null or undefined');
+        }
+        
+        // Check if current track data has updated segment timing
+        if (this.currentTrackData && this.currentTrackData.segmentTiming) {
+            if (this.currentTrackData.segmentTiming.totalDuration !== newSegmentTiming.totalDuration) {
+                issues.push(`TrackData timing mismatch: ${this.currentTrackData.segmentTiming.totalDuration} vs ${newSegmentTiming.totalDuration}`);
+            }
+        } else {
+            issues.push('CurrentTrackData segment timing is null or undefined');
+        }
+        
+        // Check UI elements
+        const totalTimeElement = document.getElementById('totalTime');
+        if (totalTimeElement) {
+            const displayedTime = totalTimeElement.textContent;
+            const expectedTime = this.formatTimeInSeconds(newSegmentTiming.totalDuration);
+            if (displayedTime !== expectedTime) {
+                issues.push(`UI total time mismatch: "${displayedTime}" vs "${expectedTime}"`);
+            }
+        }
+        
+        const timeSlider = document.getElementById('animationSpeed');
+        if (timeSlider && parseInt(timeSlider.value) !== newSegmentTiming.totalDuration) {
+            issues.push(`Time slider mismatch: ${timeSlider.value} vs ${newSegmentTiming.totalDuration}`);
+        }
+        
+        if (issues.length === 0) {
+            console.log('✅ Timing update validation PASSED - all systems synchronized');
+        } else {
+            console.error('❌ Timing update validation FAILED:', issues);
+            // Try to fix the issues
+            this.forceTimingSync(newSegmentTiming);
+        }
+    }
+    
+    // Force synchronization of all timing systems
+    forceTimingSync(newSegmentTiming) {
+        console.log('🔧 Force synchronizing timing systems...');
+        
+        // Update totalAnimationTime
+        this.totalAnimationTime = newSegmentTiming.totalDuration;
+        
+        // Update current track data
+        if (this.currentTrackData) {
+            this.currentTrackData.segmentTiming = newSegmentTiming;
+        }
+        
+        // Force update MapRenderer if needed
+        if (this.mapRenderer && (!this.mapRenderer.segmentTimings || 
+            this.mapRenderer.segmentTimings.totalDuration !== newSegmentTiming.totalDuration)) {
+            console.log('Force updating MapRenderer segment timing');
+            this.mapRenderer.segmentTimings = newSegmentTiming;
+        }
+        
+        // Force update UI elements
+        document.getElementById('totalTime').textContent = this.formatTimeInSeconds(newSegmentTiming.totalDuration);
+        
+        // Force update progress display
+        this.updateProgressDisplay();
+        
+        console.log('✅ Force timing synchronization completed');
     }
 }
 

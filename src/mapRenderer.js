@@ -74,15 +74,22 @@ export class MapRenderer {
                     }
                 ]
             },
-            center: [0, 0],
-            zoom: 2,
+            center: [0, 0], // Will be updated when track is loaded
+            zoom: 8, // Better default zoom level (was 2)
+            pitch: 0, // Start with 2D view
+            bearing: 0,
+            maxPitch: 85, // Allow steep 3D viewing angles
             antialias: true
+            // Remove explicit navigation control settings - let MapLibre handle defaults
         });
 
+        // Add navigation control
         this.map.addControl(new maplibregl.NavigationControl());
         
         this.map.on('load', () => {
             this.setupMapLayers();
+            // DON'T setup terrain source automatically - only when 3D is enabled
+            console.log('Map loaded successfully - basic navigation should work');
         });
 
         // Add click handler for annotations and icon changes
@@ -100,6 +107,9 @@ export class MapRenderer {
                 this.map.getCanvas().style.cursor = 'crosshair';
             }
         });
+        
+        // Track 3D mode state
+        this.is3DMode = false;
     }
 
     setupMapLayers() {
@@ -383,15 +393,19 @@ export class MapRenderer {
             return;
         }
 
-        // Create GeoJSON for the trail
-        const coordinates = trackData.trackPoints.map(point => [point.lon, point.lat, point.elevation]);
+        // Create GeoJSON for the trail with elevation data
+        const coordinates = trackData.trackPoints.map(point => {
+            // Include elevation in coordinates for 3D terrain
+            const elevation = point.elevation || 0;
+            return [point.lon, point.lat, elevation];
+        });
         
         // Handle journey segments if available
         if (trackData.isJourney && trackData.segments) {
-            console.log('Loading journey with segments:', trackData.segments);
+            console.log('Loading journey with segments for 3D terrain:', trackData.segments);
             this.loadJourneySegments(trackData, coordinates);
         } else {
-            // Standard single track
+            // Standard single track with elevation
             const trailLineData = {
                 type: 'Feature',
                 geometry: {
@@ -410,13 +424,21 @@ export class MapRenderer {
 
         // Fit map to trail bounds
         if (trackData.bounds) {
+            const fitOptions = {
+                padding: 50,
+                duration: 1000
+            };
+            
+            // In 3D mode, adjust the fit to account for terrain elevation
+            if (this.is3DMode) {
+                fitOptions.pitch = 45; // Moderate tilt for 3D viewing
+                fitOptions.bearing = 0;
+            }
+            
             this.map.fitBounds([
                 [trackData.bounds.west, trackData.bounds.south],
                 [trackData.bounds.east, trackData.bounds.north]
-            ], {
-                padding: 50,
-                duration: 1000
-            });
+            ], fitOptions);
         }
 
         // Reset animation and icon changes (don't clear them for journeys as they're auto-generated)
@@ -439,6 +461,11 @@ export class MapRenderer {
         }
         
         this.updateCurrentPosition();
+        
+        // Apply 3D rendering if in 3D mode
+        if (this.is3DMode) {
+            this.update3DTrailRendering();
+        }
     }
 
     // Load journey segments with visual differentiation
@@ -541,14 +568,20 @@ export class MapRenderer {
     }
 
     async updateCurrentPosition() {
-        if (!this.trackData || !this.trackData.trackPoints) return;
-
-        this.gpxParser.trackPoints = this.trackData.trackPoints;
+        // Ensure GPX parser is ready
+        if (!this.ensureGPXParserReady()) {
+            return;
+        }
         
         const currentPoint = this.gpxParser.getInterpolatedPoint(this.animationProgress);
         
         if (currentPoint) {
-            console.log('Updating position to:', currentPoint.lat, currentPoint.lon);
+            console.log('Updating position to:', {
+                progress: this.animationProgress.toFixed(3),
+                lat: currentPoint.lat,
+                lon: currentPoint.lon,
+                index: currentPoint.index
+            });
             
             // Update current position marker
             this.map.getSource('current-position').setData({
@@ -577,46 +610,73 @@ export class MapRenderer {
                 }
             });
 
-            // Check for icon changes
+            // ALWAYS check for icon changes at current position
             this.checkIconChanges(this.animationProgress);
 
             // Check for annotations
             this.checkAnnotations(this.animationProgress);
 
-            // Auto zoom to follow the marker
+            // Auto zoom to follow the marker (only if auto zoom is enabled and we're not manually seeking)
             if (this.autoZoom && this.isAnimating) {
-                this.map.easeTo({
-                    center: [currentPoint.lon, currentPoint.lat],
-                    duration: 100
-                });
+                if (this.is3DMode) {
+                    // In 3D mode, maintain the camera angle while following
+                    this.map.easeTo({
+                        center: [currentPoint.lon, currentPoint.lat],
+                        duration: 100,
+                        pitch: this.map.getPitch(), // Maintain current pitch
+                        bearing: this.map.getBearing() // Maintain current bearing
+                    });
+                } else {
+                    // Normal 2D following
+                    this.map.easeTo({
+                        center: [currentPoint.lon, currentPoint.lat],
+                        duration: 100
+                    });
+                }
             }
 
-            // Ensure activity icon layer is visible
-            if (this.map.getLayer('activity-icon')) {
-                const layer = this.map.getLayer('activity-icon');
-                const visibility = this.map.getLayoutProperty('activity-icon', 'visibility');
-                const opacity = this.map.getPaintProperty('activity-icon', 'icon-opacity');
-                
-                console.log('Activity icon layer status:', {
-                    layer: !!layer,
-                    visibility: visibility,
-                    opacity: opacity,
-                    hasImage: this.map.hasImage('activity-icon')
-                });
-                
-                // Force visibility
-                this.map.setLayoutProperty('activity-icon', 'visibility', 'visible');
-                this.map.setPaintProperty('activity-icon', 'icon-opacity', 1);
-            } else {
-                console.warn('Activity icon layer not found!');
-                // Try to recreate it
-                this.createAndAddActivityIconLayer();
+            // Ensure activity icon layer exists and is visible
+            this.ensureActivityIconLayer();
+        } else {
+            console.error('Could not get interpolated point for progress:', this.animationProgress);
+        }
+    }
+
+    // Ensure activity icon layer exists and is properly configured
+    ensureActivityIconLayer() {
+        if (!this.map.getLayer('activity-icon')) {
+            console.warn('Activity icon layer not found! Recreating...');
+            this.createAndAddActivityIconLayer(true); // Immediate creation
+        } else {
+            // Ensure the layer is visible and properly configured
+            this.map.setLayoutProperty('activity-icon', 'visibility', 'visible');
+            this.map.setPaintProperty('activity-icon', 'icon-opacity', 1);
+            
+            // Verify the icon image exists and is current
+            if (!this.map.hasImage('activity-icon')) {
+                console.warn('Activity icon image missing! Recreating...');
+                this.createAndAddActivityIcon();
             }
         }
     }
 
     checkIconChanges(progress) {
-        if (this.iconChanges.length === 0) return;
+        if (this.iconChanges.length === 0) {
+            // No icon changes, ensure we're showing the base icon
+            const baseIcon = this.getBaseIcon();
+            if (this.currentIcon !== baseIcon) {
+                console.log(`No icon changes - reverting to base icon: ${baseIcon}`);
+                this.currentIcon = baseIcon;
+                this.forceIconUpdate();
+                
+                // Dispatch event to update UI
+                const iconChangeEvent = new CustomEvent('iconChanged', {
+                    detail: { icon: this.currentIcon, progress: progress }
+                });
+                document.dispatchEvent(iconChangeEvent);
+            }
+            return;
+        }
         
         console.log('Checking icon changes at progress:', progress.toFixed(3), 'Total changes:', this.iconChanges.length);
         
@@ -650,6 +710,9 @@ export class MapRenderer {
                 detail: { icon: activeIcon, progress: progress }
             });
             document.dispatchEvent(iconChangeEvent);
+        } else {
+            // Even if icon didn't change, ensure it's properly displayed
+            this.ensureActivityIconLayer();
         }
     }
 
@@ -982,13 +1045,35 @@ export class MapRenderer {
 
     centerOnTrail() {
         if (this.trackData && this.trackData.bounds) {
+            const fitOptions = {
+                padding: 50,
+                duration: 1000
+            };
+            
+            // In 3D mode, adjust camera for better terrain visualization
+            if (this.is3DMode) {
+                fitOptions.pitch = 45; // Moderate angle for better terrain viewing (reduced from 70)
+                fitOptions.bearing = 0;
+                // In 3D mode, ensure reasonable zoom level
+                fitOptions.maxZoom = 16; // Prevent zooming too close in 3D mode
+                fitOptions.padding = 80; // More padding for 3D perspective
+            }
+            
             this.map.fitBounds([
                 [this.trackData.bounds.west, this.trackData.bounds.south],
                 [this.trackData.bounds.east, this.trackData.bounds.north]
-            ], {
-                padding: 50,
-                duration: 1000
-            });
+            ], fitOptions);
+        } else {
+            // If no track data, center on current location or reasonable default
+            const currentZoom = this.map.getZoom();
+            if (currentZoom < 5) {
+                // If zoomed out too far, zoom to a reasonable level
+                this.map.easeTo({
+                    zoom: Math.max(8, currentZoom),
+                    pitch: this.is3DMode ? 45 : 0,
+                    duration: 1000
+                });
+            }
         }
     }
 
@@ -997,19 +1082,41 @@ export class MapRenderer {
         if (!this.trackData || this.isAnimating) return;
         
         this.isAnimating = true;
-        this.lastAnimationTime = 0; // Reset timing
-        this.journeyElapsedTime = 0; // Reset journey time
         
-        // Initialize segment progress
+        // ONLY reset timing if we're starting from the beginning (progress = 0)
+        // Don't reset when resuming from a pause or seeked position
+        if (this.animationProgress === 0) {
+            this.lastAnimationTime = 0;
+            this.journeyElapsedTime = 0;
+            console.log('Starting animation from beginning - reset timing');
+        } else {
+            // When resuming from a seeked position, preserve the journey elapsed time
+            this.lastAnimationTime = 0; // Reset frame timing only
+            
+            // Ensure journeyElapsedTime matches the current progress if we have segment timing
+            if (this.segmentTimings && this.segmentTimings.totalDuration) {
+                this.journeyElapsedTime = this.animationProgress * this.segmentTimings.totalDuration;
+                console.log(`Resuming from seeked position: progress=${this.animationProgress.toFixed(3)}, journeyTime=${this.journeyElapsedTime.toFixed(1)}s`);
+            } else {
+                console.log(`Resuming from progress: ${this.animationProgress.toFixed(3)} (no segment timing)`);
+            }
+        }
+        
+        // Initialize segment progress based on current animation progress
         if (this.segmentTimings) {
             this.updateSegmentProgress(this.animationProgress);
         }
+        
+        // Force update current position to ensure correct icon and position
+        this.updateCurrentPosition();
         
         this.animate();
     }
 
     stopAnimation() {
         this.isAnimating = false;
+        // DON'T reset progress when stopping - just stop the animation
+        console.log('Animation stopped at progress:', this.animationProgress.toFixed(3));
     }
 
     resetAnimation() {
@@ -1057,12 +1164,22 @@ export class MapRenderer {
 
     // Handle animation with individual segment timing - completely rewritten for accuracy
     animateWithSegmentTiming(deltaTime) {
+        // Ensure we have valid segment timing data
+        if (!this.segmentTimings || !this.segmentTimings.segments || !this.segmentTimings.totalDuration) {
+            console.error('Invalid segment timing data in animateWithSegmentTiming:', this.segmentTimings);
+            // Fallback to simple animation
+            const progressIncrement = 0.001 * this.animationSpeed;
+            this.animationProgress += progressIncrement;
+            return;
+        }
+        
         // Convert deltaTime from milliseconds to seconds
         const deltaSeconds = deltaTime / 1000;
         
         // Initialize journey elapsed time if not set
         if (this.journeyElapsedTime === undefined || this.journeyElapsedTime === null) {
             this.journeyElapsedTime = 0;
+            console.log('Initialized journeyElapsedTime to 0');
         }
         
         // Add elapsed time
@@ -1075,6 +1192,7 @@ export class MapRenderer {
             this.journeyElapsedTime = totalDuration;
             this.animationProgress = 1;
             this.isAnimating = false;
+            console.log('Animation completed at total duration:', totalDuration);
             return;
         }
         
@@ -1128,11 +1246,12 @@ export class MapRenderer {
             
             // Debug logging (only occasionally to avoid spam)
             if (Math.floor(this.journeyElapsedTime * 2) !== Math.floor((this.journeyElapsedTime - deltaSeconds) * 2)) {
-                console.log(`Segment ${currentSegmentIndex} (${currentSegment.type}): time=${this.journeyElapsedTime.toFixed(1)}s/${totalDuration}s, progress=${this.animationProgress.toFixed(3)}`);
+                console.log(`Segment ${currentSegmentIndex} (${currentSegment.type}): journey=${this.journeyElapsedTime.toFixed(1)}s/${totalDuration}s, progress=${this.animationProgress.toFixed(3)}, segmentDuration=${currentSegment.duration}s`);
             }
         } else {
             // Fallback - shouldn't happen but just in case
             this.animationProgress = Math.min(1, timeProgress);
+            console.warn('No current segment found, using time-based progress:', timeProgress);
         }
     }
 
@@ -1140,18 +1259,44 @@ export class MapRenderer {
         return this.animationProgress;
     }
 
+    // Ensure GPX parser is properly set up with track data
+    ensureGPXParserReady() {
+        if (!this.trackData || !this.trackData.trackPoints) {
+            console.error('No track data available for GPX parser');
+            return false;
+        }
+        
+        if (!this.gpxParser.trackPoints || this.gpxParser.trackPoints !== this.trackData.trackPoints) {
+            console.log('Setting up GPX parser with track data');
+            this.gpxParser.trackPoints = this.trackData.trackPoints;
+        }
+        
+        return true;
+    }
+
     setAnimationProgress(progress) {
         this.animationProgress = Math.max(0, Math.min(1, progress));
+        
+        console.log(`Setting animation progress to: ${progress.toFixed(3)}`);
+        
+        // Ensure GPX parser is ready
+        if (!this.ensureGPXParserReady()) {
+            return;
+        }
         
         // Update journey elapsed time based on progress if we have segment timing
         if (this.segmentTimings && this.segmentTimings.totalDuration) {
             this.journeyElapsedTime = progress * this.segmentTimings.totalDuration;
+            console.log(`Seeking: progress=${progress.toFixed(3)}, journey time=${this.journeyElapsedTime.toFixed(1)}s/${this.segmentTimings.totalDuration}s`);
         }
         
         // Update segment progress if we have segment timing
         if (this.segmentTimings && this.segmentTimings.segments) {
             this.updateSegmentProgress(progress);
         }
+        
+        // Reset frame timing to prevent animation from jumping
+        this.lastAnimationTime = 0;
         
         this.updateCurrentPosition();
     }
@@ -1348,13 +1493,335 @@ export class MapRenderer {
 
     // Setup segment-aware animation
     setupSegmentAnimation(segments, segmentTiming) {
-        this.segmentTimings = segmentTiming;
-        this.journeyElapsedTime = 0; // Reset journey time when setting up new segments
         console.log('Setting up segment animation with timing:', segmentTiming);
         
-        // Reset animation state
+        // Store previous state
+        const previousProgress = this.animationProgress || 0;
+        const wasAnimating = this.isAnimating;
+        
+        // CRITICAL: Completely reset timing state
+        this.segmentTimings = null;
         this.currentSegmentIndex = 0;
         this.segmentProgress = 0;
-        this.animationProgress = 0;
+        this.journeyElapsedTime = 0;
+        this.lastAnimationTime = 0;
+        
+        console.log('Reset all timing state');
+        
+        // Update segment timing data with the new timing
+        this.segmentTimings = segmentTiming;
+        
+        // If we had a previous progress, calculate the new journey elapsed time based on new timing
+        if (previousProgress > 0 && segmentTiming && segmentTiming.totalDuration > 0) {
+            // Calculate the new journey elapsed time based on previous progress
+            this.journeyElapsedTime = previousProgress * segmentTiming.totalDuration;
+            this.animationProgress = previousProgress;
+            
+            // Update segment progress based on the new timing
+            this.updateSegmentProgress(previousProgress);
+            
+            console.log(`Preserved progress ${previousProgress.toFixed(3)} with new timing:`, {
+                oldJourneyTime: 'reset',
+                newJourneyTime: this.journeyElapsedTime.toFixed(1),
+                newTotalDuration: segmentTiming.totalDuration,
+                currentSegment: this.currentSegmentIndex
+            });
+        } else {
+            // Start from beginning
+            this.animationProgress = 0;
+            this.journeyElapsedTime = 0;
+            console.log('Starting from beginning with new timing');
+        }
+        
+        // Force update current position to reflect new timing
+        this.updateCurrentPosition();
+        
+        console.log('Segment animation setup complete:', {
+            totalDuration: segmentTiming.totalDuration,
+            segmentCount: segments.length,
+            currentProgress: this.animationProgress,
+            journeyTime: this.journeyElapsedTime,
+            segmentTimings: this.segmentTimings ? 'loaded' : 'null'
+        });
+    }
+
+    // 3D Terrain controls
+    enable3DTerrain() {
+        if (!this.map || this.is3DMode) return;
+        
+        console.log('Enabling 3D terrain mode');
+        this.is3DMode = true;
+        
+        try {
+            // Store current animation state to preserve it
+            const wasAnimating = this.isAnimating;
+            const currentProgress = this.animationProgress;
+            
+            // Very gentle camera adjustment - just add a slight tilt
+            this.map.easeTo({
+                pitch: 30, // Much less aggressive tilt
+                duration: 500 // Shorter transition
+                // Don't change zoom, center, or bearing - preserve everything else
+            });
+            
+            // Add terrain source but with minimal delay and impact
+            setTimeout(() => {
+                try {
+                    this.setupTerrainSourceMinimal();
+                    
+                    // Restore animation state immediately if it was running
+                    if (wasAnimating && currentProgress !== undefined) {
+                        setTimeout(() => {
+                            this.setAnimationProgress(currentProgress);
+                            if (wasAnimating) {
+                                this.startAnimation();
+                            }
+                        }, 100);
+                    }
+                    
+                    console.log('3D terrain enabled with minimal impact');
+                } catch (terrainError) {
+                    console.warn('Could not add terrain elevation, using 3D view only:', terrainError);
+                }
+            }, 600);
+            
+        } catch (error) {
+            console.error('Error enabling 3D terrain:', error);
+            this.is3DMode = false;
+        }
+    }
+
+    // Minimal terrain setup that doesn't interfere with navigation or animation
+    setupTerrainSourceMinimal() {
+        try {
+            console.log('Setting up minimal terrain source');
+            
+            // Add terrain source only if it doesn't exist
+            if (!this.map.getSource('terrain-dem')) {
+                this.map.addSource('terrain-dem', {
+                    type: 'raster-dem',
+                    tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
+                    tileSize: 256,
+                    encoding: 'terrarium',
+                    maxzoom: 15
+                });
+                
+                console.log('Added minimal terrain source');
+            }
+            
+            // Apply terrain with very conservative settings
+            setTimeout(() => {
+                try {
+                    this.map.setTerrain({
+                        source: 'terrain-dem',
+                        exaggeration: 0.8 // Even more conservative
+                    });
+                    
+                    console.log('Applied minimal terrain elevation');
+                    
+                    // Don't add terrain control automatically - it might interfere
+                    // User can adjust elevation with the terrain source selector
+                    
+                } catch (terrainError) {
+                    console.warn('Could not apply terrain elevation:', terrainError);
+                }
+            }, 300);
+            
+        } catch (error) {
+            console.warn('Could not setup minimal terrain source:', error);
+        }
+    }
+
+    // Update trail rendering for 3D mode
+    update3DTrailRendering() {
+        if (!this.trackData) {
+            console.log('No track data available for 3D trail rendering');
+            return;
+        }
+        
+        // Check if trail layers exist before modifying them
+        if (!this.map.getLayer('trail-line')) {
+            console.log('Trail layers not yet created, skipping 3D trail rendering');
+            return;
+        }
+        
+        // Make the trail lines slightly thicker and more visible in 3D
+        this.map.setPaintProperty('trail-line', 'line-width', [
+            'case',
+            ['==', ['get', 'isTransportation'], true], 8, // thicker for transportation in 3D
+            6 // thicker for tracks in 3D
+        ]);
+        
+        if (this.map.getLayer('trail-completed')) {
+            this.map.setPaintProperty('trail-completed', 'line-width', 7);
+            
+            // Add more dramatic line opacity for better visibility in 3D
+            this.map.setPaintProperty('trail-completed', 'line-opacity', 1.0);
+        }
+        
+        // Add more dramatic line opacity for better visibility in 3D
+        this.map.setPaintProperty('trail-line', 'line-opacity', [
+            'case',
+            ['==', ['get', 'isTransportation'], true], 0.9,
+            0.8
+        ]);
+        
+        // Enhance marker visibility in 3D
+        if (this.map.getLayer('current-position-glow')) {
+            this.map.setPaintProperty('current-position-glow', 'circle-radius', 20 * this.markerSize);
+        }
+        if (this.map.getLayer('current-position')) {
+            this.map.setPaintProperty('current-position', 'circle-radius', 10 * this.markerSize);
+        }
+        
+        // Add elevation-based styling for better depth perception
+        this.add3DElevationEffects();
+    }
+    
+    // Add elevation-based visual effects
+    add3DElevationEffects() {
+        if (!this.trackData) return;
+        
+        try {
+            // Add a subtle glow effect to the trail for better 3D perception
+            if (!this.map.getLayer('trail-glow-3d') && this.map.getLayer('trail-line')) {
+                // Clone the trail line data for the glow effect
+                const trailSource = this.map.getSource('trail-line');
+                if (trailSource) {
+                    this.map.addLayer({
+                        id: 'trail-glow-3d',
+                        type: 'line',
+                        source: 'trail-line',
+                        layout: {
+                            'line-join': 'round',
+                            'line-cap': 'round'
+                        },
+                        paint: {
+                            'line-color': this.pathColor,
+                            'line-width': 12,
+                            'line-opacity': 0.3,
+                            'line-blur': 2
+                        }
+                    }, 'trail-line'); // Add below the main trail line
+                    
+                    console.log('Added 3D trail glow effect');
+                }
+            }
+        } catch (error) {
+            console.log('Could not add 3D elevation effects:', error);
+        }
+    }
+    
+    // Update trail rendering for 2D mode
+    update2DTrailRendering() {
+        if (!this.trackData) return;
+        
+        // Check if trail layers exist before modifying them
+        if (!this.map.getLayer('trail-line')) {
+            return;
+        }
+        
+        // Reset to normal 2D line widths
+        this.map.setPaintProperty('trail-line', 'line-width', [
+            'case',
+            ['==', ['get', 'isTransportation'], true], 6, // normal transportation width
+            4 // normal track width
+        ]);
+        
+        if (this.map.getLayer('trail-completed')) {
+            this.map.setPaintProperty('trail-completed', 'line-width', 5);
+            
+            // Reset line opacity to normal
+            this.map.setPaintProperty('trail-completed', 'line-opacity', 0.8);
+        }
+        
+        // Reset line opacity to normal
+        this.map.setPaintProperty('trail-line', 'line-opacity', [
+            'case',
+            ['==', ['get', 'isTransportation'], true], 0.7,
+            0.4
+        ]);
+        
+        // Reset marker sizes to normal
+        if (this.map.getLayer('current-position-glow')) {
+            this.map.setPaintProperty('current-position-glow', 'circle-radius', 15 * this.markerSize);
+        }
+        if (this.map.getLayer('current-position')) {
+            this.map.setPaintProperty('current-position', 'circle-radius', 8 * this.markerSize);
+        }
+        
+        // Remove 3D effects
+        this.remove3DElevationEffects();
+    }
+    
+    // Remove 3D elevation effects
+    remove3DElevationEffects() {
+        try {
+            // Remove the 3D glow effect
+            if (this.map.getLayer('trail-glow-3d')) {
+                this.map.removeLayer('trail-glow-3d');
+                console.log('Removed 3D trail glow effect');
+            }
+        } catch (error) {
+            console.log('Could not remove 3D elevation effects:', error);
+        }
+    }
+
+    disable3DTerrain() {
+        if (!this.map || !this.is3DMode) return;
+        
+        console.log('Disabling 3D terrain mode');
+        this.is3DMode = false;
+        
+        try {
+            // Store animation state
+            const wasAnimating = this.isAnimating;
+            const currentProgress = this.animationProgress;
+            
+            // Remove terrain elevation gently
+            this.map.setTerrain(null);
+            console.log('Removed 3D terrain elevation');
+            
+            // Reset camera to 2D view gently - only change pitch
+            this.map.easeTo({
+                pitch: 0,
+                duration: 500 // Quick transition
+                // Don't change center, zoom, or bearing
+            });
+            
+            // Restore animation state if needed
+            if (wasAnimating && currentProgress !== undefined) {
+                setTimeout(() => {
+                    this.setAnimationProgress(currentProgress);
+                    if (wasAnimating) {
+                        this.startAnimation();
+                    }
+                }, 600);
+            }
+            
+            console.log('3D terrain disabled successfully - navigation preserved');
+        } catch (error) {
+            console.error('Error disabling 3D terrain:', error);
+        }
+    }
+
+    // Method to adjust terrain exaggeration without breaking navigation
+    setTerrainExaggeration(exaggeration) {
+        if (this.is3DMode && this.map.getSource('terrain-dem')) {
+            try {
+                this.map.setTerrain({
+                    source: 'terrain-dem',
+                    exaggeration: exaggeration
+                });
+                console.log('Terrain exaggeration set to:', exaggeration);
+            } catch (error) {
+                console.error('Error setting terrain exaggeration:', error);
+            }
+        }
+    }
+
+    // Check if terrain is supported by the current MapLibre version
+    isTerrainSupported() {
+        return typeof this.map.setTerrain === 'function' && typeof this.map.addSource === 'function';
     }
 } 

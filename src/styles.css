@@ -2245,4 +2245,104 @@ input:checked + .toggle-slider:before {
         bottom: -6px;
         left: -2px;
     }
+}
+
+/* Journey Actions */
+.journey-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+/* Auto-preview status indicator */
+.auto-preview-status {
+    display: none; /* Hidden by default */
+    align-items: center;
+    gap: 8px;
+    padding: 8px 15px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.auto-preview-status.visible {
+    display: flex;
+}
+
+.auto-preview-status .status-icon {
+    animation: spin 2s linear infinite;
+}
+
+.auto-preview-status.completed {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    animation: none;
+}
+
+.auto-preview-status.completed .status-icon {
+    animation: none;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.control-group select:focus,
+.control-group input[type="text"]:focus,
+.control-group input[type="color"]:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Terrain source selector styling */
+.terrain-source-select {
+    background: white;
+    border: 2px solid #e1e5e9;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 16px;
+    padding-right: 40px;
+}
+
+.terrain-source-select:hover {
+    border-color: #667eea;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+}
+
+.terrain-source-select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Terrain source group animation */
+#terrainSourceGroup {
+    transition: all 0.3s ease;
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+}
+
+#terrainSourceGroup[style*="block"] {
+    max-height: 100px;
+    opacity: 1;
+    margin-top: 15px;
 } 

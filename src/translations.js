@@ -22,7 +22,10 @@ export const translations = {
             reset: "🔄 Reset",
             addIconChange: "🔄 Add Icon Change",
             addAnnotation: "📍 Add Note",
-            export: "📹 Export Video"
+            export: "📹 Export Video",
+            autoZoom: "Auto Zoom",
+            terrain3d: "3D Terrain",
+            terrainSource: "Elevation Data"
         },
         iconSelection: {
             title: "Select Icon"
@@ -62,7 +65,11 @@ export const translations = {
         journey: {
             title: "Journey Builder",
             tracks: "Uploaded Tracks",
-            segments: "Journey Segments"
+            segments: "Journey Segments",
+            autoUpdating: "Auto-updating journey...",
+            journeyUpdated: "Journey updated!",
+            noTracks: "Upload GPX files to start building your journey",
+            addTransportation: "Add transportation between tracks"
         }
     },
     es: {
@@ -87,7 +94,10 @@ export const translations = {
             reset: "🔄 Reiniciar",
             addIconChange: "🔄 Añadir Cambio de Icono",
             addAnnotation: "📍 Añadir Nota",
-            export: "📹 Exportar Video"
+            export: "📹 Exportar Video",
+            autoZoom: "Auto Zoom",
+            terrain3d: "3D Terrain",
+            terrainSource: "Elevation Data"
         },
         iconSelection: {
             title: "Seleccionar Icono"
@@ -125,9 +135,13 @@ export const translations = {
             clickMapForIconChange: "Haz clic en el mapa o barra de progreso para establecer donde el icono debería cambiar"
         },
         journey: {
-            title: "Constructor de Viaje",
-            tracks: "Tracks Subidos",
-            segments: "Segmentos del Viaje"
+            title: 'Constructor de Viajes',
+            tracks: 'Pistas Subidas',
+            segments: 'Segmentos del Viaje',
+            autoUpdating: 'Actualizando viaje automáticamente...',
+            journeyUpdated: '¡Viaje actualizado!',
+            noTracks: 'Sube archivos GPX para empezar a construir tu viaje',
+            addTransportation: 'Agregar transporte entre pistas'
         }
     }
 };
