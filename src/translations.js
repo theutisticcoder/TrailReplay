@@ -25,7 +25,8 @@ export const translations = {
             export: "📹 Export Video",
             autoZoom: "Auto Zoom",
             terrain3d: "3D Terrain",
-            terrainSource: "Elevation Data"
+            terrainSource: "Elevation Data",
+            showStats: "Show Live Stats"
         },
         iconSelection: {
             title: "Select Icon"
@@ -49,7 +50,10 @@ export const translations = {
             distance: "Total Distance",
             duration: "Duration",
             elevation: "Elevation Gain",
-            speed: "Avg Speed"
+            speed: "Avg Speed",
+            currentDistance: "Distance",
+            currentElevation: "Elevation",
+            currentSpeed: "Speed"
         },
         messages: {
             fileLoaded: "GPX file loaded successfully!",
@@ -97,7 +101,8 @@ export const translations = {
             export: "📹 Exportar Video",
             autoZoom: "Auto Zoom",
             terrain3d: "3D Terrain",
-            terrainSource: "Elevation Data"
+            terrainSource: "Elevation Data",
+            showStats: "Mostrar Estadísticas en Vivo"
         },
         iconSelection: {
             title: "Seleccionar Icono"
@@ -121,7 +126,10 @@ export const translations = {
             distance: "Distancia Total",
             duration: "Duración",
             elevation: "Ganancia de Elevación",
-            speed: "Velocidad Promedio"
+            speed: "Velocidad Promedio",
+            currentDistance: "Distancia",
+            currentElevation: "Elevación",
+            currentSpeed: "Velocidad"
         },
         messages: {
             fileLoaded: "¡Archivo GPX cargado exitosamente!",

@@ -233,18 +233,6 @@ export class MapRenderer {
             }
         });
 
-        this.map.addLayer({
-            id: 'current-position',
-            type: 'circle',
-            source: 'current-position',
-            paint: {
-                'circle-radius': 8 * this.markerSize,
-                'circle-color': '#ffffff',
-                'circle-stroke-color': this.pathColor,
-                'circle-stroke-width': 3 * this.markerSize
-            }
-        });
-
         // Create icon and add layer after it's ready
         this.createAndAddActivityIconLayer();
 
@@ -379,11 +367,23 @@ export class MapRenderer {
             this.map.removeLayer('background');
         }
         
+        // Add the background layer without specifying a beforeId
+        // This will place it as the bottom layer automatically
         this.map.addLayer({
             id: 'background',
             type: 'raster',
             source: config.source
-        }, 'trail-line');
+        });
+
+        // Move the background layer to the bottom if other layers exist
+        const layers = this.map.getStyle().layers;
+        if (layers && layers.length > 1) {
+            // Find the first non-background layer to move background before it
+            const firstLayer = layers.find(layer => layer.id !== 'background');
+            if (firstLayer) {
+                this.map.moveLayer('background', firstLayer.id);
+            }
+        }
     }
 
     loadTrack(trackData) {
@@ -995,7 +995,6 @@ export class MapRenderer {
         this.map.setPaintProperty('trail-line', 'line-color', color);
         this.map.setPaintProperty('trail-completed', 'line-color', color);
         this.map.setPaintProperty('current-position-glow', 'circle-color', color);
-        this.map.setPaintProperty('current-position', 'circle-stroke-color', color);
     }
 
     setMarkerSize(size) {
@@ -1003,8 +1002,6 @@ export class MapRenderer {
         
         // Update marker sizes
         this.map.setPaintProperty('current-position-glow', 'circle-radius', 15 * size);
-        this.map.setPaintProperty('current-position', 'circle-radius', 8 * size);
-        this.map.setPaintProperty('current-position', 'circle-stroke-width', 3 * size);
         this.map.setLayoutProperty('activity-icon', 'icon-size', size);
         
         // Recreate activity icon with new size (only if map is loaded)
@@ -1670,9 +1667,6 @@ export class MapRenderer {
         if (this.map.getLayer('current-position-glow')) {
             this.map.setPaintProperty('current-position-glow', 'circle-radius', 20 * this.markerSize);
         }
-        if (this.map.getLayer('current-position')) {
-            this.map.setPaintProperty('current-position', 'circle-radius', 10 * this.markerSize);
-        }
         
         // Add elevation-based styling for better depth perception
         this.add3DElevationEffects();
@@ -1745,9 +1739,6 @@ export class MapRenderer {
         // Reset marker sizes to normal
         if (this.map.getLayer('current-position-glow')) {
             this.map.setPaintProperty('current-position-glow', 'circle-radius', 15 * this.markerSize);
-        }
-        if (this.map.getLayer('current-position')) {
-            this.map.setPaintProperty('current-position', 'circle-radius', 8 * this.markerSize);
         }
         
         // Remove 3D effects

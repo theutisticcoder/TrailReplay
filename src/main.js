@@ -74,12 +74,6 @@ class TrailReplayApp {
         document.getElementById('changeIconBtn').addEventListener('click', () => this.showIconSelectionModal());
 
         // Control inputs
-        document.getElementById('activityType').addEventListener('change', (e) => {
-            if (this.mapRenderer) {
-                this.mapRenderer.setActivityType(e.target.value);
-            }
-        });
-
         document.getElementById('terrainStyle').addEventListener('change', (e) => {
             if (this.mapRenderer) {
                 this.mapRenderer.changeMapStyle(e.target.value);
@@ -126,6 +120,11 @@ class TrailReplayApp {
             if (this.mapRenderer) {
                 this.mapRenderer.setShowCircle(e.target.checked);
             }
+        });
+
+        const showLiveStatsToggle = document.getElementById('showLiveStats');
+        showLiveStatsToggle.addEventListener('change', (e) => {
+            this.toggleLiveStats(e.target.checked);
         });
 
         const terrain3dToggle = document.getElementById('terrain3d');
@@ -588,6 +587,10 @@ class TrailReplayApp {
         // Add fade-in animation
         document.getElementById('visualizationSection').classList.add('fade-in');
         document.getElementById('statsSection').classList.add('fade-in');
+        
+        // Initialize live stats
+        this.resetLiveStats();
+        this.updateLiveStats();
     }
 
     updateStats(stats) {
@@ -637,6 +640,14 @@ class TrailReplayApp {
         // Reset progress bar
         document.getElementById('progressFill').style.width = '0%';
         document.getElementById('currentTime').textContent = '00:00';
+        
+        // Reset live stats
+        this.resetLiveStats();
+    }
+
+    resetLiveStats() {
+        document.getElementById('liveDistance').textContent = '0.0 km';
+        document.getElementById('liveElevation').textContent = '0 m';
     }
 
     startProgressUpdate() {
@@ -681,6 +692,9 @@ class TrailReplayApp {
             // Ensure total time shows the current animation time
             document.getElementById('totalTime').textContent = this.formatTimeInSeconds(this.totalAnimationTime);
         }
+        
+        // Update live stats if enabled
+        this.updateLiveStats();
         
         console.log('Progress display updated:', {
             progress: progress.toFixed(3),
@@ -1854,6 +1868,79 @@ class TrailReplayApp {
         this.updateProgressDisplay();
         
         console.log('✅ Force timing synchronization completed');
+    }
+
+    toggleLiveStats(show) {
+        const overlay = document.getElementById('liveStatsOverlay');
+        if (overlay) {
+            if (show) {
+                overlay.classList.remove('hidden');
+                this.updateLiveStats(); // Update immediately when shown
+            } else {
+                overlay.classList.add('hidden');
+            }
+        }
+    }
+
+    updateLiveStats() {
+        if (!this.mapRenderer || !this.currentTrackData) return;
+        
+        const overlay = document.getElementById('liveStatsOverlay');
+        if (!overlay || overlay.classList.contains('hidden')) return;
+        
+        try {
+            // Ensure GPX parser is ready
+            if (!this.mapRenderer.ensureGPXParserReady()) {
+                return;
+            }
+            
+            const progress = this.mapRenderer.getAnimationProgress();
+            const currentPoint = this.mapRenderer.gpxParser.getInterpolatedPoint(progress);
+            
+            if (!currentPoint) return;
+            
+            // Calculate current distance (distance traveled so far)
+            const totalDistance = this.currentTrackData.stats.totalDistance;
+            const currentDistance = progress * totalDistance;
+            
+            // Calculate current elevation gain (accumulated elevation gain so far)
+            const totalElevationGain = this.currentTrackData.stats.elevationGain || 0;
+            const currentElevationGain = progress * totalElevationGain;
+            
+            // Format and update the display values
+            const distanceElement = document.getElementById('liveDistance');
+            const elevationElement = document.getElementById('liveElevation');
+            
+            if (distanceElement) {
+                const formattedDistance = this.gpxParser.formatDistance(currentDistance);
+                if (distanceElement.textContent !== formattedDistance) {
+                    this.animateValueChange(distanceElement, formattedDistance);
+                }
+            }
+            
+            if (elevationElement) {
+                const formattedElevation = this.gpxParser.formatElevation(currentElevationGain);
+                if (elevationElement.textContent !== formattedElevation) {
+                    this.animateValueChange(elevationElement, formattedElevation);
+                }
+            }
+            
+        } catch (error) {
+            console.warn('Error updating live stats:', error);
+        }
+    }
+
+    animateValueChange(element, newValue) {
+        // Add updating class for animation
+        element.classList.add('updating');
+        
+        // Update the value
+        element.textContent = newValue;
+        
+        // Remove the animation class after animation
+        setTimeout(() => {
+            element.classList.remove('updating');
+        }, 200);
     }
 }
 

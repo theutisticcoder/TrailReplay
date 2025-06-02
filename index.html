@@ -93,17 +93,6 @@
                     <div class="controls-panel">
                         <!-- Row 1: Basic Controls -->
                         <div class="control-group">
-                            <label for="activityType">Activity Type:</label>
-                            <select id="activityType">
-                                <option value="running">🏃‍♂️ Running</option>
-                                <option value="cycling">🚴‍♂️ Cycling</option>
-                                <option value="swimming">🏊‍♂️ Swimming</option>
-                                <option value="hiking">🥾 Hiking</option>
-                                <option value="triathlon">🏆 Triathlon</option>
-                            </select>
-                        </div>
-                        
-                        <div class="control-group">
                             <label for="terrainStyle">Map Style:</label>
                             <select id="terrainStyle">
                                 <option value="satellite">🛰️ Satellite</option>
@@ -163,6 +152,14 @@
                             </div>
                         </div>
 
+                        <div class="control-group">
+                            <label data-i18n="controls.showStats">Show Live Stats:</label>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="showLiveStats" checked>
+                                <label for="showLiveStats" class="toggle-slider"></label>
+                            </div>
+                        </div>
+
                         <!-- Terrain Source Selection (shown when 3D is enabled) -->
                         <div class="control-group" id="terrainSourceGroup" style="display: none;">
                             <label data-i18n="controls.terrainSource">Elevation Data:</label>
@@ -190,6 +187,18 @@
                     <div class="map-container">
                         <div id="map" class="map"></div>
                         <div id="threeContainer" class="three-container"></div>
+                        
+                        <!-- Live Stats Overlay -->
+                        <div id="liveStatsOverlay" class="live-stats-overlay">
+                            <div class="live-stat">
+                                <span class="live-stat-label" data-i18n="stats.currentDistance">Distance:</span>
+                                <span class="live-stat-value" id="liveDistance">0.0 km</span>
+                            </div>
+                            <div class="live-stat">
+                                <span class="live-stat-label" data-i18n="stats.currentElevation">Elevation:</span>
+                                <span class="live-stat-value" id="liveElevation">0 m</span>
+                            </div>
+                        </div>
                         
                         <!-- Progress Bar -->
                         <div class="progress-container">
