@@ -1,4 +1,5 @@
 import { RoutingService } from './routingService.js';
+import { t } from './translations.js';
 
 export class JourneyBuilder {
     constructor() {
@@ -44,7 +45,7 @@ export class JourneyBuilder {
         // Check if trackData has the expected structure
         if (!trackData || !trackData.trackPoints) {
             console.error('Invalid track data - missing trackPoints:', trackData);
-            this.showMessage('Invalid track data received', 'error');
+            this.showMessage(t('messages.invalidTrackData'), 'error');
             return;
         }
         
@@ -78,12 +79,22 @@ export class JourneyBuilder {
         // Auto-preview the journey
         this.autoPreviewJourney();
         
-        // Show helpful message if this is the first track
-        if (this.tracks.length === 1) {
-            this.showMessage('Track added! The journey will preview automatically.', 'info');
-        } else {
-            this.showMessage('Track added! Journey updating...', 'info');
+        // Prevent message spam: clear any pending addTrack message
+        if (this._addTrackMsgTimeout) {
+            clearTimeout(this._addTrackMsgTimeout);
         }
+        // Debounce message: only show after a short delay, and only show the latest one
+        this._addTrackMsgTimeout = setTimeout(() => {
+            // Only show the message if no new addTrack has been called in the last 350ms
+            if (this._addTrackMsgTimeout) {
+                this._addTrackMsgTimeout = null;
+                if (this.tracks.length === 1) {
+                    this.showMessage(t('messages.trackAddedAutoPreview'), 'info');
+                } else {
+                    this.showMessage(t('messages.trackAddedUpdating'), 'info');
+                }
+            }
+        }, 350);
     }
 
     // Remove a track
@@ -123,8 +134,8 @@ export class JourneyBuilder {
             addMoreButton.innerHTML = `
                 <div class="track-icon">➕</div>
                 <div class="track-info">
-                    <div class="track-name">Add More Tracks</div>
-                    <div class="track-stats">Click to upload additional GPX files</div>
+                    <div class="track-name">${t('journeyBuilder.addMoreTracks')}</div>
+                    <div class="track-stats">${t('journeyBuilder.clickToUploadAdditionalGPXFiles')}</div>
                 </div>
             `;
             addMoreButton.addEventListener('click', () => this.addMoreTracks());
@@ -147,9 +158,9 @@ export class JourneyBuilder {
                     </div>
                 </div>
                 <div class="track-actions">
-                    <button class="track-action-btn" onclick="journeyBuilder.moveTrack(${track.id}, 'up')" title="Move Up">⬆️</button>
-                    <button class="track-action-btn" onclick="journeyBuilder.moveTrack(${track.id}, 'down')" title="Move Down">⬇️</button>
-                    <button class="track-action-btn" onclick="journeyBuilder.removeTrack(${track.id})" title="Remove">🗑️</button>
+                    <button class="track-action-btn" onclick="journeyBuilder.moveTrack(${track.id}, 'up')" title="${t('journeyBuilder.moveUp')}">⬆️</button>
+                    <button class="track-action-btn" onclick="journeyBuilder.moveTrack(${track.id}, 'down')" title="${t('journeyBuilder.moveDown')}">⬇️</button>
+                    <button class="track-action-btn" onclick="journeyBuilder.removeTrack(${track.id})" title="${t('journeyBuilder.remove')}">🗑️</button>
                 </div>
             `;
 
@@ -266,12 +277,12 @@ export class JourneyBuilder {
         summaryElement.className = 'journey-timing-summary';
         summaryElement.innerHTML = `
             <div class="timing-summary-header">
-                <span>📊 Journey Timing</span>
+                <span>${t('journeyBuilder.journeyTiming')}</span>
                 <span class="total-time">${this.formatDuration(timingSummary.totalDuration)}</span>
             </div>
             <div class="timing-summary-breakdown">
-                <span>Tracks: ${this.formatDuration(timingSummary.trackDuration)}</span>
-                <span>Transportation: ${this.formatDuration(timingSummary.transportDuration)}</span>
+                <span>${t('journeyBuilder.tracks')}: ${this.formatDuration(timingSummary.trackDuration)}</span>
+                <span>${t('journeyBuilder.transportation')}: ${this.formatDuration(timingSummary.transportDuration)}</span>
             </div>
         `;
         segmentsList.appendChild(summaryElement);
@@ -293,12 +304,12 @@ export class JourneyBuilder {
                         GPX Track • ${this.formatDistance(trackSegment.data.stats.totalDistance)}
                     </div>
                     <div class="segment-timing">
-                        <label>Animation Time:</label>
+                        <label>${t('journeyBuilder.animationTime')}:</label>
                         <input type="number" class="segment-time-input" 
                                value="${trackSegment.userTime || estimatedTime}" 
                                min="5" max="600" step="5" 
                                onchange="journeyBuilder.updateSegmentTime(${this.segments.indexOf(trackSegment)}, this.value, 'track')">
-                        <span>seconds</span>
+                        <span>${t('journeyBuilder.seconds')}</span>
                     </div>
                 </div>
             `;
@@ -333,22 +344,22 @@ export class JourneyBuilder {
                     transportElement.innerHTML = `
                         <div class="segment-icon">${this.getTransportIcon(existingTransport.mode)}</div>
                         <div class="segment-content">
-                            <div class="segment-title">Transportation: ${existingTransport.mode}</div>
+                            <div class="segment-title">${t('journeyBuilder.transportation')}: ${existingTransport.mode}</div>
                             <div class="segment-description">
                                 ${existingTransport.route ? 'Route via ' + (existingTransport.route.provider || 'roads') : `Distance: ~${distance.toFixed(1)}km`}${routeInfo}
                             </div>
                             <div class="segment-timing">
-                                <label>Animation Time:</label>
+                                <label>${t('journeyBuilder.animationTime')}:</label>
                                 <input type="number" class="segment-time-input" 
                                        value="${transportTime}" 
                                        min="5" max="600" step="5" 
                                        onchange="journeyBuilder.updateSegmentTime(${this.segments.indexOf(existingTransport)}, this.value, 'transport')">
-                                <span>seconds</span>
+                                <span>${t('journeyBuilder.seconds')}</span>
                             </div>
                         </div>
                         <div class="segment-actions">
-                            <button class="track-action-btn" onclick="journeyBuilder.editTransportation(${this.segments.indexOf(existingTransport)})" title="Edit">✏️</button>
-                            <button class="track-action-btn" onclick="journeyBuilder.removeTransportation(${this.segments.indexOf(existingTransport)})" title="Remove">🗑️</button>
+                            <button class="track-action-btn" onclick="journeyBuilder.editTransportation(${this.segments.indexOf(existingTransport)})" title="${t('journeyBuilder.edit')}">✏️</button>
+                            <button class="track-action-btn" onclick="journeyBuilder.removeTransportation(${this.segments.indexOf(existingTransport)})" title="${t('journeyBuilder.remove')}">🗑️</button>
                         </div>
                     `;
                     segmentsList.appendChild(transportElement);
@@ -360,13 +371,13 @@ export class JourneyBuilder {
                     addTransportElement.innerHTML = `
                         <div class="segment-icon">❓</div>
                         <div class="segment-content">
-                            <div class="segment-title">Add Transportation</div>
+                            <div class="segment-title">${t('journey.addTransportation')}</div>
                             <div class="segment-description">
-                                Choose how to travel between tracks (~${distance.toFixed(1)}km)
+                                ${t('journeyBuilder.chooseHowToTravelBetweenTracks')} (~${distance.toFixed(1)}km)
                             </div>
                         </div>
                         <div class="segment-actions">
-                            <button class="track-action-btn" onclick="journeyBuilder.showTransportationOptions(${trackIndex})" title="Add Transport">➕</button>
+                            <button class="track-action-btn" onclick="journeyBuilder.showTransportationOptions(${trackIndex})" title="${t('journeyBuilder.addTransport')}">➕</button>
                         </div>
                     `;
                     segmentsList.appendChild(addTransportElement);
@@ -387,7 +398,7 @@ export class JourneyBuilder {
         timelineContainer.className = 'timeline-editor';
         timelineContainer.innerHTML = `
             <div class="timeline-header">
-                <h4>🎬 Journey Timeline</h4>
+                <h4>${t('journeyBuilder.journeyTimeline')}</h4>
                 <div class="timeline-controls">
                     <button class="timeline-zoom-btn" onclick="journeyBuilder.zoomTimeline(0.5)">➖</button>
                     <span class="timeline-zoom-level">1x</span>
@@ -506,7 +517,7 @@ export class JourneyBuilder {
                 segmentElement.innerHTML = `
                     <div class="timeline-segment-header">
                         <span class="timeline-segment-icon">❓</span>
-                        <span class="timeline-segment-title">Add Transport</span>
+                        <span class="timeline-segment-title">${t('journey.addTransportation')}</span>
                     </div>
                     <div class="timeline-segment-duration">${segmentDuration}s</div>
                 `;
@@ -882,7 +893,7 @@ export class JourneyBuilder {
 
     // Auto-preview the journey to enable route drawing
     autoPreviewForRouteDrawing(segmentIndex, mode) {
-        this.showMessage('Opening map preview to enable route drawing...', 'info');
+        this.showMessage(t('messages.openingMapPreview'), 'info');
         
         // Store the pending route drawing info
         this.pendingRouteDrawing = { segmentIndex, mode };
@@ -961,8 +972,8 @@ export class JourneyBuilder {
         document.body.classList.add('route-drawing-active');
         
         // Show instructions
-        const modeText = mode === 'boat' ? 'boat route' : 'flight path';
-        this.showMessage(`Click on the map to draw your ${modeText}. Press Escape or click "Finish Route" when done.`, 'info');
+        const modeText = mode === 'boat' ? t('journeyBuilder.transportBoat') : t('journeyBuilder.transportPlane');
+        this.showMessage(t('messages.clickMapToDraw', { mode: modeText }), 'info');
         
         // Add visual feedback UI
         this.showRouteDrawingUI();
@@ -1288,13 +1299,13 @@ export class JourneyBuilder {
         this.isDrawingRoute = false;
         this.currentDrawnRoute = [];
         this.cleanupRouteDrawing();
-        this.showMessage('Route drawing cancelled', 'info');
+        this.showMessage(t('messages.routeDrawingCancelled'), 'info');
     }
 
     // Finish route drawing
     finishRouteDrawing() {
         if (this.currentDrawnRoute.length < 2) {
-            this.showMessage('Route must have at least 2 points', 'error');
+            this.showMessage(t('messages.routeMustHaveTwoPoints'), 'error');
             return;
         }
 
@@ -1326,7 +1337,7 @@ export class JourneyBuilder {
         this.cleanupRouteDrawing();
         
         this.renderSegmentsList();
-        this.showMessage(`${this.currentDrawingMode === 'boat' ? 'Boat route' : 'Flight path'} completed in ${travelTimeSeconds} seconds!`, 'success');
+        this.showMessage(t('messages.routeCompleted', { mode: t('journeyBuilder.' + (this.currentDrawingMode === 'boat' ? 'transportBoat' : 'transportPlane')), time: travelTimeSeconds }), 'success');
         
         // Auto-preview with new route
         this.autoPreviewJourney();
@@ -1402,7 +1413,7 @@ export class JourneyBuilder {
         const completeJourney = this.buildCompleteJourney();
         
         if (completeJourney.coordinates.length === 0) {
-            this.showMessage('No journey to preview. Add tracks and transportation.', 'warning');
+            this.showMessage(t('messages.noJourneyToPreview'), 'warning');
             return;
         }
 
@@ -1551,34 +1562,24 @@ export class JourneyBuilder {
     editTransportation(segmentIndex) {
         const segment = this.segments[segmentIndex];
         if (!segment || segment.type !== 'transportation') return;
-
-        // Clear the current route and mode to allow re-selection
         const currentMode = segment.mode;
         segment.mode = null;
         segment.route = null;
-        
-        // Show transportation options for editing
         this.showTransportationOptions(segmentIndex);
-        
-        // Store the previous mode for reference
         const transportOptions = document.getElementById('transportationOptions');
         transportOptions.setAttribute('data-editing', 'true');
         transportOptions.setAttribute('data-previous-mode', currentMode || '');
-        
-        this.showMessage('Select a new transportation mode', 'info');
+        this.showMessage(t('messages.selectNewTransportMode'), 'info');
     }
 
     // Remove transportation segment (reset to no transportation)
     removeTransportation(segmentIndex) {
         const segment = this.segments[segmentIndex];
         if (!segment || segment.type !== 'transportation') return;
-
-        // Reset transportation mode and route
         segment.mode = null;
         segment.route = null;
-        
         this.renderSegmentsList();
-        this.showMessage('Transportation removed', 'info');
+        this.showMessage(t('messages.transportationRemoved'), 'info');
     }
 
     // Add more tracks button functionality

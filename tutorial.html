@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TrailReplay Tutorial - Learn All Features</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./src/styles.css">
+    <style>
+        /* Tutorial-specific styles */
+        .tutorial-section {
+            margin-bottom: 4rem;
+            padding: 2rem;
+            background: var(--canvas);
+            border-radius: 8px;
+            border: 2px solid var(--evergreen);
+        }
+        
+        .tutorial-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .tutorial-icon {
+            font-size: 2.5rem;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--trail-orange-15);
+            border-radius: 50%;
+            border: 2px solid var(--trail-orange);
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+        
+        .feature-card {
+            background: var(--trail-orange-15);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid var(--trail-orange);
+        }
+        
+        .feature-title {
+            font-weight: 600;
+            color: var(--evergreen);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .feature-description {
+            color: var(--evergreen);
+            opacity: 0.8;
+            line-height: 1.5;
+        }
+        
+        .download-section {
+            background: var(--lake-teal);
+            color: var(--canvas);
+            padding: 2rem;
+            border-radius: 8px;
+            text-align: center;
+            margin: 2rem 0;
+        }
+        
+        .download-btn {
+            background: var(--canvas);
+            color: var(--evergreen);
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 0.5rem;
+            transition: all 200ms ease-out;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .download-btn:hover {
+            background: var(--trail-orange);
+            color: var(--canvas);
+            transform: translateY(-2px);
+        }
+        
+        .step-list {
+            list-style: none;
+            counter-reset: step-counter;
+        }
+        
+        .step-list li {
+            counter-increment: step-counter;
+            margin: 1rem 0;
+            padding: 1rem;
+            background: var(--trail-orange-15);
+            border-radius: 6px;
+            position: relative;
+            padding-left: 4rem;
+        }
+        
+        .step-list li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: var(--trail-orange);
+            color: var(--canvas);
+            width: 2rem;
+            height: 2rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        
+        .code-block {
+            background: var(--evergreen);
+            color: var(--canvas);
+            padding: 1rem;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+        
+        .nav-back {
+            margin: 2rem 0;
+            text-align: center;
+        }
+        
+        .nav-back a {
+            background: var(--trail-orange);
+            color: var(--canvas);
+            padding: 1rem 2rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 200ms ease-out;
+        }
+        
+        .nav-back a:hover {
+            background: var(--evergreen);
+            transform: translateY(-2px);
+        }
+        
+        .warning-box {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+        }
+        
+        .tip-box {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="container">
+                <div class="logo-container">
+                    <div class="logo-placeholder">
+                        <img src="images/logohorizontal.svg" alt="TrailReplay logo" class="logo-image" 
+                             onload="if(this.offsetWidth > 0) { document.querySelector('.logo-text').style.display = 'none'; } else { document.querySelector('.logo-text').style.display = 'block'; this.style.display = 'none'; }"
+                             onerror="document.querySelector('.logo-text').style.display = 'block'; this.style.display = 'none';" />
+                        <span class="logo-text">TrailReplay</span>
+                    </div>
+                </div>
+                <p class="subtitle" data-i18n="tutorial.title">Complete Tutorial & Feature Guide</p>
+                
+                <!-- Language Switcher -->
+                <div class="language-switcher">
+                    <select id="languageSelect">
+                        <option value="en">🇺🇸 English</option>
+                        <option value="es">🇪🇸 Español</option>
+                    </select>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main">
+            <div class="container">
+                
+                <!-- Introduction -->
+                <section class="tutorial-section">
+                    <div class="tutorial-header">
+                        <div class="tutorial-icon">🏁</div>
+                        <div>
+                            <h2 data-i18n="tutorial.welcomeTitle">Welcome to TrailReplay</h2>
+                            <p data-i18n="tutorial.welcomeSubtitle">Transform your GPX trail data into beautiful, interactive 3D animations</p>
+                        </div>
+                    </div>
+                    
+                    <p data-i18n="tutorial.welcomeDescription">TrailReplay is a powerful yet simple web application that turns your GPS trail data into stunning visual stories. Whether you're a runner, cyclist, hiker, or multi-sport athlete, TrailReplay helps you relive and share your outdoor adventures through animated maps, detailed statistics, and exportable videos.</p>
+                    
+                    <div class="tip-box">
+                        <strong data-i18n="tutorial.proTip">💡 Pro Tip:</strong> <span data-i18n="tutorial.proTipText">TrailReplay works entirely in your browser - no data is uploaded to servers, ensuring your privacy and enabling offline use!</span>
+                    </div>
+                </section>
+
+                <!-- Sample Files -->
+                <section class="tutorial-section">
+                    <div class="tutorial-header">
+                        <div class="tutorial-icon">📂</div>
+                        <div>
+                            <h2 data-i18n="tutorial.sampleFiles">Download Sample GPX Files</h2>
+                            <p data-i18n="tutorial.sampleFilesSubtitle">Try TrailReplay with these example activities</p>
+                        </div>
+                    </div>
+                    
+                    <div class="download-section">
+                        <h3 data-i18n="tutorial.exampleActivities">🏃‍♂️ Example Activities</h3>
+                        <p data-i18n="tutorial.sampleDescription">Download these sample GPX files to explore all of TrailReplay's features:</p>
+                        
+                        <a href="#" class="download-btn" onclick="downloadSampleGPX('running')" data-i18n="tutorial.downloadRunning">
+                            🏃‍♂️ Running Trail (5km)
+                        </a>
+                        <a href="#" class="download-btn" onclick="downloadSampleGPX('cycling')" data-i18n="tutorial.downloadCycling">
+                            🚴‍♂️ Cycling Route (25km)
+                        </a>
+                        <a href="#" class="download-btn" onclick="downloadSampleGPX('hiking')" data-i18n="tutorial.downloadHiking">
+                            🥾 Mountain Hike (8km)
+                        </a>
+                        <a href="#" class="download-btn" onclick="downloadSampleGPX('multi')" data-i18n="tutorial.downloadMulti">
+                            🏆 Multi-Sport Journey
+                        </a>
+                    </div>
+                </section>
+
+                <!-- Core Features -->
+                <section class="tutorial-section">
+                    <div class="tutorial-header">
+                        <div class="tutorial-icon">⭐</div>
+                        <div>
+                            <h2 data-i18n="tutorial.coreFeatures">Core Features Overview</h2>
+                            <p data-i18n="tutorial.coreFeaturesSubtitle">Everything you can do with TrailReplay</p>
+                        </div>
+                    </div>
+                    
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <div class="feature-title" data-i18n="tutorial.multiFileTitle">
+                                📁 Multi-File Upload
+                            </div>
+                            <div class="feature-description" data-i18n="tutorial.multiFileDescription">
+                                Upload multiple GPX files to create complex journeys. Perfect for multi-day adventures or comparing different routes.
+                            </div>
+                        </div>
+                        
+                        <div class="feature-card">
+                            <div class="feature-title" data-i18n="tutorial.journeyBuilderTitle">
+                                🧩 Journey Builder
+                            </div>
+                            <div class="feature-description" data-i18n="tutorial.journeyBuilderDescription">
+                                Combine multiple tracks into a single journey with custom transportation segments between activities.
+                            </div>
+                        </div>
+                        
+                        <div class="feature-card">
+                            <div class="feature-title" data-i18n="tutorial.animationTitle">
+                                🎬 3D Animation
+                            </div>
+                            <div class="feature-description" data-i18n="tutorial.animationDescription">
+                                Watch your trail come to life with smooth 3D animations, customizable icons, and real-time statistics.
+                            </div>
+                        </div>
+                        
+                        <div class="feature-card">
+                            <div class="feature-title" data-i18n="tutorial.videoExportTitle">
+                                📹 Video Export
+                            </div>
+                            <div class="feature-description" data-i18n="tutorial.videoExportDescription">
+                                Export your animated trail as a video file to share on social media or save as a memory.
+                            </div>
+                        </div>
+                        
+                        <div class="feature-card">
+                            <div class="feature-title" data-i18n="tutorial.annotationsTitle">
+                                📝 Trail Annotations
+                            </div>
+                            <div class="feature-description" data-i18n="tutorial.annotationsDescription">
+                                Add notes, photos, and points of interest to specific locations along your trail for storytelling.
+                            </div>
+                        </div>
+                        
+                        <div class="feature-card">
+                            <div class="feature-title" data-i18n="tutorial.iconTimelineTitle">
+                                🔄 Icon Timeline
+                            </div>
+                            <div class="feature-description" data-i18n="tutorial.iconTimelineDescription">
+                                Change activity icons during the animation to represent different activities or conditions.
+                            </div>
+                        </div>
+                        
+                        <div class="feature-card">
+                            <div class="feature-title" data-i18n="tutorial.mapStylesTitle">
+                                🗺️ Multiple Map Styles
+                            </div>
+                            <div class="feature-description" data-i18n="tutorial.mapStylesDescription">
+                                Choose from satellite, terrain, or street map styles. Enable 3D terrain for dramatic elevation visualization.
+                            </div>
+                        </div>
+                        
+                        <div class="feature-card">
+                            <div class="feature-title" data-i18n="tutorial.liveStatsTitle">
+                                📊 Live Statistics
+                            </div>
+                            <div class="feature-description" data-i18n="tutorial.liveStatsDescription">
+                                Real-time distance, elevation, and timing data updates as the animation plays.
+                            </div>
+                        </div>
+                        
+                        <div class="feature-card">
+                            <div class="feature-title" data-i18n="tutorial.multiLanguageTitle">
+                                🌍 Multi-Language
+                            </div>
+                            <div class="feature-description" data-i18n="tutorial.multiLanguageDescription">
+                                Full support for English and Spanish with automatic language detection.
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Getting Started -->
+                <section class="tutorial-section">
+                    <div class="tutorial-header">
+                        <div class="tutorial-icon">🚀</div>
+                        <div>
+                            <h2 data-i18n="tutorial.gettingStarted">Getting Started</h2>
+                            <p data-i18n="tutorial.gettingStartedSubtitle">Your first TrailReplay animation in 5 minutes</p>
+                        </div>
+                    </div>
+                    
+                    <ol class="step-list">
+                        <li>
+                            <strong data-i18n="tutorial.step1Title">Upload Your GPX File</strong><br>
+                            <span data-i18n="tutorial.step1Description">Drag and drop a GPX file onto the upload area, or click "Choose Files" to browse. You can upload multiple files at once.</span>
+                        </li>
+                        <li>
+                            <strong data-i18n="tutorial.step2Title">Build Your Journey</strong><br>
+                            <span data-i18n="tutorial.step2Description">Your uploaded tracks appear in the Journey Builder. Reorder them by dragging, and add transportation segments between tracks if needed.</span>
+                        </li>
+                        <li>
+                            <strong data-i18n="tutorial.step3Title">Customize the Visualization</strong><br>
+                            <span data-i18n="tutorial.step3Description">Choose your map style, trail color, activity icons, and animation settings. Enable 3D terrain for dramatic effect.</span>
+                        </li>
+                        <li>
+                            <strong data-i18n="tutorial.step4Title">Play Your Animation</strong><br>
+                            <span data-i18n="tutorial.step4Description">Click the Play button to start the animation. Use the progress bar to jump to specific moments.</span>
+                        </li>
+                        <li>
+                            <strong data-i18n="tutorial.step5Title">Add Annotations (Optional)</strong><br>
+                            <span data-i18n="tutorial.step5Description">Click "Add Note" to add annotations at specific points. These will appear during animation playback.</span>
+                        </li>
+                        <li>
+                            <strong data-i18n="tutorial.step6Title">Export Your Video</strong><br>
+                            <span data-i18n="tutorial.step6Description">Click "Export Video" to save your animation as a WebM video file for sharing.</span>
+                        </li>
+                    </ol>
+                </section>
+
+                <!-- Advanced Features -->
+                <section class="tutorial-section">
+                    <div class="tutorial-header">
+                        <div class="tutorial-icon">⚙️</div>
+                        <div>
+                            <h2 data-i18n="tutorial.advancedFeatures">Advanced Features</h2>
+                            <p data-i18n="tutorial.advancedFeaturesSubtitle">Power user tips and advanced functionality</p>
+                        </div>
+                    </div>
+                    
+                    <h3 data-i18n="tutorial.journeyBuilderAdvancedTitle">🧩 Journey Builder Advanced</h3>
+                    <p data-i18n="tutorial.journeyBuilderAdvancedDesc">The Journey Builder allows you to create complex multi-activity journeys:</p>
+                    <ul>
+                        <li><span data-i18n="tutorial.reorderTracks"><strong>Reorder Tracks:</strong> Drag tracks to change the sequence of your journey</span></li>
+                        <li><span data-i18n="tutorial.customTiming"><strong>Custom Timing:</strong> Override automatic timing calculations with custom durations</span></li>
+                        <li><span data-i18n="tutorial.transportationSegments"><strong>Transportation Segments:</strong> Add car, boat, plane, train, or walking segments between tracks</span></li>
+                        <li><span data-i18n="tutorial.autoPreview"><strong>Auto-Preview:</strong> Changes are automatically applied to the visualization</span></li>
+                    </ul>
+                    
+                    <h3 data-i18n="tutorial.dynamicIconChangesTitle">🔄 Dynamic Icon Changes</h3>
+                    <p data-i18n="tutorial.dynamicIconChangesDesc">Tell your story with changing icons:</p>
+                    <ul>
+                        <li data-i18n="tutorial.addIconChange">Click "Add Icon Change" and then click on the map or progress bar</li>
+                        <li data-i18n="tutorial.chooseNewIcon">Choose a new icon that represents different activities or conditions</li>
+                        <li data-i18n="tutorial.perfectFor">Perfect for triathlons, adventure races, or changing weather conditions</li>
+                    </ul>
+                    
+                    <h3 data-i18n="tutorial.smartAnnotationsTitle">📝 Smart Annotations</h3>
+                    <p data-i18n="tutorial.smartAnnotationsDesc">Add context to your trail:</p>
+                    <ul>
+                        <li data-i18n="tutorial.choosePresetIcons">Choose from preset icons (📍 location, ⚠️ warning, 📸 photo, etc.)</li>
+                        <li data-i18n="tutorial.addTitles">Add titles and descriptions for each annotation</li>
+                        <li data-i18n="tutorial.annotationsAppear">Annotations appear automatically during animation</li>
+                        <li data-i18n="tutorial.clickAnnotations">Click annotations in the list to jump to that point</li>
+                    </ul>
+                    
+                    <h3 data-i18n="tutorial.videoExportOptionsTitle">🎥 Video Export Options</h3>
+                    <p data-i18n="tutorial.videoExportOptionsDesc">Professional-quality video exports:</p>
+                    <ul>
+                        <li data-i18n="tutorial.webmFormat"><strong>WebM Format:</strong> High-quality, web-optimized videos</li>
+                        <li data-i18n="tutorial.cleanInterface"><strong>Clean Interface:</strong> UI elements are hidden during export</li>
+                        <li data-i18n="tutorial.fps"><strong>30 FPS:</strong> Smooth animation at 30 frames per second</li>
+                        <li data-i18n="tutorial.customBitrate"><strong>Custom Bitrate:</strong> 2.5 Mbps for optimal quality/size balance</li>
+                    </ul>
+                    
+                    <div class="warning-box"><strong data-i18n="tutorial.videoExportTipsTitle">⚠️ Video Export Tips:</strong> <span data-i18n="tutorial.videoExportTips">For best results, let the map fully load before exporting. If you see white areas (loading tiles), wait a moment or slow down the animation speed.</span></div>
+                </section>
+
+                <!-- Map Customization -->
+                <section class="tutorial-section">
+                    <div class="tutorial-header">
+                        <div class="tutorial-icon">🗺️</div>
+                        <div>
+                            <h2 data-i18n="tutorial.mapCustomizationTitle">Map Customization</h2>
+                            <p data-i18n="tutorial.mapCustomizationDesc">Make your visualization perfect for your story</p>
+                        </div>
+                    </div>
+                    
+                    <h3>🎨 Visual Customization</h3>
+                    <div class="feature-grid">
+                        <div class="feature-card">
+                            <div class="feature-title" data-i18n="tutorial.mapStyles">Map Styles</div>
+                            <div class="feature-description" data-i18n="tutorial.mapStylesDesc">
+                                <strong>🛰️ Satellite:</strong> High-resolution satellite imagery<br>
+                                <strong>🗻 Terrain:</strong> Topographic with elevation shading<br>
+                                <strong>🗺️ Street:</strong> Detailed street-level mapping
+                            </div>
+                        </div>
+                        
+                        <div class="feature-card">
+                            <div class="feature-title" data-i18n="tutorial.terrain3d">3D Terrain</div>
+                            <div class="feature-description" data-i18n="tutorial.terrain3dDesc">Enable 3D terrain for dramatic elevation visualization. Choose between Mapzen Terrarium (global) or OpenTopography SRTM data sources.</div>
+                        </div>
+                        
+                        <div class="feature-card">
+                            <div class="feature-title" data-i18n="tutorial.trailStyling">Trail Styling</div>
+                            <div class="feature-description" data-i18n="tutorial.trailStylingDesc">Customize trail color with preset options or custom colors. Adjust marker size and enable/disable background circles.</div>
+                        </div>
+                        
+                        <div class="feature-card">
+                            <div class="feature-title" data-i18n="tutorial.autoFollow">Auto Follow</div>
+                            <div class="feature-description" data-i18n="tutorial.autoFollowDesc">Camera automatically follows the animated marker, or disable for a fixed view of the entire trail.</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Troubleshooting -->
+                <section class="tutorial-section">
+                    <div class="tutorial-header">
+                        <div class="tutorial-icon">🔧</div>
+                        <div>
+                            <h2 data-i18n="tutorial.troubleshootingTitle">Troubleshooting & Tips</h2>
+                            <p data-i18n="tutorial.troubleshootingDesc">Common issues and how to solve them</p>
+                        </div>
+                    </div>
+                    
+                    <h3 data-i18n="tutorial.fileUploadIssues">📁 File Upload Issues</h3>
+                    <ul>
+                        <li data-i18n="tutorial.fileFormat"><strong>Format:</strong> Only GPX files are supported (not TCX, FIT, or other formats)</li>
+                        <li data-i18n="tutorial.fileSize"><strong>Size:</strong> Very large files (>1000 points) may slow down performance</li>
+                        <li data-i18n="tutorial.fileContent"><strong>Content:</strong> GPX files must contain track points with coordinates and timestamps</li>
+                    </ul>
+                    
+                    <h3 data-i18n="tutorial.videoExportIssues">🎥 Video Export Issues</h3>
+                    <ul>
+                        <li data-i18n="tutorial.whiteAreas"><strong>White Areas:</strong> Wait for map tiles to load before exporting</li>
+                        <li data-i18n="tutorial.browserSupport"><strong>Browser Support:</strong> Chrome and Firefox work best for video export</li>
+                        <li data-i18n="tutorial.performance"><strong>Performance:</strong> Close other browser tabs for better recording performance</li>
+                    </ul>
+                    
+                    <h3 data-i18n="tutorial.mapDisplayIssues">🗺️ Map Display Issues</h3>
+                    <ul>
+                        <li data-i18n="tutorial.slowLoading"><strong>Slow Loading:</strong> Disable 3D terrain if the map loads slowly</li>
+                        <li data-i18n="tutorial.missingTiles"><strong>Missing Tiles:</strong> Check your internet connection</li>
+                        <li data-i18n="tutorial.poorPerformance"><strong>Poor Performance:</strong> Try switching to a simpler map style</li>
+                    </ul>
+                    
+                    <div class="tip-box"><strong data-i18n="tutorial.performanceTipsTitle">💡 Performance Tips:</strong>
+                        <ul>
+                            <li data-i18n="tutorial.simplifyFiles">Simplify large GPX files by reducing track points</li>
+                            <li data-i18n="tutorial.satelliteView">Use satellite view for best visual impact</li>
+                            <li data-i18n="tutorial.recordAtLowerSpeed">Record videos at lower animation speeds for smoother results</li>
+                            <li data-i18n="tutorial.clearCache">Clear browser cache if experiencing issues</li>
+                        </ul>
+                    </div>
+                </section>
+
+                <!-- Technical Details -->
+                <section class="tutorial-section">
+                    <div class="tutorial-header">
+                        <div class="tutorial-icon">⚡</div>
+                        <div>
+                            <h2 data-i18n="tutorial.technicalDetailsTitle">Technical Details</h2>
+                            <p data-i18n="tutorial.technicalDetailsDesc">How TrailReplay works under the hood</p>
+                        </div>
+                    </div>
+                    
+                    <h3 data-i18n="tutorial.techStack">🔧 Technology Stack</h3>
+                    <ul>
+                        <li data-i18n="tutorial.maplibre"><strong>MapLibre GL JS:</strong> Open-source mapping and 3D visualization</li>
+                        <li data-i18n="tutorial.threejs"><strong>Three.js:</strong> Additional 3D graphics capabilities</li>
+                        <li data-i18n="tutorial.mediaRecorder"><strong>MediaRecorder API:</strong> Browser-native video recording</li>
+                        <li data-i18n="tutorial.turfjs"><strong>Turf.js:</strong> Geospatial calculations and analysis</li>
+                        <li data-i18n="tutorial.webWorkers"><strong>Web Workers:</strong> Background processing for large files</li>
+                    </ul>
+                    
+                    <h3 data-i18n="tutorial.privacySecurity">🔒 Privacy & Security</h3>
+                    <ul>
+                        <li data-i18n="tutorial.clientSide"><strong>Client-Side Only:</strong> All processing happens in your browser</li>
+                        <li data-i18n="tutorial.noDataUpload"><strong>No Data Upload:</strong> Your GPX files never leave your device</li>
+                        <li data-i18n="tutorial.noTracking"><strong>No Tracking:</strong> No analytics or user tracking</li>
+                        <li data-i18n="tutorial.openSource"><strong>Open Source:</strong> All code is publicly available</li>
+                    </ul>
+                    
+                    <h3 data-i18n="tutorial.browserSupport">🌐 Browser Support</h3>
+                    <ul>
+                        <li data-i18n="tutorial.chrome"><strong>Chrome 80+:</strong> Full feature support including video export</li>
+                        <li data-i18n="tutorial.firefox"><strong>Firefox 75+:</strong> Full feature support</li>
+                        <li data-i18n="tutorial.safari"><strong>Safari 14+:</strong> Basic features (video export may be limited)</li>
+                        <li data-i18n="tutorial.edge"><strong>Edge 80+:</strong> Full feature support</li>
+                    </ul>
+                </section>
+
+                <!-- Back to App -->
+                <div class="nav-back">
+                    <a href="index.html" data-i18n="tutorial.backToApp">← Back to TrailReplay App</a>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="container">
+                <p data-i18n="footer.copyright">&copy; TrailReplay - Open Source Trail Storytelling</p>
+                <div class="tech-stack">
+                    <span data-i18n="footer.builtWith">Built with ❤️ for the outdoor community</span>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <a href="https://github.com/alexalmansa/TrailReplay" target="_blank" rel="noopener noreferrer" class="github-link">
+                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                        </svg>
+                        <span data-i18n="footer.github">View on GitHub</span>
+                    </a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // Sample GPX file generation
+        function downloadSampleGPX(type) {
+            let gpxContent = '';
+            let filename = '';
+            
+            switch(type) {
+                case 'running':
+                    filename = 'sample-running-5km.gpx';
+                    gpxContent = generateRunningGPX();
+                    break;
+                case 'cycling':
+                    filename = 'sample-cycling-25km.gpx';
+                    gpxContent = generateCyclingGPX();
+                    break;
+                case 'hiking':
+                    filename = 'sample-hiking-8km.gpx';
+                    gpxContent = generateHikingGPX();
+                    break;
+                case 'multi':
+                    filename = 'sample-multisport.gpx';
+                    gpxContent = generateMultiSportGPX();
+                    break;
+            }
+            
+            const blob = new Blob([gpxContent], { type: 'application/gpx+xml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        
+        function generateRunningGPX() {
+            return `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="TrailReplay Sample">
+  <trk>
+    <name>Morning Run - Central Park</name>
+    <type>running</type>
+    <trkseg>
+      <trkpt lat="40.7829" lon="-73.9654">
+        <ele>45</ele>
+        <time>2024-01-15T08:00:00Z</time>
+      </trkpt>
+      <trkpt lat="40.7849" lon="-73.9647">
+        <ele>47</ele>
+        <time>2024-01-15T08:02:30Z</time>
+      </trkpt>
+      <trkpt lat="40.7869" lon="-73.9640">
+        <ele>50</ele>
+        <time>2024-01-15T08:05:00Z</time>
+      </trkpt>
+      <trkpt lat="40.7889" lon="-73.9655">
+        <ele>48</ele>
+        <time>2024-01-15T08:07:30Z</time>
+      </trkpt>
+      <trkpt lat="40.7909" lon="-73.9670">
+        <ele>46</ele>
+        <time>2024-01-15T08:10:00Z</time>
+      </trkpt>
+      <trkpt lat="40.7925" lon="-73.9685">
+        <ele>44</ele>
+        <time>2024-01-15T08:12:30Z</time>
+      </trkpt>
+      <trkpt lat="40.7940" lon="-73.9700">
+        <ele>42</ele>
+        <time>2024-01-15T08:15:00Z</time>
+      </trkpt>
+      <trkpt lat="40.7950" lon="-73.9720">
+        <ele>40</ele>
+        <time>2024-01-15T08:17:30Z</time>
+      </trkpt>
+      <trkpt lat="40.7960" lon="-73.9740">
+        <ele>38</ele>
+        <time>2024-01-15T08:20:00Z</time>
+      </trkpt>
+      <trkpt lat="40.7970" lon="-73.9760">
+        <ele>36</ele>
+        <time>2024-01-15T08:22:30Z</time>
+      </trkpt>
+    </trkseg>
+  </trk>
+</gpx>`;
+        }
+        
+        function generateCyclingGPX() {
+            return `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="TrailReplay Sample">
+  <trk>
+    <name>Cycling Adventure - Hudson River</name>
+    <type>cycling</type>
+    <trkseg>
+      <trkpt lat="40.7589" lon="-73.9851">
+        <ele>10</ele>
+        <time>2024-01-15T09:00:00Z</time>
+      </trkpt>
+      <trkpt lat="40.7689" lon="-73.9891">
+        <ele>12</ele>
+        <time>2024-01-15T09:03:00Z</time>
+      </trkpt>
+      <trkpt lat="40.7789" lon="-73.9931">
+        <ele>15</ele>
+        <time>2024-01-15T09:06:00Z</time>
+      </trkpt>
+      <trkpt lat="40.7889" lon="-73.9971">
+        <ele>18</ele>
+        <time>2024-01-15T09:09:00Z</time>
+      </trkpt>
+      <trkpt lat="40.7989" lon="-74.0011">
+        <ele>20</ele>
+        <time>2024-01-15T09:12:00Z</time>
+      </trkpt>
+      <trkpt lat="40.8089" lon="-74.0051">
+        <ele>22</ele>
+        <time>2024-01-15T09:15:00Z</time>
+      </trkpt>
+      <trkpt lat="40.8189" lon="-74.0091">
+        <ele>25</ele>
+        <time>2024-01-15T09:18:00Z</time>
+      </trkpt>
+      <trkpt lat="40.8289" lon="-74.0131">
+        <ele>28</ele>
+        <time>2024-01-15T09:21:00Z</time>
+      </trkpt>
+    </trkseg>
+  </trk>
+</gpx>`;
+        }
+        
+        function generateHikingGPX() {
+            return `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="TrailReplay Sample">
+  <trk>
+    <name>Mountain Hike - Bear Mountain</name>
+    <type>hiking</type>
+    <trkseg>
+      <trkpt lat="41.3128" lon="-74.0060">
+        <ele>150</ele>
+        <time>2024-01-15T10:00:00Z</time>
+      </trkpt>
+      <trkpt lat="41.3148" lon="-74.0080">
+        <ele>180</ele>
+        <time>2024-01-15T10:10:00Z</time>
+      </trkpt>
+      <trkpt lat="41.3168" lon="-74.0100">
+        <ele>220</ele>
+        <time>2024-01-15T10:20:00Z</time>
+      </trkpt>
+      <trkpt lat="41.3188" lon="-74.0120">
+        <ele>280</ele>
+        <time>2024-01-15T10:30:00Z</time>
+      </trkpt>
+      <trkpt lat="41.3208" lon="-74.0140">
+        <ele>350</ele>
+        <time>2024-01-15T10:40:00Z</time>
+      </trkpt>
+      <trkpt lat="41.3228" lon="-74.0160">
+        <ele>420</ele>
+        <time>2024-01-15T10:50:00Z</time>
+      </trkpt>
+      <trkpt lat="41.3248" lon="-74.0180">
+        <ele>500</ele>
+        <time>2024-01-15T11:00:00Z</time>
+      </trkpt>
+    </trkseg>
+  </trk>
+</gpx>`;
+        }
+        
+        function generateMultiSportGPX() {
+            return `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="TrailReplay Sample">
+  <trk>
+    <name>Triathlon Training Day</name>
+    <type>triathlon</type>
+    <trkseg>
+      <trkpt lat="40.7500" lon="-73.9900">
+        <ele>5</ele>
+        <time>2024-01-15T07:00:00Z</time>
+      </trkpt>
+      <trkpt lat="40.7520" lon="-73.9920">
+        <ele>8</ele>
+        <time>2024-01-15T07:15:00Z</time>
+      </trkpt>
+      <trkpt lat="40.7540" lon="-73.9940">
+        <ele>10</ele>
+        <time>2024-01-15T07:30:00Z</time>
+      </trkpt>
+      <trkpt lat="40.7560" lon="-73.9960">
+        <ele>12</ele>
+        <time>2024-01-15T08:00:00Z</time>
+      </trkpt>
+      <trkpt lat="40.7580" lon="-73.9980">
+        <ele>15</ele>
+        <time>2024-01-15T08:30:00Z</time>
+      </trkpt>
+      <trkpt lat="40.7600" lon="-74.0000">
+        <ele>18</ele>
+        <time>2024-01-15T09:00:00Z</time>
+      </trkpt>
+    </trkseg>
+  </trk>
+</gpx>`;
+        }
+    </script>
+    
+    <!-- Include translations -->
+    <script type="module">
+        import { initializeTranslations, setLanguage } from './src/translations.js';
+        
+        // Initialize translations when the page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeTranslations();
+            
+            // Setup language switcher functionality
+            const languageSelect = document.getElementById('languageSelect');
+            if (languageSelect) {
+                // Set current language as selected
+                const lang = localStorage.getItem('trailReplayLang') || navigator.language.slice(0,2) || 'en';
+                languageSelect.value = lang.startsWith('es') ? 'es' : 'en';
+                languageSelect.addEventListener('change', (e) => {
+                    setLanguage(e.target.value);
+                });
+            }
+        });
+    </script>
+</body>
+</html> 

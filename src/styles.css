@@ -1168,6 +1168,25 @@ body.video-export-active .map-watermark {
     font-family: 'JetBrains Mono', monospace;
 }
 
+/* GitHub Link */
+.github-link {
+    color: var(--canvas);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    transition: all 200ms ease-out;
+    margin-top: 1rem;
+}
+
+.github-link:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
 /* Journey Builder Styles */
 .journey-planning-section {
     background: var(--canvas);
@@ -2028,6 +2047,7 @@ body.video-export-active .map-watermark {
     flex-direction: column;
     gap: 0.5rem;
     min-width: 150px;
+    z-index: 1100;
 }
 
 .live-stat {

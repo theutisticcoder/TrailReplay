@@ -39,6 +39,9 @@ class TrailReplayApp {
         // Initialize translations
         initializeTranslations();
         
+        // Update placeholders with translations
+        setTimeout(() => this.updatePlaceholders(), 100);
+        
         // Initialize UI event listeners
         this.setupEventListeners();
         
@@ -59,6 +62,15 @@ class TrailReplayApp {
 
         // Initialize map renderer
         await this.initializeMapRenderer();
+
+        // After all UI is set up, ensure live stats overlay is shown if toggle is on
+        setTimeout(() => {
+            const showLiveStatsToggle = document.getElementById('showLiveStats');
+            if (showLiveStatsToggle && showLiveStatsToggle.checked) {
+                this.toggleLiveStats(true);
+                this.updateLiveStats();
+            }
+        }, 200);
     }
 
     async initializeMapRenderer() {
@@ -71,7 +83,6 @@ class TrailReplayApp {
                 if (this.mapRenderer && this.mapRenderer.isTerrainSupported && this.mapRenderer.isTerrainSupported()) {
                     console.log('Auto-enabling 3D terrain on startup');
                     this.mapRenderer.enable3DTerrain();
-                    this.showMessage('3D terrain enabled by default! The map has a slight 3D tilt with elevation data.', 'success');
                 } else {
                     console.warn('3D terrain not supported, falling back to 2D');
                     // Uncheck the checkbox if terrain is not supported
@@ -168,15 +179,15 @@ class TrailReplayApp {
                     if (this.mapRenderer.isTerrainSupported && this.mapRenderer.isTerrainSupported()) {
                         this.mapRenderer.enable3DTerrain();
                         terrainSourceGroup.style.display = 'block'; // Show terrain source selector
-                        this.showMessage('3D terrain enabled! The map now has a slight 3D tilt with elevation data.', 'success');
+                        this.showMessage(t('messages.terrain3dEnabled'), 'success');
                     } else {
-                        this.showMessage('3D terrain is not supported by your browser/device', 'error');
+                        this.showMessage(t('messages.terrain3dNotSupported'), 'error');
                         e.target.checked = false;
                     }
                 } else {
                     this.mapRenderer.disable3DTerrain();
                     terrainSourceGroup.style.display = 'none'; // Hide terrain source selector
-                    this.showMessage('3D terrain disabled', 'info');
+                    this.showMessage(t('messages.terrain3dDisabled'), 'info');
                 }
             }
         });
@@ -194,12 +205,12 @@ class TrailReplayApp {
                     switch (sourceType) {
                         case 'opentopo':
                             this.mapRenderer.setTerrainExaggeration && this.mapRenderer.setTerrainExaggeration(0.6);
-                            this.showMessage('Using OpenTopography elevation data (subtle)', 'info');
+                            this.showMessage(t('messages.elevationDataOpenTopo'), 'info');
                             break;
                         case 'mapzen':
                         default:
                             this.mapRenderer.setTerrainExaggeration && this.mapRenderer.setTerrainExaggeration(0.8);
-                            this.showMessage('Using Mapzen elevation data (default)', 'info');
+                            this.showMessage(t('messages.elevationDataMapzen'), 'info');
                             break;
                     }
                 }
@@ -355,7 +366,7 @@ class TrailReplayApp {
             btn.classList.remove('primary');
         } else {
             this.mapRenderer.enableIconChangeMode();
-            span.textContent = '✖️ Cancel';
+            span.textContent = t('status.cancel');
             btn.classList.add('primary');
             this.showMessage(t('messages.clickMapForIconChange'), 'info');
         }
@@ -589,7 +600,7 @@ class TrailReplayApp {
             } else if (files.length > 1) {
                 // Multiple files - guide user to journey builder
                 this.showMessage(
-                    `Multiple tracks loaded! Scroll down to the Journey Builder to arrange them and add transportation between tracks. Click "Preview Journey" when ready.`, 
+                    t('messages.multipleTracksLoaded'), 
                     'info'
                 );
                 
@@ -604,7 +615,7 @@ class TrailReplayApp {
             
         } catch (error) {
             console.error('Error processing GPX files:', error);
-            this.showMessage(`Error processing files: ${error.message}`, 'error');
+            this.showMessage(`${t('messages.errorProcessingFiles')} ${error.message}`, 'error');
         } finally {
             this.showLoading(false);
             this.hideUploadProgress();
@@ -625,14 +636,17 @@ class TrailReplayApp {
         document.getElementById('uploadSection').style.display = 'none';
         document.getElementById('visualizationSection').style.display = 'block';
         document.getElementById('statsSection').style.display = 'block';
-        
         // Add fade-in animation
         document.getElementById('visualizationSection').classList.add('fade-in');
         document.getElementById('statsSection').classList.add('fade-in');
-        
         // Initialize live stats
         this.resetLiveStats();
-        this.updateLiveStats();
+        // If live stats toggle is on, show overlay and update
+        const showLiveStatsToggle = document.getElementById('showLiveStats');
+        if (showLiveStatsToggle && showLiveStatsToggle.checked) {
+            this.toggleLiveStats(true);
+            this.updateLiveStats();
+        }
     }
 
     updateStats(stats) {
@@ -781,7 +795,7 @@ class TrailReplayApp {
             btn.classList.remove('primary');
         } else {
             this.mapRenderer.enableAnnotationMode();
-            span.textContent = '✖️ Cancel';
+            span.textContent = t('status.cancel');
             btn.classList.add('primary');
             this.showMessage(t('messages.clickMapToAnnotate'), 'info');
         }
@@ -1050,23 +1064,51 @@ class TrailReplayApp {
     }
 
     addLanguageSwitcher() {
-        const header = document.querySelector('.header .container');
-        const langSwitcher = document.createElement('div');
-        langSwitcher.className = 'language-switcher';
-        langSwitcher.innerHTML = `
-            <select id="languageSelect" style="margin-top: 10px; padding: 5px; border-radius: 5px;">
-                <option value="en">🇺🇸 English</option>
-                <option value="es">🇪🇸 Español</option>
-            </select>
-        `;
-        
-        header.appendChild(langSwitcher);
-        
-        document.getElementById('languageSelect').addEventListener('change', (e) => {
-            import('./translations.js').then(({ setLanguage }) => {
-                setLanguage(e.target.value);
+        const languageSelect = document.getElementById('languageSelect');
+        if (languageSelect) {
+            // Add label if not present
+            let label = document.getElementById('languageSelectLabel');
+            if (!label) {
+                label = document.createElement('label');
+                label.id = 'languageSelectLabel';
+                label.setAttribute('for', 'languageSelect');
+                label.style.marginRight = '0.5rem';
+                label.textContent = t('controls.language');
+                languageSelect.parentNode.insertBefore(label, languageSelect);
+            } else {
+                label.textContent = t('controls.language');
+            }
+            // Set the current language as selected
+            import('./translations.js').then(({ translations }) => {
+                const currentLang = localStorage.getItem('trailReplayLang') || navigator.language.slice(0, 2);
+                for (const option of languageSelect.options) {
+                    option.selected = (option.value === currentLang);
+                }
             });
-        });
+            languageSelect.addEventListener('change', (e) => {
+                import('./translations.js').then(({ setLanguage }) => {
+                    setLanguage(e.target.value);
+                    // Update placeholders after language change
+                    this.updatePlaceholders();
+                    // Update label
+                    let label = document.getElementById('languageSelectLabel');
+                    if (label) label.textContent = t('controls.language');
+                });
+            });
+        }
+    }
+    
+    updatePlaceholders() {
+        // Update annotation form placeholders
+        const annotationTitle = document.getElementById('annotationTitle');
+        if (annotationTitle) {
+            annotationTitle.placeholder = t('messages.annotationTitlePlaceholder');
+        }
+        
+        const annotationDescription = document.getElementById('annotationDescription');
+        if (annotationDescription) {
+            annotationDescription.placeholder = t('messages.annotationDescriptionPlaceholder');
+        }
     }
 
     showMessage(message, type = 'info') {
@@ -1080,28 +1122,19 @@ class TrailReplayApp {
             right: 20px;
             padding: 15px 20px;
             border-radius: 10px;
-            color: white;
+            color: var(--canvas);
             font-weight: 600;
             z-index: 10000;
             animation: slideIn 0.3s ease;
+            background: var(--evergreen);
         `;
-        
-        // Set background color based on type
-        const colors = {
-            success: '#4CAF50',
-            error: '#f44336',
-            info: '#2196F3'
-        };
-        toast.style.backgroundColor = colors[type] || colors.info;
-        
+        // Remove old color logic, always use main color
         document.body.appendChild(toast);
-        
         // Remove toast after 3 seconds
         setTimeout(() => {
             toast.style.animation = 'slideOut 0.3s ease';
             setTimeout(() => toast.remove(), 300);
         }, 3000);
-        
         // Add CSS animations if not already added
         if (!document.getElementById('toast-styles')) {
             const style = document.createElement('style');
@@ -1521,7 +1554,7 @@ class TrailReplayApp {
             if (completeJourney.coordinates.length > 0) {
                 // Reload the journey data
                 this.loadJourneyData(completeJourney);
-                this.showMessage('Journey updated with new segment order', 'success');
+                this.showMessage(t('messages.journeyUpdatedNewOrder'), 'success');
             }
         } catch (error) {
             console.error('Error rebuilding journey:', error);
@@ -1739,7 +1772,6 @@ class TrailReplayApp {
             // Keep journey builder section visible for configuration
             this.showJourneyPlanningSection();
             
-            this.showMessage('Journey preview loaded!', 'success');
             
         } catch (error) {
             console.error('Error loading journey data:', error);
@@ -1904,32 +1936,29 @@ class TrailReplayApp {
             timingPanel = document.createElement('div');
             timingPanel.id = 'journeyTimingPanel';
             timingPanel.className = 'journey-timing-panel';
-            
             // Insert after the controls panel
             const controlsPanel = document.querySelector('.controls-panel');
             controlsPanel.parentNode.insertBefore(timingPanel, controlsPanel.nextSibling);
         }
-        
         timingPanel.innerHTML = `
             <div class="timing-panel-header">
-                <h4>🎬 Journey Animation Timing</h4>
+                <h4>🎬 ${t('messages.journeyAnimationTiming')}</h4>
                 <span class="total-duration">${this.formatTimeInSeconds(segmentTiming.totalDuration)}</span>
             </div>
             <div class="timing-breakdown">
                 <div class="timing-item">
-                    <span class="timing-label">📍 Tracks:</span>
+                    <span class="timing-label">${t('messages.timingTracks')}</span>
                     <span class="timing-value">${this.formatTimeInSeconds(segmentTiming.trackDuration)}</span>
                 </div>
                 <div class="timing-item">
-                    <span class="timing-label">🚗 Transportation:</span>
+                    <span class="timing-label">${t('messages.timingTransportation')}</span>
                     <span class="timing-value">${this.formatTimeInSeconds(segmentTiming.transportDuration)}</span>
                 </div>
             </div>
             <div class="timing-note">
-                <small>💡 Adjust individual segment times in the Journey Builder above</small>
+                <small>${t('messages.timingNote')}</small>
             </div>
         `;
-        
         timingPanel.style.display = 'block';
     }
 
@@ -2038,57 +2067,68 @@ class TrailReplayApp {
         if (overlay) {
             if (show) {
                 overlay.classList.remove('hidden');
-                this.updateLiveStats(); // Update immediately when shown
+                overlay.style.display = '';
+                // Show placeholders if no data
+                if (!this.mapRenderer || !this.currentTrackData) {
+                    document.getElementById('liveDistance').textContent = '–';
+                    document.getElementById('liveElevation').textContent = '–';
+                } else {
+                    this.updateLiveStats(); // Update immediately when shown
+                }
             } else {
                 overlay.classList.add('hidden');
+                overlay.style.display = 'none';
             }
         }
     }
 
     updateLiveStats() {
-        if (!this.mapRenderer || !this.currentTrackData) return;
-        
         const overlay = document.getElementById('liveStatsOverlay');
         if (!overlay || overlay.classList.contains('hidden')) return;
-        
+        // If no data, show placeholders
+        if (!this.mapRenderer || !this.currentTrackData) {
+            document.getElementById('liveDistance').textContent = '–';
+            document.getElementById('liveElevation').textContent = '–';
+            return;
+        }
         try {
             // Ensure GPX parser is ready
             if (!this.mapRenderer.ensureGPXParserReady()) {
+                document.getElementById('liveDistance').textContent = '–';
+                document.getElementById('liveElevation').textContent = '–';
                 return;
             }
-            
             const progress = this.mapRenderer.getAnimationProgress();
             const currentPoint = this.mapRenderer.gpxParser.getInterpolatedPoint(progress);
-            
-            if (!currentPoint) return;
-            
+            if (!currentPoint) {
+                document.getElementById('liveDistance').textContent = '–';
+                document.getElementById('liveElevation').textContent = '–';
+                return;
+            }
             // Calculate current distance (distance traveled so far)
             const totalDistance = this.currentTrackData.stats.totalDistance;
             const currentDistance = progress * totalDistance;
-            
             // Calculate current elevation gain (accumulated elevation gain so far)
             const totalElevationGain = this.currentTrackData.stats.elevationGain || 0;
             const currentElevationGain = progress * totalElevationGain;
-            
             // Format and update the display values
             const distanceElement = document.getElementById('liveDistance');
             const elevationElement = document.getElementById('liveElevation');
-            
             if (distanceElement) {
                 const formattedDistance = this.gpxParser.formatDistance(currentDistance);
                 if (distanceElement.textContent !== formattedDistance) {
                     this.animateValueChange(distanceElement, formattedDistance);
                 }
             }
-            
             if (elevationElement) {
                 const formattedElevation = this.gpxParser.formatElevation(currentElevationGain);
                 if (elevationElement.textContent !== formattedElevation) {
                     this.animateValueChange(elevationElement, formattedElevation);
                 }
             }
-            
         } catch (error) {
+            document.getElementById('liveDistance').textContent = '–';
+            document.getElementById('liveElevation').textContent = '–';
             console.warn('Error updating live stats:', error);
         }
     }
@@ -2112,4 +2152,23 @@ let app;
 document.addEventListener('DOMContentLoaded', () => {
     app = new TrailReplayApp();
     window.app = app; // Make available globally for onclick handlers
+    // Move Buy Me a Coffee button next to GitHub button in the footer
+    const footer = document.querySelector('footer .container');
+    const githubBtn = footer?.querySelector('.github-link');
+    // Remove previous Buy Me a Coffee button if present
+    const oldCoffeeBtn = document.getElementById('buyMeCoffeeBtn');
+    if (oldCoffeeBtn) oldCoffeeBtn.remove();
+    if (footer && githubBtn && !document.getElementById('buyMeCoffeeBtn')) {
+        const coffeeBtn = document.createElement('a');
+        coffeeBtn.id = 'buyMeCoffeeBtn';
+        coffeeBtn.href = 'https://ko-fi.com/alexalmansa';
+        coffeeBtn.target = '_blank';
+        coffeeBtn.rel = 'noopener noreferrer';
+        coffeeBtn.className = 'buy-me-coffee-btn';
+        coffeeBtn.textContent = t('messages.buyMeCoffee');
+        coffeeBtn.style = 'display:inline-flex;align-items:center;gap:0.5rem;margin-left:1rem;padding:0.5rem 1rem;background:#ffdd00;color:#222;font-weight:700;border-radius:6px;text-decoration:none;font-size:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.08);transition:background 0.2s;vertical-align:middle;';
+        coffeeBtn.onmouseover = () => coffeeBtn.style.background = '#ffe66d';
+        coffeeBtn.onmouseout = () => coffeeBtn.style.background = '#ffdd00';
+        githubBtn.parentNode.insertBefore(coffeeBtn, githubBtn.nextSibling);
+    }
 }); 
