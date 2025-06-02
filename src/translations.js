@@ -3,9 +3,9 @@ export const translations = {
     en: {
         subtitle: "Visualize your GPX trails in 3D",
         upload: {
-            title: "Upload GPX File",
-            description: "Drag & drop your GPX file or click to browse",
-            button: "Choose File"
+            title: "Upload GPX Files",
+            description: "Add multiple GPX tracks to create your journey",
+            button: "Choose Files"
         },
         controls: {
             activity: "Activity Type:",
@@ -58,14 +58,19 @@ export const translations = {
             iconChangeAdded: "Icon change added successfully!",
             clickMapToAnnotate: "Click on the map to add an annotation at that location",
             clickMapForIconChange: "Click on the map or progress bar to set where the icon should change"
+        },
+        journey: {
+            title: "Journey Builder",
+            tracks: "Uploaded Tracks",
+            segments: "Journey Segments"
         }
     },
     es: {
         subtitle: "Visualiza tus rutas GPX en 3D",
         upload: {
-            title: "Subir Archivo GPX",
-            description: "Arrastra y suelta tu archivo GPX o haz clic para buscar",
-            button: "Elegir Archivo"
+            title: "Subir Archivos GPX",
+            description: "Añade múltiples tracks GPX para crear tu viaje",
+            button: "Elegir Archivos"
         },
         controls: {
             activity: "Tipo de Actividad:",
@@ -118,6 +123,11 @@ export const translations = {
             iconChangeAdded: "¡Cambio de icono añadido exitosamente!",
             clickMapToAnnotate: "Haz clic en el mapa para añadir una anotación en esa ubicación",
             clickMapForIconChange: "Haz clic en el mapa o barra de progreso para establecer donde el icono debería cambiar"
+        },
+        journey: {
+            title: "Constructor de Viaje",
+            tracks: "Tracks Subidos",
+            segments: "Segmentos del Viaje"
         }
     }
 };

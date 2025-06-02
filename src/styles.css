@@ -1303,4 +1303,630 @@ input:checked + .toggle-slider:before {
 .progress-control-btn {
     font-size: 0.8rem;
     padding: 3px 8px;
+}
+
+/* Journey Builder Styles */
+.journey-planning-section {
+    background: white;
+    border-radius: 20px;
+    padding: 30px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    margin-bottom: 40px;
+}
+
+.journey-container {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.tracks-list,
+.journey-segments {
+    background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%);
+    border-radius: 15px;
+    padding: 20px;
+    border: 1px solid rgba(102, 126, 234, 0.1);
+}
+
+.tracks-header,
+.segments-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    font-weight: 600;
+    color: #333;
+}
+
+.btn-primary,
+.btn-secondary {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+/* Make Preview Journey button more prominent */
+#previewJourneyBtn {
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+    font-size: 1rem;
+    font-weight: 700;
+    padding: 12px 24px;
+    animation: pulse 2s infinite;
+}
+
+#previewJourneyBtn:hover {
+    background: linear-gradient(135deg, #45a049 0%, #4CAF50 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(76, 175, 80, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(76, 175, 80, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(76, 175, 80, 0);
+    }
+}
+
+.btn-secondary {
+    background: #e1e5e9;
+    color: #666;
+}
+
+.btn-secondary:hover {
+    background: #d1d5d9;
+}
+
+.track-item {
+    background: white;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 10px;
+    border: 2px solid #e1e5e9;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    cursor: grab;
+    transition: all 0.2s ease;
+}
+
+.track-item:hover {
+    border-color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+}
+
+.track-item.dragging {
+    opacity: 0.5;
+    transform: rotate(5deg);
+}
+
+.track-icon {
+    font-size: 1.5rem;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 8px;
+}
+
+.track-info {
+    flex: 1;
+}
+
+.track-name {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.track-stats {
+    color: #666;
+    font-size: 0.85rem;
+}
+
+.track-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.track-action-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 6px;
+    border-radius: 4px;
+    transition: background 0.2s ease;
+}
+
+.track-action-btn:hover {
+    background: rgba(102, 126, 234, 0.1);
+}
+
+.segment-item {
+    background: white;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-left: 4px solid #667eea;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.segment-item.transport {
+    border-left-color: #ff6b6b;
+}
+
+.segment-icon {
+    font-size: 1.5rem;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.segment-content {
+    flex: 1;
+}
+
+.segment-title {
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.segment-description {
+    color: #666;
+    font-size: 0.85rem;
+}
+
+.transportation-options {
+    text-align: center;
+}
+
+.transport-modes {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+    margin-top: 15px;
+}
+
+.transport-btn {
+    background: white;
+    border: 2px solid #e1e5e9;
+    border-radius: 12px;
+    padding: 15px 20px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    min-width: 100px;
+}
+
+.transport-btn:hover {
+    border-color: #667eea;
+    background: rgba(102, 126, 234, 0.1);
+    transform: translateY(-2px);
+}
+
+.transport-btn.selected {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-color: transparent;
+}
+
+.upload-progress {
+    margin-top: 20px;
+    text-align: center;
+}
+
+.upload-progress .progress-bar {
+    background: #e1e5e9;
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.upload-progress .progress-fill {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    height: 100%;
+    width: 0%;
+    transition: width 0.3s ease;
+    border-radius: 4px;
+}
+
+#uploadStatus {
+    color: #666;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* Route Drawing Mode */
+.route-drawing-active {
+    cursor: crosshair !important;
+}
+
+.route-drawing-active * {
+    cursor: crosshair !important;
+}
+
+/* Responsive Design for Journey Builder */
+@media (max-width: 768px) {
+    .journey-container {
+        gap: 20px;
+    }
+    
+    .tracks-header,
+    .segments-header {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+    }
+    
+    .track-item {
+        flex-direction: column;
+        text-align: center;
+        gap: 10px;
+    }
+    
+    .transport-modes {
+        gap: 10px;
+    }
+    
+    .transport-btn {
+        min-width: 80px;
+        padding: 12px 16px;
+        font-size: 0.9rem;
+    }
+}
+
+/* Add More Tracks Button Styling */
+.track-item.add-more-tracks {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    border: 2px dashed #2e7d32;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-bottom: 15px;
+}
+
+.track-item.add-more-tracks:hover {
+    background: linear-gradient(135deg, #45a049, #4CAF50);
+    border-color: #1b5e20;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.track-item.add-more-tracks .track-icon {
+    font-size: 1.5em;
+    animation: pulse 2s infinite;
+}
+
+.track-item.add-more-tracks .track-name {
+    font-weight: 600;
+}
+
+.track-item.add-more-tracks .track-stats {
+    opacity: 0.9;
+    font-style: italic;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+/* Enhanced Route Drawing Overlay */
+.route-drawing-overlay {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10000;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    border-radius: 15px;
+    padding: 25px;
+    backdrop-filter: blur(15px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    animation: slideDown 0.3s ease;
+    max-width: 500px;
+    width: 90%;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+.route-drawing-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 10px 0;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+}
+
+.route-distance {
+    font-weight: 600;
+    color: #4ecdc4;
+}
+
+.route-timing {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.route-timing label {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.route-timing input {
+    width: 60px;
+    padding: 4px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 0.9rem;
+}
+
+.route-timing input:focus {
+    outline: none;
+    border-color: #4ecdc4;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.route-timing span {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.route-drawing-instructions {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 15px;
+    margin: 15px 0;
+    border-left: 4px solid #4ecdc4;
+}
+
+.route-drawing-instructions p {
+    margin: 5px 0;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.route-drawing-instructions strong {
+    color: #4ecdc4;
+}
+
+/* Journey Timing Controls */
+.journey-timing-summary {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+}
+
+.timing-summary-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.timing-summary-header span:first-child {
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.total-time {
+    font-size: 1.3rem;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 5px 12px;
+    border-radius: 8px;
+}
+
+.timing-summary-breakdown {
+    display: flex;
+    justify-content: space-around;
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+/* Segment Timing Controls */
+.segment-timing {
+    margin-top: 10px;
+    padding: 10px;
+    background: rgba(102, 126, 234, 0.05);
+    border-radius: 8px;
+    border: 1px solid rgba(102, 126, 234, 0.1);
+}
+
+.segment-timing label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #333;
+    margin-right: 8px;
+}
+
+.segment-time-input {
+    width: 60px;
+    padding: 4px 8px;
+    border: 1px solid #e1e5e9;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    text-align: center;
+    margin: 0 5px;
+}
+
+.segment-time-input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+}
+
+.segment-timing span {
+    font-size: 0.8rem;
+    color: #666;
+}
+
+/* Journey Timing Panel */
+.journey-timing-panel {
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+    margin: 20px 0;
+    border: 2px solid rgba(102, 126, 234, 0.2);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.1);
+}
+
+.timing-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e1e5e9;
+}
+
+.timing-panel-header h4 {
+    margin: 0;
+    color: #333;
+    font-size: 1.2rem;
+}
+
+.total-duration {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.timing-breakdown {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.timing-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    background: linear-gradient(135deg, #f8f9ff, #f0f2ff);
+    border-radius: 10px;
+    border-left: 4px solid #667eea;
+}
+
+.timing-label {
+    font-weight: 600;
+    color: #333;
+}
+
+.timing-value {
+    font-weight: 700;
+    color: #667eea;
+    font-size: 1.1rem;
+}
+
+.timing-note {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+    padding: 10px;
+    background: rgba(102, 126, 234, 0.05);
+    border-radius: 8px;
+}
+
+/* Mobile responsive for enhanced features */
+@media (max-width: 768px) {
+    .route-drawing-overlay {
+        left: 10px;
+        right: 10px;
+        transform: none;
+        top: 10px;
+        padding: 20px;
+    }
+    
+    .route-drawing-details {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+    }
+    
+    .route-timing {
+        justify-content: center;
+    }
+    
+    .timing-breakdown {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    .timing-panel-header {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+    
+    .segment-timing {
+        text-align: center;
+    }
+    
+    .segment-timing label,
+    .segment-time-input,
+    .segment-timing span {
+        display: inline-block;
+        margin: 2px;
+    }
 } 

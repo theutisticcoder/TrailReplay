@@ -1,6 +1,7 @@
 import { initializeTranslations, t } from './translations.js';
 import { GPXParser } from './gpxParser.js';
 import { MapRenderer } from './mapRenderer.js';
+import { JourneyBuilder } from './journeyBuilder.js';
 
 class TrailReplayApp {
     constructor() {
@@ -28,6 +29,9 @@ class TrailReplayApp {
         // Flatten all icons for compatibility
         this.availableIcons = Object.values(this.iconCategories).flat();
         
+        // Initialize Journey Builder
+        this.journeyBuilder = new JourneyBuilder();
+        
         this.initializeApp();
     }
 
@@ -49,6 +53,9 @@ class TrailReplayApp {
 
         // Enhanced Progress bar scrubbing functionality
         this.setupProgressBarScrubbing();
+
+        // Setup journey builder integration
+        this.setupJourneyIntegration();
     }
 
     setupEventListeners() {
@@ -434,53 +441,107 @@ class TrailReplayApp {
     }
 
     async handleFileSelect(event) {
-        const file = event.target.files[0];
+        const files = event.target.files;
         
-        if (!file) return;
+        console.log('handleFileSelect called with', files?.length, 'files');
         
-        if (!file.name.toLowerCase().endsWith('.gpx')) {
-            this.showMessage(t('messages.fileError'), 'error');
-            return;
+        if (!files || files.length === 0) return;
+        
+        // Check all files are GPX
+        for (let file of files) {
+            if (!file.name.toLowerCase().endsWith('.gpx')) {
+                this.showMessage(`${file.name} is not a GPX file`, 'error');
+                return;
+            }
         }
 
         try {
             // Show loading state
             this.showLoading(true);
+            this.showUploadProgress(true);
             
-            console.log('Starting to parse GPX file:', file.name);
+            console.log(`Starting to parse ${files.length} GPX file(s)`);
             
-            // Parse GPX file
-            const trackData = await this.gpxParser.parseFile(file);
-            this.currentTrackData = trackData;
+            let singleFileTrackData = null;
             
-            console.log('GPX parsed successfully:', trackData);
-            
-            // Initialize map renderer if not already done
-            if (!this.mapRenderer) {
-                console.log('Initializing map renderer...');
-                this.mapRenderer = new MapRenderer('map');
-                // Wait for map to load
-                await this.waitForMapLoad();
-                console.log('Map loaded successfully');
+            // Process each file
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const progress = ((i + 1) / files.length) * 100;
+                
+                this.updateUploadProgress(progress, `Processing ${file.name}...`);
+                
+                console.log(`Parsing file ${i + 1}/${files.length}: ${file.name}`);
+                
+                try {
+                    // Parse GPX file
+                    const trackData = await this.gpxParser.parseFile(file);
+                    console.log('Track data parsed:', trackData);
+                    
+                    // Store first file data for single file backward compatibility
+                    if (i === 0) {
+                        singleFileTrackData = trackData;
+                    }
+                    
+                    // Add to journey builder
+                    console.log('Adding track to journey builder...');
+                    this.journeyBuilder.addTrack(trackData, file.name);
+                    
+                    console.log(`File ${file.name} parsed and added to journey`);
+                } catch (fileError) {
+                    console.error(`Error processing file ${file.name}:`, fileError);
+                    this.showMessage(`Error processing ${file.name}: ${fileError.message}`, 'error');
+                    continue; // Continue with other files
+                }
             }
             
-            // Load track data into map
-            console.log('Loading track into map...');
-            this.mapRenderer.loadTrack(trackData);
+            this.updateUploadProgress(100, 'All files processed!');
+            this.showMessage(`${files.length} GPX file(s) loaded successfully!`, 'success');
             
-            // Update animation speed based on total time
-            this.updateAnimationSpeed();
-            
-            // Update UI
-            this.showVisualizationSection();
-            this.updateStats(trackData.stats);
-            this.showMessage(t('messages.fileLoaded'), 'success');
+            // If only one file, load it directly for backward compatibility
+            if (files.length === 1 && singleFileTrackData) {
+                this.currentTrackData = singleFileTrackData;
+                
+                // Initialize map renderer if not already done
+                if (!this.mapRenderer) {
+                    console.log('Initializing map renderer...');
+                    this.mapRenderer = new MapRenderer('map');
+                    await this.waitForMapLoad();
+                    console.log('Map loaded successfully');
+                }
+                
+                // Load track data into map
+                console.log('Loading track into map...');
+                this.mapRenderer.loadTrack(singleFileTrackData);
+                
+                // Update animation speed
+                this.updateAnimationSpeed();
+                
+                // Update UI
+                this.showVisualizationSection();
+                this.updateStats(singleFileTrackData.stats);
+            } else if (files.length > 1) {
+                // Multiple files - guide user to journey builder
+                this.showMessage(
+                    `Multiple tracks loaded! Scroll down to the Journey Builder to arrange them and add transportation between tracks. Click "Preview Journey" when ready.`, 
+                    'info'
+                );
+                
+                // Auto-scroll to journey builder
+                setTimeout(() => {
+                    const journeySection = document.getElementById('journeyPlanningSection');
+                    if (journeySection) {
+                        journeySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }, 1000);
+            }
             
         } catch (error) {
-            console.error('Error processing GPX file:', error);
-            this.showMessage(`${t('messages.fileError')}: ${error.message}`, 'error');
+            console.error('Error processing GPX files:', error);
+            this.showMessage(`Error processing files: ${error.message}`, 'error');
         } finally {
             this.showLoading(false);
+            this.hideUploadProgress();
         }
     }
 
@@ -874,6 +935,32 @@ class TrailReplayApp {
         }
     }
 
+    showUploadProgress(show) {
+        const progressContainer = document.getElementById('uploadProgress');
+        if (progressContainer) {
+            progressContainer.style.display = show ? 'block' : 'none';
+        }
+    }
+
+    updateUploadProgress(percent, status) {
+        const progressFill = document.getElementById('uploadProgressFill');
+        const statusElement = document.getElementById('uploadStatus');
+        
+        if (progressFill) {
+            progressFill.style.width = `${percent}%`;
+        }
+        
+        if (statusElement) {
+            statusElement.textContent = status;
+        }
+    }
+
+    hideUploadProgress() {
+        setTimeout(() => {
+            this.showUploadProgress(false);
+        }, 2000); // Hide after 2 seconds
+    }
+
     // Enhanced Progress bar scrubbing functionality
     setupProgressBarScrubbing() {
         const progressBar = document.getElementById('progressBar');
@@ -1028,6 +1115,312 @@ class TrailReplayApp {
                 progressBar.style.transform = 'scaleY(1)';
             }
         });
+    }
+
+    // Setup journey builder integration
+    setupJourneyIntegration() {
+        // Listen for journey preview events
+        document.addEventListener('journeyPreview', (e) => {
+            this.loadJourneyData(e.detail.journey);
+        });
+
+        // Listen for message events from journey builder
+        document.addEventListener('showMessage', (e) => {
+            this.showMessage(e.detail.message, e.detail.type);
+        });
+
+        // Listen for segment timing updates
+        document.addEventListener('segmentTimingUpdate', (e) => {
+            this.handleSegmentTimingUpdate(e.detail);
+        });
+
+        // Listen for map access requests from journey builder for route drawing
+        document.addEventListener('requestMapForDrawing', (e) => {
+            if (this.mapRenderer && this.mapRenderer.map) {
+                // Provide map access to the journey builder
+                e.detail.callback(this.mapRenderer.map);
+            } else {
+                this.showMessage('Map not ready for route drawing', 'error');
+            }
+        });
+
+        // Make journey builder globally available for onclick handlers
+        window.journeyBuilder = this.journeyBuilder;
+    }
+
+    // Handle segment timing updates
+    handleSegmentTimingUpdate(updateData) {
+        if (!this.currentTrackData || !this.currentTrackData.isJourney) return;
+        
+        // Recalculate segment timing
+        const newSegmentTiming = this.calculateSegmentTiming(updateData.segments);
+        
+        // Update the current track data
+        this.currentTrackData.segmentTiming = newSegmentTiming;
+        
+        // Update total animation time
+        this.totalAnimationTime = newSegmentTiming.totalDuration;
+        
+        // Update the MapRenderer with new segment timing
+        if (this.mapRenderer) {
+            this.mapRenderer.setupSegmentAnimation(updateData.segments, newSegmentTiming);
+        }
+        
+        // Update UI controls
+        this.updateTimingControls(newSegmentTiming);
+        
+        console.log('Updated animation system with new segment timing:', newSegmentTiming);
+    }
+
+    // Load combined journey data
+    async loadJourneyData(journeyData) {
+        try {
+            // Calculate segment timing first
+            const segmentTiming = this.calculateSegmentTiming(journeyData.segments);
+            
+            // Convert journey data format to track data format that MapRenderer expects
+            // but preserve segment information for icon changes and visual transitions
+            const trackData = {
+                trackPoints: journeyData.coordinates.map((coord, index) => ({
+                    lat: coord[1],
+                    lon: coord[0],
+                    elevation: coord[2] || 0,
+                    index: index,
+                    distance: 0, // Will be calculated if needed
+                    speed: 0,
+                    time: null
+                })),
+                stats: journeyData.stats,
+                bounds: this.calculateBounds(journeyData.coordinates),
+                // Preserve journey segment information
+                segments: journeyData.segments,
+                isJourney: true,
+                // Add segment timing information
+                segmentTiming: segmentTiming
+            };
+            
+            this.currentTrackData = trackData;
+            
+            // Initialize map renderer if not already done
+            if (!this.mapRenderer) {
+                this.mapRenderer = new MapRenderer('map');
+                await this.waitForMapLoad();
+            }
+            
+            // Load journey data into map
+            this.mapRenderer.loadTrack(trackData);
+            
+            // Set up segment-aware animation in MapRenderer
+            this.mapRenderer.setupSegmentAnimation(journeyData.segments, segmentTiming);
+            
+            // Add automatic icon changes based on segments
+            this.addSegmentIconChanges(trackData);
+            
+            // Set the total animation time based on segment timings
+            this.totalAnimationTime = segmentTiming.totalDuration;
+            // Don't call updateAnimationSpeed here as MapRenderer now handles segment timing
+            
+            // Update UI
+            this.showVisualizationSection();
+            this.updateStats(trackData.stats);
+            this.updateTimingControls(segmentTiming);
+            this.showMessage('Journey preview loaded!', 'success');
+            
+        } catch (error) {
+            console.error('Error loading journey data:', error);
+            this.showMessage('Error loading journey data', 'error');
+        }
+    }
+
+    // Calculate segment timing for the journey
+    calculateSegmentTiming(segments) {
+        let totalDuration = 0;
+        let trackDuration = 0;
+        let transportDuration = 0;
+        const segmentTimings = [];
+        
+        segments.forEach(segment => {
+            let segmentTime;
+            if (segment.type === 'track') {
+                // Get user-defined time or calculate default
+                segmentTime = segment.data.userTime || this.calculateDefaultTrackTime(segment.data);
+                trackDuration += segmentTime;
+            } else if (segment.type === 'transportation' && segment.route) {
+                segmentTime = segment.route.userTime || this.calculateDefaultTransportTime(segment.mode, segment.route.distance / 1000);
+                transportDuration += segmentTime;
+            } else {
+                segmentTime = 0; // No route defined yet
+            }
+            
+            segmentTimings.push({
+                ...segment,
+                duration: segmentTime,
+                startTime: totalDuration,
+                endTime: totalDuration + segmentTime
+            });
+            
+            totalDuration += segmentTime;
+        });
+        
+        return { 
+            totalDuration, 
+            trackDuration, 
+            transportDuration,
+            segments: segmentTimings
+        };
+    }
+
+    // Calculate default track time
+    calculateDefaultTrackTime(trackData) {
+        const distance = trackData.stats.totalDistance;
+        const activityType = trackData.data.activityType || 'running';
+        
+        const speeds = { running: 10, walking: 5, cycling: 20, hiking: 4, swimming: 2 };
+        const speed = speeds[activityType] || speeds.running;
+        const timeHours = distance / speed;
+        const timeMinutes = timeHours * 60;
+        
+        return Math.max(10, Math.min(180, Math.round(timeMinutes / 2)));
+    }
+
+    // Calculate default transport time
+    calculateDefaultTransportTime(mode, distanceKm) {
+        const baseTimes = { car: 30, walk: 20, cycling: 25, boat: 40, plane: 20, train: 35 };
+        const baseTime = baseTimes[mode] || 30;
+        return Math.max(10, Math.min(120, Math.round(baseTime + (distanceKm * 2))));
+    }
+
+    // Update timing controls in the UI
+    updateTimingControls(segmentTiming) {
+        // Update the total time display
+        document.getElementById('totalTime').textContent = this.formatTimeInSeconds(segmentTiming.totalDuration);
+        
+        // Update the animation speed slider to reflect the total journey time
+        const timeSlider = document.getElementById('animationSpeed');
+        timeSlider.value = segmentTiming.totalDuration;
+        document.getElementById('speedValue').textContent = `${segmentTiming.totalDuration}s`;
+        
+        // Show segment breakdown in a new timing panel
+        this.showTimingBreakdown(segmentTiming);
+    }
+
+    // Show timing breakdown panel
+    showTimingBreakdown(segmentTiming) {
+        // Find or create timing breakdown panel
+        let timingPanel = document.getElementById('journeyTimingPanel');
+        if (!timingPanel) {
+            timingPanel = document.createElement('div');
+            timingPanel.id = 'journeyTimingPanel';
+            timingPanel.className = 'journey-timing-panel';
+            
+            // Insert after the controls panel
+            const controlsPanel = document.querySelector('.controls-panel');
+            controlsPanel.parentNode.insertBefore(timingPanel, controlsPanel.nextSibling);
+        }
+        
+        timingPanel.innerHTML = `
+            <div class="timing-panel-header">
+                <h4>🎬 Journey Animation Timing</h4>
+                <span class="total-duration">${this.formatTimeInSeconds(segmentTiming.totalDuration)}</span>
+            </div>
+            <div class="timing-breakdown">
+                <div class="timing-item">
+                    <span class="timing-label">📍 Tracks:</span>
+                    <span class="timing-value">${this.formatTimeInSeconds(segmentTiming.trackDuration)}</span>
+                </div>
+                <div class="timing-item">
+                    <span class="timing-label">🚗 Transportation:</span>
+                    <span class="timing-value">${this.formatTimeInSeconds(segmentTiming.transportDuration)}</span>
+                </div>
+            </div>
+            <div class="timing-note">
+                <small>💡 Adjust individual segment times in the Journey Builder above</small>
+            </div>
+        `;
+        
+        timingPanel.style.display = 'block';
+    }
+
+    // Add automatic icon changes based on journey segments
+    addSegmentIconChanges(trackData) {
+        if (!trackData.segments || !this.mapRenderer) return;
+
+        // Clear existing icon changes
+        this.mapRenderer.iconChanges = [];
+
+        const totalCoordinates = trackData.trackPoints.length;
+        let currentIndex = 0;
+
+        trackData.segments.forEach((segment, segmentIndex) => {
+            const segmentLength = segment.endIndex - segment.startIndex + 1;
+            const progress = currentIndex / (totalCoordinates - 1);
+
+            let icon;
+            if (segment.type === 'track') {
+                // Use activity-based icon for GPX tracks
+                const activityType = segment.data?.data?.activityType || 'running';
+                icon = this.getActivityIcon(activityType);
+            } else if (segment.type === 'transportation') {
+                // Use transportation mode icon
+                icon = this.getTransportationIcon(segment.mode);
+            }
+
+            if (icon && segmentIndex > 0) { // Don't add for first segment (it starts with default)
+                const iconChange = this.mapRenderer.addIconChange(progress, icon);
+                console.log(`Added automatic icon change at progress ${progress}: ${icon} for ${segment.type} (${segment.mode || segment.data?.data?.activityType})`);
+            }
+
+            currentIndex = segment.endIndex + 1;
+        });
+
+        // Update progress bar markers
+        this.updateProgressBarMarkers();
+    }
+
+    // Get icon for activity type
+    getActivityIcon(activityType) {
+        const icons = {
+            'running': '🏃‍♂️',
+            'cycling': '🚴‍♂️', 
+            'swimming': '🏊‍♂️',
+            'hiking': '🥾',
+            'walking': '🚶‍♂️',
+            'triathlon': '🏆'
+        };
+        return icons[activityType] || '🏃‍♂️';
+    }
+
+    // Get icon for transportation mode
+    getTransportationIcon(mode) {
+        const icons = {
+            'car': '🚗',
+            'driving': '🚗',
+            'boat': '⛵',
+            'plane': '✈️',
+            'train': '🚂',
+            'walk': '🚶‍♂️',
+            'cycling': '🚴‍♂️'
+        };
+        return icons[mode] || '🚗';
+    }
+
+    // Helper method to calculate bounds from coordinates
+    calculateBounds(coordinates) {
+        if (!coordinates || coordinates.length === 0) return null;
+
+        const lats = coordinates.map(coord => coord[1]);
+        const lons = coordinates.map(coord => coord[0]);
+
+        return {
+            north: Math.max(...lats),
+            south: Math.min(...lats),
+            east: Math.max(...lons),
+            west: Math.min(...lons),
+            center: [
+                (Math.max(...lons) + Math.min(...lons)) / 2,
+                (Math.max(...lats) + Math.min(...lats)) / 2
+            ]
+        };
     }
 }
 

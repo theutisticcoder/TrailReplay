@@ -24,12 +24,56 @@
                 <section class="upload-section" id="uploadSection">
                     <div class="upload-card">
                         <div class="upload-icon">📁</div>
-                        <h2 data-i18n="upload.title">Upload GPX File</h2>
-                        <p data-i18n="upload.description">Drag & drop your GPX file or click to browse</p>
-                        <input type="file" id="gpxFileInput" accept=".gpx" class="file-input">
-                        <button class="upload-btn" onclick="document.getElementById('gpxFileInput').click()">
-                            <span data-i18n="upload.button">Choose File</span>
+                        <h2 data-i18n="upload.title">Upload GPX Files</h2>
+                        <p data-i18n="upload.description">Add multiple GPX tracks to create your journey</p>
+                        <input type="file" id="gpxFileInput" accept=".gpx" class="file-input" multiple>
+                        <button class="upload-btn" onclick="console.log('Upload button clicked!'); document.getElementById('gpxFileInput').click()">
+                            <span data-i18n="upload.button">Choose Files</span>
                         </button>
+                        <div class="upload-progress" id="uploadProgress" style="display: none;">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="uploadProgressFill"></div>
+                            </div>
+                            <span id="uploadStatus">Processing files...</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Journey Planning Section -->
+                <section class="journey-planning-section" id="journeyPlanningSection" style="display: none;">
+                    <div class="journey-container">
+                        <h3 data-i18n="journey.title">Journey Builder</h3>
+                        
+                        <div class="tracks-list" id="tracksList">
+                            <div class="tracks-header">
+                                <span data-i18n="journey.tracks">Uploaded Tracks</span>
+                                <button id="clearTracksBtn" class="btn-secondary">Clear All</button>
+                            </div>
+                            <div class="tracks-items" id="tracksItems">
+                                <!-- Track items will be added here -->
+                            </div>
+                        </div>
+
+                        <div class="journey-segments" id="journeySegments">
+                            <div class="segments-header">
+                                <span data-i18n="journey.segments">Journey Segments</span>
+                                <button id="previewJourneyBtn" class="btn-primary">Preview Journey</button>
+                            </div>
+                            <div class="segments-list" id="segmentsList">
+                                <!-- Journey segments will be built here -->
+                            </div>
+                        </div>
+
+                        <div class="transportation-options" id="transportationOptions" style="display: none;">
+                            <h4>Add Transportation</h4>
+                            <div class="transport-modes">
+                                <button class="transport-btn" data-mode="car">🚗 Car</button>
+                                <button class="transport-btn" data-mode="boat">⛵ Boat</button>
+                                <button class="transport-btn" data-mode="plane">✈️ Plane</button>
+                                <button class="transport-btn" data-mode="train">🚂 Train</button>
+                                <button class="transport-btn" data-mode="walk">🚶‍♂️ Walk</button>
+                            </div>
+                        </div>
                     </div>
                 </section>
 

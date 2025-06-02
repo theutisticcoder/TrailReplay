@@ -24,6 +24,12 @@ export class MapRenderer {
         this.activeAnnotation = null;
         this.gpxParser = new GPXParser();
         
+        // Segment-aware animation properties
+        this.segmentTimings = null;
+        this.currentSegmentIndex = 0;
+        this.segmentProgress = 0;
+        this.lastAnimationTime = 0;
+        
         this.initializeMap();
     }
 
@@ -138,7 +144,7 @@ export class MapRenderer {
             }
         });
 
-        // Add trail line layer (full trail)
+        // Add trail line layer (full trail) with data-driven styling for segments
         this.map.addLayer({
             id: 'trail-line',
             type: 'line',
@@ -148,9 +154,43 @@ export class MapRenderer {
                 'line-cap': 'round'
             },
             paint: {
-                'line-color': this.pathColor,
-                'line-width': 4,
-                'line-opacity': 0.4
+                'line-color': [
+                    'case',
+                    ['==', ['get', 'isTransportation'], true],
+                    [
+                        'case',
+                        ['==', ['get', 'segmentMode'], 'car'], '#ff6b6b',
+                        ['==', ['get', 'segmentMode'], 'driving'], '#ff6b6b',
+                        ['==', ['get', 'segmentMode'], 'boat'], '#4ecdc4',
+                        ['==', ['get', 'segmentMode'], 'plane'], '#ffe66d',
+                        ['==', ['get', 'segmentMode'], 'train'], '#a8e6cf',
+                        ['==', ['get', 'segmentMode'], 'walk'], '#ff9f43',
+                        ['==', ['get', 'segmentMode'], 'cycling'], '#48cae4',
+                        '#ff6b6b' // default transportation color
+                    ],
+                    this.pathColor // default color for GPX tracks
+                ],
+                'line-width': [
+                    'case',
+                    ['==', ['get', 'isTransportation'], true], 6, // thicker for transportation
+                    4 // normal width for tracks
+                ],
+                'line-opacity': [
+                    'case',
+                    ['==', ['get', 'isTransportation'], true], 0.7,
+                    0.4
+                ],
+                'line-dasharray': [
+                    'case',
+                    ['==', ['get', 'isTransportation'], true],
+                    [
+                        'case',
+                        ['==', ['get', 'segmentMode'], 'plane'], [2, 2], // dashed for plane
+                        ['==', ['get', 'segmentMode'], 'boat'], [5, 3], // different dash for boat
+                        null // solid for car/train/etc
+                    ],
+                    null // solid for tracks
+                ]
             }
         });
 
@@ -345,20 +385,27 @@ export class MapRenderer {
         // Create GeoJSON for the trail
         const coordinates = trackData.trackPoints.map(point => [point.lon, point.lat, point.elevation]);
         
-        const trailLineData = {
-            type: 'Feature',
-            geometry: {
-                type: 'LineString',
-                coordinates: coordinates
-            },
-            properties: {
-                distance: trackData.stats.totalDistance,
-                elevation: trackData.stats.elevationGain
-            }
-        };
+        // Handle journey segments if available
+        if (trackData.isJourney && trackData.segments) {
+            console.log('Loading journey with segments:', trackData.segments);
+            this.loadJourneySegments(trackData, coordinates);
+        } else {
+            // Standard single track
+            const trailLineData = {
+                type: 'Feature',
+                geometry: {
+                    type: 'LineString',
+                    coordinates: coordinates
+                },
+                properties: {
+                    distance: trackData.stats.totalDistance,
+                    elevation: trackData.stats.elevationGain
+                }
+            };
 
-        // Update trail line source
-        this.map.getSource('trail-line').setData(trailLineData);
+            // Update trail line source
+            this.map.getSource('trail-line').setData(trailLineData);
+        }
 
         // Fit map to trail bounds
         if (trackData.bounds) {
@@ -371,9 +418,11 @@ export class MapRenderer {
             });
         }
 
-        // Reset animation and icon changes
+        // Reset animation and icon changes (don't clear them for journeys as they're auto-generated)
         this.animationProgress = 0;
-        this.iconChanges = [];
+        if (!trackData.isJourney) {
+            this.iconChanges = [];
+        }
         this.annotations = [];
         
         // Set current icon to the base activity icon
@@ -389,6 +438,105 @@ export class MapRenderer {
         }
         
         this.updateCurrentPosition();
+    }
+
+    // Load journey segments with visual differentiation
+    loadJourneySegments(trackData, coordinates) {
+        // Create a combined trail line for the main path
+        const trailLineData = {
+            type: 'FeatureCollection',
+            features: []
+        };
+
+        // Add each segment as a separate feature with different styling
+        trackData.segments.forEach((segment, index) => {
+            const segmentCoords = coordinates.slice(segment.startIndex, segment.endIndex + 1);
+            
+            if (segmentCoords.length < 2) return; // Skip invalid segments
+            
+            const feature = {
+                type: 'Feature',
+                geometry: {
+                    type: 'LineString',
+                    coordinates: segmentCoords
+                },
+                properties: {
+                    segmentType: segment.type,
+                    segmentMode: segment.mode || segment.data?.data?.activityType,
+                    segmentIndex: index,
+                    isTrack: segment.type === 'track',
+                    isTransportation: segment.type === 'transportation'
+                }
+            };
+            
+            trailLineData.features.push(feature);
+        });
+
+        // Update the trail line source with segmented data
+        this.map.getSource('trail-line').setData(trailLineData);
+        
+        // Add segment transition markers
+        this.addSegmentTransitionMarkers(trackData.segments, coordinates);
+    }
+
+    // Add visual markers at segment transitions
+    addSegmentTransitionMarkers(segments, coordinates) {
+        const transitionFeatures = [];
+        
+        for (let i = 1; i < segments.length; i++) {
+            const prevSegment = segments[i - 1];
+            const currentSegment = segments[i];
+            const transitionIndex = currentSegment.startIndex;
+            
+            if (transitionIndex < coordinates.length) {
+                const coord = coordinates[transitionIndex];
+                
+                transitionFeatures.push({
+                    type: 'Feature',
+                    geometry: {
+                        type: 'Point',
+                        coordinates: coord
+                    },
+                    properties: {
+                        fromType: prevSegment.type,
+                        toType: currentSegment.type,
+                        fromMode: prevSegment.mode || prevSegment.data?.data?.activityType,
+                        toMode: currentSegment.mode || currentSegment.data?.data?.activityType
+                    }
+                });
+            }
+        }
+        
+        // Add transition markers source if it doesn't exist
+        if (!this.map.getSource('segment-transitions')) {
+            this.map.addSource('segment-transitions', {
+                type: 'geojson',
+                data: {
+                    type: 'FeatureCollection',
+                    features: transitionFeatures
+                }
+            });
+            
+            // Add transition markers layer
+            this.map.addLayer({
+                id: 'segment-transitions',
+                type: 'circle',
+                source: 'segment-transitions',
+                paint: {
+                    'circle-radius': 8,
+                    'circle-color': '#ff6b6b',
+                    'circle-stroke-color': '#ffffff',
+                    'circle-stroke-width': 2,
+                    'circle-opacity': 0.8
+                }
+            });
+        } else {
+            // Update existing source
+            this.map.getSource('segment-transitions').setData({
+                type: 'FeatureCollection',
+                features: transitionFeatures
+            });
+        }
     }
 
     async updateCurrentPosition() {
@@ -467,9 +615,9 @@ export class MapRenderer {
     }
 
     checkIconChanges(progress) {
-        if (this.iconChanges.length > 0) {
-            console.log('Checking icon changes at progress:', progress, 'Total changes:', this.iconChanges.length);
-        }
+        if (this.iconChanges.length === 0) return;
+        
+        console.log('Checking icon changes at progress:', progress.toFixed(3), 'Total changes:', this.iconChanges.length);
         
         const sortedChanges = this.iconChanges.sort((a, b) => a.progress - b.progress);
         
@@ -479,10 +627,10 @@ export class MapRenderer {
         
         // Find the icon that should be active at this progress
         for (const change of sortedChanges) {
-            console.log(`Checking change at progress ${change.progress} (current: ${progress}): ${change.icon}`);
+            console.log(`Checking change at progress ${change.progress.toFixed(3)} (current: ${progress.toFixed(3)}): ${change.icon}`);
             if (progress >= change.progress) {
                 activeIcon = change.icon;
-                console.log(`Applied icon change: ${activeIcon}`);
+                console.log(`Applied icon change: ${activeIcon} at progress ${progress.toFixed(3)}`);
             } else {
                 break; // No more changes apply
             }
@@ -490,38 +638,66 @@ export class MapRenderer {
         
         // Only update if the icon has actually changed
         if (activeIcon !== this.currentIcon) {
-            console.log(`Icon change at progress ${progress}: ${this.currentIcon} → ${activeIcon}`);
+            console.log(`Icon change detected: ${this.currentIcon} → ${activeIcon} at progress ${progress.toFixed(3)}`);
             this.currentIcon = activeIcon;
             
-            // Only update icon if map is loaded
-            if (this.map && this.map.loaded()) {
-                console.log('About to call updateActivityIcon() from checkIconChanges()');
-                this.updateActivityIcon();
-                
-                // Force complete layer refresh by removing and recreating it
-                setTimeout(() => {
-                    try {
-                        console.log('Forcing complete icon layer refresh');
-                        if (this.map.getLayer('activity-icon')) {
-                            this.map.removeLayer('activity-icon');
-                        }
-                        if (this.map.hasImage('activity-icon')) {
-                            this.map.removeImage('activity-icon');
-                        }
-                        
-                        // Recreate the icon and layer
-                        this.createAndAddActivityIconLayer(true);
-                    } catch (error) {
-                        console.error('Error refreshing icon layer:', error);
-                    }
-                }, 50);
-            }
+            // Force icon update immediately
+            this.forceIconUpdate();
             
             // Dispatch event to update UI
             const iconChangeEvent = new CustomEvent('iconChanged', {
                 detail: { icon: activeIcon, progress: progress }
             });
             document.dispatchEvent(iconChangeEvent);
+        }
+    }
+
+    // Force icon update with complete refresh
+    forceIconUpdate() {
+        try {
+            console.log('Forcing icon update to:', this.currentIcon);
+            
+            // Remove existing layer and image completely
+            if (this.map.getLayer('activity-icon')) {
+                this.map.removeLayer('activity-icon');
+                console.log('Removed existing activity icon layer');
+            }
+            
+            if (this.map.hasImage('activity-icon')) {
+                this.map.removeImage('activity-icon');
+                console.log('Removed existing activity icon image');
+            }
+            
+            // Wait a tiny bit for cleanup, then recreate
+            setTimeout(() => {
+                this.createAndAddActivityIcon();
+                
+                setTimeout(() => {
+                    if (!this.map.getLayer('activity-icon')) {
+                        console.log('Adding new activity icon layer after cleanup');
+                        this.map.addLayer({
+                            id: 'activity-icon',
+                            type: 'symbol',
+                            source: 'current-position',
+                            layout: {
+                                'icon-image': 'activity-icon',
+                                'icon-size': this.markerSize,
+                                'icon-allow-overlap': true,
+                                'icon-ignore-placement': true,
+                                'icon-anchor': 'center',
+                                'visibility': 'visible'
+                            },
+                            paint: {
+                                'icon-opacity': 1
+                            }
+                        });
+                        console.log('New activity icon layer added successfully');
+                    }
+                }, 50);
+            }, 10);
+            
+        } catch (error) {
+            console.error('Error in forceIconUpdate:', error);
         }
     }
 
@@ -820,6 +996,13 @@ export class MapRenderer {
         if (!this.trackData || this.isAnimating) return;
         
         this.isAnimating = true;
+        this.lastAnimationTime = 0; // Reset timing
+        
+        // Initialize segment progress
+        if (this.segmentTimings) {
+            this.updateSegmentProgress(this.animationProgress);
+        }
+        
         this.animate();
     }
 
@@ -830,6 +1013,9 @@ export class MapRenderer {
     resetAnimation() {
         this.isAnimating = false;
         this.animationProgress = 0;
+        this.currentSegmentIndex = 0;
+        this.segmentProgress = 0;
+        this.lastAnimationTime = 0;
         this.hideActiveAnnotation();
         this.updateCurrentPosition();
     }
@@ -837,7 +1023,22 @@ export class MapRenderer {
     animate() {
         if (!this.isAnimating) return;
 
-        this.animationProgress += 0.001 * this.animationSpeed;
+        const currentTime = performance.now();
+        if (this.lastAnimationTime === 0) {
+            this.lastAnimationTime = currentTime;
+        }
+        
+        const deltaTime = currentTime - this.lastAnimationTime;
+        this.lastAnimationTime = currentTime;
+
+        if (this.segmentTimings && this.segmentTimings.segments && this.segmentTimings.segments.length > 0) {
+            // Advanced segment-aware animation
+            this.animateWithSegmentTiming(deltaTime);
+        } else {
+            // Fallback to original animation method
+            const progressIncrement = 0.001 * this.animationSpeed;
+            this.animationProgress += progressIncrement;
+        }
         
         if (this.animationProgress >= 1) {
             this.animationProgress = 1;
@@ -851,13 +1052,95 @@ export class MapRenderer {
         }
     }
 
+    // Handle animation with individual segment timing
+    animateWithSegmentTiming(deltaTime) {
+        // Convert deltaTime from milliseconds to seconds
+        const deltaSeconds = deltaTime / 1000;
+        
+        // Get the total time elapsed in the entire journey
+        const totalDuration = this.segmentTimings.totalDuration;
+        const currentTimeInJourney = this.animationProgress * totalDuration;
+        
+        // Find which segment we should currently be in
+        let targetSegment = null;
+        let targetSegmentIndex = 0;
+        
+        for (let i = 0; i < this.segmentTimings.segments.length; i++) {
+            const segment = this.segmentTimings.segments[i];
+            if (currentTimeInJourney >= segment.startTime && currentTimeInJourney < segment.endTime) {
+                targetSegment = segment;
+                targetSegmentIndex = i;
+                break;
+            }
+        }
+        
+        // Handle end of journey case
+        if (!targetSegment && this.segmentTimings.segments.length > 0) {
+            const lastSegment = this.segmentTimings.segments[this.segmentTimings.segments.length - 1];
+            if (currentTimeInJourney >= lastSegment.endTime) {
+                targetSegment = lastSegment;
+                targetSegmentIndex = this.segmentTimings.segments.length - 1;
+            }
+        }
+        
+        if (targetSegment) {
+            // Calculate the progress increment in terms of total journey time
+            // Each segment gets its allocated duration regardless of content
+            const journeyProgressPerSecond = 1 / totalDuration;
+            const progressIncrement = deltaSeconds * journeyProgressPerSecond;
+            
+            this.animationProgress += progressIncrement;
+            this.currentSegmentIndex = targetSegmentIndex;
+            
+            // Calculate progress within the current segment for visual feedback
+            const segmentLocalProgress = Math.max(0, Math.min(1, 
+                (currentTimeInJourney - targetSegment.startTime) / targetSegment.duration
+            ));
+            this.segmentProgress = segmentLocalProgress;
+            
+            console.log(`Segment ${targetSegmentIndex} (${targetSegment.type}): allocated=${targetSegment.duration}s, progress=${segmentLocalProgress.toFixed(3)}, global=${this.animationProgress.toFixed(4)}`);
+        } else {
+            // Fallback if no segment found
+            this.animationProgress += 0.001 * this.animationSpeed;
+        }
+    }
+
     getAnimationProgress() {
         return this.animationProgress;
     }
 
     setAnimationProgress(progress) {
         this.animationProgress = Math.max(0, Math.min(1, progress));
+        
+        // Update segment progress if we have segment timing
+        if (this.segmentTimings && this.segmentTimings.segments) {
+            this.updateSegmentProgress(progress);
+        }
+        
         this.updateCurrentPosition();
+    }
+
+    // Update which segment we're currently in and progress within that segment
+    updateSegmentProgress(globalProgress) {
+        if (!this.segmentTimings || !this.segmentTimings.segments) return;
+        
+        const totalDuration = this.segmentTimings.totalDuration;
+        const currentTime = globalProgress * totalDuration;
+        
+        // Find which segment we're currently in
+        for (let i = 0; i < this.segmentTimings.segments.length; i++) {
+            const segment = this.segmentTimings.segments[i];
+            if (currentTime >= segment.startTime && currentTime <= segment.endTime) {
+                this.currentSegmentIndex = i;
+                // Calculate progress within this segment (0-1)
+                if (segment.duration > 0) {
+                    this.segmentProgress = (currentTime - segment.startTime) / segment.duration;
+                } else {
+                    this.segmentProgress = 0;
+                }
+                break;
+            }
+        }
     }
 
     // Icon change functionality
@@ -1025,5 +1308,16 @@ export class MapRenderer {
             this.map.remove();
             this.map = null;
         }
+    }
+
+    // Setup segment-aware animation
+    setupSegmentAnimation(segments, segmentTiming) {
+        this.segmentTimings = segmentTiming;
+        console.log('Setting up segment animation with timing:', segmentTiming);
+        
+        // Reset animation state
+        this.currentSegmentIndex = 0;
+        this.segmentProgress = 0;
+        this.animationProgress = 0;
     }
 } 
