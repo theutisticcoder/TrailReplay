@@ -12,7 +12,7 @@ export class MapRenderer {
         this.animationProgress = 0;
         this.animationSpeed = 1;
         this.currentActivityType = 'running';
-        this.pathColor = '#667eea';
+        this.pathColor = '#C1652F';
         this.markerSize = 1.0;
         this.autoZoom = true;
         this.showCircle = true;
@@ -576,12 +576,6 @@ export class MapRenderer {
         const currentPoint = this.gpxParser.getInterpolatedPoint(this.animationProgress);
         
         if (currentPoint) {
-            console.log('Updating position to:', {
-                progress: this.animationProgress.toFixed(3),
-                lat: currentPoint.lat,
-                lon: currentPoint.lon,
-                index: currentPoint.index
-            });
             
             // Update current position marker
             this.map.getSource('current-position').setData({

@@ -1,32 +1,32 @@
 // Simple translation system
 export const translations = {
     en: {
-        subtitle: "Visualize your GPX trails in 3D",
+        subtitle: "Replay the story your trails told",
         upload: {
             title: "Upload GPX Files",
-            description: "Add multiple GPX tracks to create your journey",
+            description: "Drag your GPX file here — we'll do the rest",
             button: "Choose Files"
         },
         controls: {
             activity: "Activity Type:",
             terrain: "Terrain Style:",
             totalTime: "Total Time:",
-            pathColor: "Path Color:",
-            markerSize: "Marker Size:",
-            currentIcon: "Current Icon:",
+            pathColor: "Trail Color",
+            markerSize: "Marker Size",
+            currentIcon: "Current Icon",
             changeIcon: "Change",
-            autoFollow: "Auto Follow:",
-            showCircle: "Show Circle:",
-            play: "▶️ Play",
-            pause: "⏸️ Pause",
-            reset: "🔄 Reset",
+            autoFollow: "Auto Follow",
+            showCircle: "Show Circle",
+            play: "Play",
+            pause: "Pause",
+            reset: "Reset",
             addIconChange: "🔄 Add Icon Change",
             addAnnotation: "📍 Add Note",
             export: "📹 Export Video",
             autoZoom: "Auto Zoom",
             terrain3d: "3D Terrain",
             terrainSource: "Elevation Data",
-            showStats: "Show Live Stats"
+            showStats: "Live Stats"
         },
         iconSelection: {
             title: "Select Icon"
@@ -34,7 +34,7 @@ export const translations = {
         iconChange: {
             title: "Add Icon Change",
             instruction: "Click on the map or progress bar to set the position where the icon should change.",
-            newIcon: "New Icon:"
+            newIcon: "New Icon"
         },
         iconChanges: {
             title: "Icon Changes Timeline"
@@ -59,12 +59,18 @@ export const translations = {
             fileLoaded: "GPX file loaded successfully!",
             fileError: "Error loading GPX file. Please try again.",
             noTrackPoints: "No track points found in GPX file.",
-            exportStarted: "Video export started...",
-            exportComplete: "Video export completed!",
-            annotationAdded: "Annotation added successfully!",
-            iconChangeAdded: "Icon change added successfully!",
-            clickMapToAnnotate: "Click on the map to add an annotation at that location",
-            clickMapForIconChange: "Click on the map or progress bar to set where the icon should change"
+            exportStarted: "Starting video export...",
+            exportComplete: "Video export complete!",
+            annotationAdded: "Trail annotation added",
+            iconChangeAdded: "Icon change added",
+            clickMapToAnnotate: "Click on the map to add an annotation",
+            clickMapForIconChange: "Click on the map to add an icon change",
+            noTrackForExport: "No track loaded. Please load a GPX file before exporting.",
+            mediaDeviceNotSupported: "Video recording is not supported by your browser.",
+            mapNotReady: "Map is not ready for video export.",
+            exportVideoPrepare: "Preparing video export. Please wait...",
+            exportVideoRecording: "Recording animation... Please wait until complete.",
+            exportError: "Error during video export"
         },
         journey: {
             title: "Journey Builder",
@@ -77,79 +83,73 @@ export const translations = {
         }
     },
     es: {
-        subtitle: "Visualiza tus rutas GPX en 3D",
+        subtitle: "Revive la historia que contaron tus senderos",
         upload: {
             title: "Subir Archivos GPX",
-            description: "Añade múltiples tracks GPX para crear tu viaje",
+            description: "Arrastra tu archivo GPX aquí — nosotros nos encargamos del resto",
             button: "Elegir Archivos"
         },
         controls: {
             activity: "Tipo de Actividad:",
             terrain: "Estilo de Terreno:",
             totalTime: "Tiempo Total:",
-            pathColor: "Color del Sendero:",
-            markerSize: "Tamaño del Marcador:",
-            currentIcon: "Icono Actual:",
+            pathColor: "Color del Sendero",
+            markerSize: "Tamaño del Marcador",
+            currentIcon: "Icono Actual",
             changeIcon: "Cambiar",
-            autoFollow: "Seguir Automáticamente:",
-            showCircle: "Mostrar Círculo:",
-            play: "▶️ Reproducir",
-            pause: "⏸️ Pausar",
-            reset: "🔄 Reiniciar",
-            addIconChange: "🔄 Añadir Cambio de Icono",
+            autoFollow: "Seguimiento Automático",
+            showCircle: "Mostrar Círculo",
+            play: "Reproducir",
+            pause: "Pausar",
+            reset: "Reiniciar",
+            addIconChange: "🔄 Cambiar Icono",
             addAnnotation: "📍 Añadir Nota",
             export: "📹 Exportar Video",
             autoZoom: "Auto Zoom",
-            terrain3d: "3D Terrain",
-            terrainSource: "Elevation Data",
-            showStats: "Mostrar Estadísticas en Vivo"
+            terrain3d: "Terreno 3D",
+            terrainSource: "Datos de Elevación",
+            showStats: "Estadísticas en Vivo"
         },
         iconSelection: {
             title: "Seleccionar Icono"
         },
         iconChange: {
             title: "Añadir Cambio de Icono",
-            instruction: "Haz clic en el mapa o barra de progreso para establecer donde el icono debería cambiar.",
-            newIcon: "Nuevo Icono:"
+            instruction: "Haz clic en el mapa o en la barra de progreso para establecer la posición donde debe cambiar el icono.",
+            newIcon: "Nuevo Icono"
         },
         iconChanges: {
             title: "Cronología de Cambios de Icono"
         },
         annotations: {
             title: "Anotaciones del Sendero",
-            addTitle: "Añadir Anotación",
-            clickToAdd: "Haz clic en el mapa para añadir una anotación",
-            noAnnotations: "No se han añadido anotaciones aún"
+            addTitle: "Añadir Anotación"
         },
         stats: {
-            title: "Estadísticas de la Ruta",
+            title: "Estadísticas del Sendero",
             distance: "Distancia Total",
-            duration: "Duración",
             elevation: "Ganancia de Elevación",
-            speed: "Velocidad Promedio",
             currentDistance: "Distancia",
-            currentElevation: "Elevación",
-            currentSpeed: "Velocidad"
+            currentElevation: "Elevación"
         },
         messages: {
-            fileLoaded: "¡Archivo GPX cargado exitosamente!",
-            fileError: "Error al cargar el archivo GPX. Inténtalo de nuevo.",
-            noTrackPoints: "No se encontraron puntos de seguimiento en el archivo GPX.",
-            exportStarted: "Exportación de video iniciada...",
+            clickMapToAnnotate: "Haz clic en el mapa para añadir una anotación",
+            clickMapForIconChange: "Haz clic en el mapa para añadir un cambio de icono",
+            annotationAdded: "Anotación del sendero añadida",
+            iconChangeAdded: "Cambio de icono añadido",
+            exportStarted: "Iniciando exportación de video...",
             exportComplete: "¡Exportación de video completada!",
-            annotationAdded: "¡Anotación añadida exitosamente!",
-            iconChangeAdded: "¡Cambio de icono añadido exitosamente!",
-            clickMapToAnnotate: "Haz clic en el mapa para añadir una anotación en esa ubicación",
-            clickMapForIconChange: "Haz clic en el mapa o barra de progreso para establecer donde el icono debería cambiar"
+            noTrackForExport: "No hay ninguna ruta cargada. Carga un archivo GPX antes de exportar.",
+            mediaDeviceNotSupported: "La grabación de video no es compatible con tu navegador.",
+            mapNotReady: "El mapa no está listo para exportar el video.",
+            exportVideoPrepare: "Preparando la exportación del video. Por favor espera...",
+            exportVideoRecording: "Grabando animación... Por favor espera hasta que termine.",
+            exportError: "Error durante la exportación del video"
         },
         journey: {
-            title: 'Constructor de Viajes',
-            tracks: 'Pistas Subidas',
-            segments: 'Segmentos del Viaje',
-            autoUpdating: 'Actualizando viaje automáticamente...',
-            journeyUpdated: '¡Viaje actualizado!',
-            noTracks: 'Sube archivos GPX para empezar a construir tu viaje',
-            addTransportation: 'Agregar transporte entre pistas'
+            title: "Constructor de Viajes",
+            tracks: "Rutas Subidas",
+            segments: "Segmentos del Viaje"
         }
     }
 };

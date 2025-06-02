@@ -1417,80 +1417,85 @@ export class JourneyBuilder {
     buildCompleteJourney() {
         const journey = {
             coordinates: [],
-            segments: [],
+            segments: [], // This is what MainApp will receive
             stats: {
                 totalDistance: 0,
-                totalDuration: 0,
+                totalDuration: 0, // This will be recalculated by MainApp based on userTimes
                 elevationGain: 0
             }
         };
 
-        this.segments.forEach(segment => {
-            if (segment.type === 'track') {
-                // Add track coordinates
-                journey.coordinates.push(...segment.data.data.coordinates);
-                journey.segments.push({
+        // Iterate over JourneyBuilder's internal segments (this.segments)
+        // which contain the most up-to-date userTime values.
+        this.segments.forEach(jbSegment => {
+            if (jbSegment.type === 'track') {
+                journey.coordinates.push(...jbSegment.data.data.coordinates);
+                
+                // Create the segment for the journey object
+                const journeySegment = {
                     type: 'track',
-                    startIndex: journey.coordinates.length - segment.data.data.coordinates.length,
+                    startIndex: journey.coordinates.length - jbSegment.data.data.coordinates.length,
                     endIndex: journey.coordinates.length - 1,
-                    data: segment.data
-                });
+                    data: jbSegment.data, // Original track data
+                    userTime: jbSegment.userTime // CRITICAL: Copy userTime
+                };
+                journey.segments.push(journeySegment);
                 
-                // Add to stats
-                journey.stats.totalDistance += segment.data.stats.totalDistance;
-                journey.stats.elevationGain += segment.data.stats.elevationGain;
+                journey.stats.totalDistance += jbSegment.data.stats.totalDistance;
+                journey.stats.elevationGain += jbSegment.data.stats.elevationGain;
                 
-            } else if (segment.type === 'transportation') {
-                // Handle transportation segments - create route if it doesn't exist
+            } else if (jbSegment.type === 'transportation') {
                 let routeCoordinates = [];
-                let route = segment.route;
+                let route = jbSegment.route;
                 
-                if (segment.route && segment.route.coordinates) {
-                    // Use existing route
-                    routeCoordinates = segment.route.coordinates;
-                } else if (segment.mode && segment.startPoint && segment.endPoint) {
-                    // Create a simple straight-line route for transportation without explicit route
-                    routeCoordinates = [segment.startPoint, segment.endPoint];
-                    
-                    // Create a fallback route object
-                    const distance = this.calculateDistance(segment.startPoint, segment.endPoint) * 1000; // in meters
-                    const defaultTime = this.getDefaultTransportTime(segment.mode, distance / 1000);
+                if (jbSegment.route && jbSegment.route.coordinates) {
+                    routeCoordinates = jbSegment.route.coordinates;
+                } else if (jbSegment.mode && jbSegment.startPoint && jbSegment.endPoint) {
+                    routeCoordinates = [jbSegment.startPoint, jbSegment.endPoint];
+                    const distance = this.calculateDistance(jbSegment.startPoint, jbSegment.endPoint) * 1000;
+                    // Use jbSegment.userTime if set by user, otherwise default.
+                    const transportTime = (jbSegment.userTime !== undefined && jbSegment.userTime !== null) 
+                                          ? jbSegment.userTime 
+                                          : this.getDefaultTransportTime(jbSegment.mode, distance / 1000);
                     
                     route = {
                         coordinates: routeCoordinates,
                         distance: distance,
-                        duration: defaultTime,
-                        userTime: defaultTime,
+                        duration: transportTime, // This duration should reflect userTime or default
+                        userTime: transportTime, // Explicitly set userTime here too for consistency
                         provider: 'fallback',
-                        type: segment.mode
+                        type: jbSegment.mode
                     };
-                    
-                    // Update the segment with the fallback route
-                    segment.route = route;
+                    jbSegment.route = route; // Update the internal segment's route
                 }
                 
                 if (routeCoordinates.length > 0) {
-                    // Add transportation route coordinates
                     journey.coordinates.push(...routeCoordinates);
-                    journey.segments.push({
+                    
+                    // Create the segment for the journey object
+                    const journeySegment = {
                         type: 'transportation',
-                        mode: segment.mode,
+                        mode: jbSegment.mode,
                         startIndex: journey.coordinates.length - routeCoordinates.length,
                         endIndex: journey.coordinates.length - 1,
-                        route: route
-                    });
+                        route: route, // route object now includes correct userTime or default
+                        userTime: jbSegment.userTime // CRITICAL: Copy userTime if set for transport overall
+                    };
+                    journey.segments.push(journeySegment);
                     
-                    // Add to stats
                     if (route) {
-                        journey.stats.totalDistance += route.distance / 1000; // convert to km
-                        journey.stats.totalDuration += route.duration;
+                        journey.stats.totalDistance += route.distance / 1000;
+                        // Note: totalDuration for journey.stats will be calculated by MainApp using these segments
                     }
                 } else {
-                    console.warn('Transportation segment has no coordinates:', segment);
+                    console.warn('Transportation segment has no coordinates:', jbSegment);
                 }
             }
         });
 
+        // MainApp's calculateSegmentTiming will now determine the true totalDuration
+        // based on the userTime values it receives in journey.segments.
+        console.log('JourneyBuilder: Built complete journey with segments containing userTime:', journey.segments.map(s => ({type: s.type, userTime: s.userTime})));
         return journey;
     }
 
@@ -1662,17 +1667,14 @@ export class JourneyBuilder {
         return fixedTimes[mode] || 30; // Default 30 seconds
     }
 
-    // Update segment time (called from both input changes and drag/drop)
+    // Update a segment's time and refresh everything
     updateSegmentTime(segmentIndex, newTime, segmentType) {
+        console.log(`=== Updating ${segmentType} segment ${segmentIndex} time to: ${newTime}s ===`);
+        
+        const timeValue = parseInt(newTime);
         const segment = this.segments[segmentIndex];
         if (!segment) {
             console.error('Segment not found at index:', segmentIndex);
-            return;
-        }
-        
-        const timeValue = parseInt(newTime);
-        if (isNaN(timeValue) || timeValue < 5) {
-            console.error('Invalid time value:', newTime);
             return;
         }
         

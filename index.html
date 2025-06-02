@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trail Replay - GPX Visualization</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.1.3/dist/maplibre-gl.css">
     <link rel="stylesheet" href="./src/styles.css">
 </head>
@@ -12,8 +15,15 @@
         <!-- Header -->
         <header class="header">
             <div class="container">
-                <h1 class="logo">🏃‍♂️ Trail Replay</h1>
-                <p class="subtitle" data-i18n="subtitle">Visualize your GPX trails in 3D</p>
+                <div class="logo-container">
+                    <div class="logo-placeholder" id="logoPlaceholder">
+                        <img src="images/logohorizontal.svg" alt="TrailReplay logo" class="logo-image" 
+                             onload="if(this.offsetWidth > 0) { document.querySelector('.logo-text').style.display = 'none'; } else { document.querySelector('.logo-text').style.display = 'block'; this.style.display = 'none'; }"
+                             onerror="document.querySelector('.logo-text').style.display = 'block'; this.style.display = 'none';" />
+                        <span class="logo-text">TrailReplay</span>
+                    </div>
+                </div>
+                <p class="subtitle" data-i18n="subtitle">Replay the story your trails told</p>
             </div>
         </header>
 
@@ -103,12 +113,12 @@
 
                         <!-- Row 2: Visual Customization -->
                         <div class="control-group">
-                            <label data-i18n="controls.pathColor">Path Color:</label>
+                            <label data-i18n="controls.pathColor">Trail Color:</label>
                             <div class="color-input-group">
-                                <input type="color" id="pathColor" value="#667eea">
-                                <span class="color-preset" data-color="#667eea" title="Blue">🔵</span>
-                                <span class="color-preset" data-color="#ff6b6b" title="Red">🔴</span>
-                                <span class="color-preset" data-color="#4ecdc4" title="Teal">🟢</span>
+                                <input type="color" id="pathColor" value="#C1652F">
+                                <span class="color-preset" data-color="#C1652F" title="Trail Orange">🟠</span>
+                                <span class="color-preset" data-color="#1B2A20" title="Evergreen">🟢</span>
+                                <span class="color-preset" data-color="#7FB8AD" title="Lake Teal">🔵</span>
                                 <span class="color-preset" data-color="#ffe66d" title="Yellow">🟡</span>
                                 <span class="color-preset" data-color="#a8e6cf" title="Green">🟢</span>
                             </div>
@@ -147,7 +157,7 @@
                         <div class="control-group">
                             <label data-i18n="controls.terrain3d">3D Terrain:</label>
                             <div class="toggle-switch">
-                                <input type="checkbox" id="terrain3d">
+                                <input type="checkbox" id="terrain3d" checked>
                                 <label for="terrain3d" class="toggle-slider"></label>
                             </div>
                         </div>
@@ -161,7 +171,7 @@
                         </div>
 
                         <!-- Terrain Source Selection (shown when 3D is enabled) -->
-                        <div class="control-group" id="terrainSourceGroup" style="display: none;">
+                        <div class="control-group" id="terrainSourceGroup" style="display: block;">
                             <label data-i18n="controls.terrainSource">Elevation Data:</label>
                             <select id="terrainSource" class="terrain-source-select">
                                 <option value="mapzen">Mapzen Terrarium (Global)</option>
@@ -187,6 +197,11 @@
                     <div class="map-container">
                         <div id="map" class="map"></div>
                         <div id="threeContainer" class="three-container"></div>
+                        
+                        <!-- Logo Watermark -->
+                        <div class="map-watermark">
+                            <img src="images/logohorizontal.svg" alt="TrailReplay" class="watermark-logo" />
+                        </div>
                         
                         <!-- Live Stats Overlay -->
                         <div id="liveStatsOverlay" class="live-stats-overlay">
@@ -278,9 +293,9 @@
         <!-- Footer -->
         <footer class="footer">
             <div class="container">
-                <p>&copy; 2024 Trail Replay - Open Source GPX Visualization</p>
+                <p>&copy; TrailReplay - Open Source Trail Storytelling</p>
                 <div class="tech-stack">
-                    <span>Built with MapLibre GL JS + Three.js + SRTM Data</span>
+                    <span>Built with MapLibre GL JS + Three.js + Elevation Data</span>
                 </div>
             </div>
         </footer>
