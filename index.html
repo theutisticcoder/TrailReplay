@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trail Replay - GPX Visualization</title>
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.1.1/dist/maplibre-gl.css">
+    <link rel="stylesheet" href="./src/styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="container">
+                <h1 class="logo">🏃‍♂️ Trail Replay</h1>
+                <p class="subtitle" data-i18n="subtitle">Visualize your GPX trails in 3D</p>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main">
+            <div class="container">
+                <!-- Upload Section -->
+                <section class="upload-section" id="uploadSection">
+                    <div class="upload-card">
+                        <div class="upload-icon">📁</div>
+                        <h2 data-i18n="upload.title">Upload GPX File</h2>
+                        <p data-i18n="upload.description">Drag & drop your GPX file or click to browse</p>
+                        <input type="file" id="gpxFileInput" accept=".gpx" class="file-input">
+                        <button class="upload-btn" onclick="document.getElementById('gpxFileInput').click()">
+                            <span data-i18n="upload.button">Choose File</span>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Visualization Section -->
+                <section class="visualization-section" id="visualizationSection" style="display: none;">
+                    <div class="controls-panel">
+                        <!-- Row 1: Basic Controls -->
+                        <div class="control-group">
+                            <label data-i18n="controls.activity">Activity Type:</label>
+                            <select id="activityType">
+                                <option value="running">🏃‍♂️ Running</option>
+                                <option value="cycling">🚴‍♂️ Cycling</option>
+                                <option value="swimming">🏊‍♂️ Swimming</option>
+                                <option value="triathlon">🏆 Triathlon</option>
+                                <option value="hiking">🥾 Hiking</option>
+                            </select>
+                        </div>
+                        
+                        <div class="control-group">
+                            <label data-i18n="controls.terrain">Terrain Style:</label>
+                            <select id="terrainStyle">
+                                <option value="satellite" selected>🛰️ Satellite</option>
+                                <option value="terrain">🏔️ Terrain</option>
+                                <option value="street">🗺️ Streets</option>
+                            </select>
+                        </div>
+
+                        <div class="control-group">
+                            <label data-i18n="controls.totalTime">Total Time:</label>
+                            <input type="range" id="animationSpeed" min="0.1" max="5" step="0.1" value="1">
+                            <span id="speedValue">1x</span>
+                        </div>
+
+                        <!-- Row 2: Visual Customization -->
+                        <div class="control-group">
+                            <label data-i18n="controls.pathColor">Path Color:</label>
+                            <div class="color-input-group">
+                                <input type="color" id="pathColor" value="#667eea">
+                                <span class="color-preset" data-color="#667eea" title="Blue">🔵</span>
+                                <span class="color-preset" data-color="#ff6b6b" title="Red">🔴</span>
+                                <span class="color-preset" data-color="#4ecdc4" title="Teal">🟢</span>
+                                <span class="color-preset" data-color="#ffe66d" title="Yellow">🟡</span>
+                                <span class="color-preset" data-color="#a8e6cf" title="Green">🟢</span>
+                            </div>
+                        </div>
+
+                        <div class="control-group">
+                            <label data-i18n="controls.markerSize">Marker Size:</label>
+                            <input type="range" id="markerSize" min="0.5" max="3" step="0.1" value="1.0">
+                            <span id="markerSizeValue">1.0x</span>
+                        </div>
+
+                        <div class="control-group">
+                            <label data-i18n="controls.currentIcon">Current Icon:</label>
+                            <div class="icon-selector">
+                                <div class="current-icon-display" id="currentIconDisplay">🏃‍♂️</div>
+                                <button class="icon-change-btn" id="changeIconBtn" data-i18n="controls.changeIcon">Change</button>
+                            </div>
+                        </div>
+
+                        <div class="control-group">
+                            <label data-i18n="controls.autoFollow">Auto Follow:</label>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="autoZoom" checked>
+                                <label for="autoZoom" class="toggle-slider"></label>
+                            </div>
+                        </div>
+
+                        <div class="control-group">
+                            <label data-i18n="controls.showCircle">Show Circle:</label>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="showCircle" checked>
+                                <label for="showCircle" class="toggle-slider"></label>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="control-buttons">
+                            <button id="addIconChangeBtn" class="control-btn">
+                                <span data-i18n="controls.addIconChange">🔄 Add Icon Change</span>
+                            </button>
+                            <button id="addAnnotationBtn" class="control-btn">
+                                <span data-i18n="controls.addAnnotation">📍 Add Note</span>
+                            </button>
+                            <button id="exportBtn" class="control-btn">
+                                <span data-i18n="controls.export">📹 Export Video</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Map Container -->
+                    <div class="map-container">
+                        <div id="map" class="map"></div>
+                        <div id="threeContainer" class="three-container"></div>
+                        
+                        <!-- Progress Bar -->
+                        <div class="progress-container">
+                            <div class="progress-header">
+                                <div class="progress-controls">
+                                    <button id="playBtn" class="progress-control-btn primary">
+                                        <span data-i18n="controls.play">Play</span>
+                                    </button>
+                                    <button id="resetBtn" class="progress-control-btn">
+                                        <span data-i18n="controls.reset">Reset</span>
+                                    </button>
+                                </div>
+                                <div class="progress-info">
+                                    <span id="currentTime">00:00</span>
+                                    <span>/</span>
+                                    <span id="totalTime">00:00</span>
+                                </div>
+                            </div>
+                            <div class="progress-bar" id="progressBar">
+                                <div id="progressFill" class="progress-fill"></div>
+                                <!-- Icon change markers on progress bar -->
+                                <div id="iconChangeMarkers" class="icon-change-markers"></div>
+                                <!-- Annotation markers on progress bar -->
+                                <div id="annotationMarkers" class="annotation-markers"></div>
+                            </div>
+                        </div>
+
+                        <!-- Active Annotation Display -->
+                        <div id="activeAnnotation" class="active-annotation" style="display: none;">
+                            <div class="annotation-popup">
+                                <span class="annotation-popup-icon"></span>
+                                <div class="annotation-popup-content">
+                                    <div class="annotation-popup-title"></div>
+                                    <div class="annotation-popup-description"></div>
+                                </div>
+                                <button class="annotation-popup-close">✕</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Icon Changes Timeline -->
+                <section class="icon-timeline-section" id="iconTimelineSection" style="display: none;">
+                    <h3 data-i18n="iconChanges.title">Icon Changes Timeline</h3>
+                    <div class="icon-timeline" id="iconTimeline">
+                        <!-- Icon changes will be added dynamically -->
+                    </div>
+                </section>
+
+                <!-- Annotations Panel -->
+                <section class="annotations-section" id="annotationsSection" style="display: none;">
+                    <h3 data-i18n="annotations.title">Trail Annotations</h3>
+                    <div class="annotations-list" id="annotationsList">
+                        <!-- Annotations will be added dynamically -->
+                    </div>
+                </section>
+
+                <!-- Stats Section -->
+                <section class="stats-section" id="statsSection" style="display: none;">
+                    <h3 data-i18n="stats.title">Trail Statistics</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">📏</div>
+                            <div class="stat-value" id="totalDistance">0 km</div>
+                            <div class="stat-label" data-i18n="stats.distance">Total Distance</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">📈</div>
+                            <div class="stat-value" id="elevationGain">0 m</div>
+                            <div class="stat-label" data-i18n="stats.elevation">Elevation Gain</div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="container">
+                <p>&copy; 2024 Trail Replay - Open Source GPX Visualization</p>
+                <div class="tech-stack">
+                    <span>Built with MapLibre GL JS + Three.js + SRTM Data</span>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Icon Selection Modal -->
+    <div id="iconSelectionModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 data-i18n="iconSelection.title">Select Icon</h3>
+                <button class="modal-close" id="closeIconModal">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="icon-grid" id="iconGrid">
+                    <!-- Icons will be populated dynamically -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelIconBtn" class="control-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Icon Change Modal -->
+    <div id="iconChangeModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 data-i18n="iconChange.title">Add Icon Change</h3>
+                <button class="modal-close" id="closeIconChangeModal">✕</button>
+            </div>
+            <div class="modal-body">
+                <p data-i18n="iconChange.instruction">Click on the map or progress bar to set the position where the icon should change.</p>
+                <div class="icon-change-controls">
+                    <label data-i18n="iconChange.newIcon">New Icon:</label>
+                    <div class="icon-selection-mini" id="iconChangeSelection">
+                        <div class="selected-icon" id="selectedIconForChange">🚴‍♂️</div>
+                        <button class="icon-select-btn" id="selectIconForChangeBtn">Choose Icon</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="saveIconChangeBtn" class="control-btn primary">Save</button>
+                <button id="cancelIconChangeBtn" class="control-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Annotation Modal -->
+    <div id="annotationModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 data-i18n="annotations.addTitle">Add Annotation</h3>
+                <button class="modal-close" id="closeAnnotationModal">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="annotationTitle" placeholder="Annotation title..." maxlength="50">
+                <textarea id="annotationDescription" placeholder="Description (optional)..." maxlength="200"></textarea>
+                <div class="annotation-icons">
+                    <span class="annotation-icon" data-icon="📍">📍</span>
+                    <span class="annotation-icon" data-icon="⚠️">⚠️</span>
+                    <span class="annotation-icon" data-icon="📸">📸</span>
+                    <span class="annotation-icon" data-icon="🏔️">🏔️</span>
+                    <span class="annotation-icon" data-icon="💧">💧</span>
+                    <span class="annotation-icon" data-icon="🌳">🌳</span>
+                    <span class="annotation-icon" data-icon="🏠">🏠</span>
+                    <span class="annotation-icon" data-icon="⭐">⭐</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="saveAnnotationBtn" class="control-btn primary">Save</button>
+                <button id="cancelAnnotationBtn" class="control-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="./src/main.js"></script>
+</body>
+</html> 
