@@ -1929,4 +1929,320 @@ input:checked + .toggle-slider:before {
         display: inline-block;
         margin: 2px;
     }
+}
+
+/* Journey Builder Timeline Editor Styles */
+.timeline-editor {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    margin: 0;
+    padding: 15px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.timeline-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.timeline-header h4 {
+    margin: 0;
+    color: #495057;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.timeline-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.timeline-zoom-btn {
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s ease;
+}
+
+.timeline-zoom-btn:hover {
+    background: #0056b3;
+}
+
+.timeline-zoom-level {
+    font-weight: 600;
+    color: #495057;
+    min-width: 30px;
+    text-align: center;
+}
+
+.timeline-track {
+    position: relative;
+    min-height: 80px;
+    background: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.timeline-ruler {
+    position: relative;
+    height: 25px;
+    background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
+    border-bottom: 1px solid #dee2e6;
+    font-size: 11px;
+    color: #6c757d;
+}
+
+.timeline-tick {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    border-left: 1px solid #ced4da;
+    padding-left: 4px;
+    display: flex;
+    align-items: center;
+}
+
+.timeline-tick span {
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.timeline-segments {
+    position: relative;
+    height: 55px;
+    overflow-x: auto;
+    min-width: 100%;
+    background: linear-gradient(to bottom, #ffffff, #f8f9fa);
+}
+
+.timeline-segment {
+    position: absolute;
+    top: 5px;
+    height: 45px;
+    border-radius: 6px;
+    border: 2px solid rgba(255,255,255,0.8);
+    cursor: move;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 4px 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.2s ease;
+    overflow: hidden;
+    min-width: 50px;
+}
+
+.timeline-segment:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    border-color: #ffffff;
+}
+
+.timeline-segment.dragging {
+    z-index: 1000;
+    transform: translateY(-5px) rotate(2deg);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+    opacity: 0.9;
+}
+
+.timeline-segment.resizing {
+    border-color: #007bff;
+    box-shadow: 0 4px 12px rgba(0,123,255,0.3);
+}
+
+.timeline-segment.track {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    color: white;
+}
+
+.timeline-segment.transport {
+    color: white;
+    font-weight: 500;
+}
+
+.timeline-segment-header {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    margin-bottom: 2px;
+}
+
+.timeline-segment-icon {
+    font-size: 12px;
+    flex-shrink: 0;
+}
+
+.timeline-segment-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+}
+
+.timeline-segment-duration {
+    font-size: 10px;
+    font-weight: 700;
+    opacity: 0.9;
+    line-height: 1;
+    text-align: center;
+}
+
+.timeline-segment-resize-handle {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 8px;
+    background: rgba(255,255,255,0.3);
+    cursor: ew-resize;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    border-radius: 0 4px 4px 0;
+}
+
+.timeline-segment:hover .timeline-segment-resize-handle {
+    opacity: 1;
+    background: rgba(255,255,255,0.6);
+}
+
+.timeline-segment-resize-handle:hover {
+    background: rgba(255,255,255,0.8) !important;
+}
+
+/* Responsive timeline */
+@media (max-width: 768px) {
+    .timeline-editor {
+        padding: 10px;
+    }
+    
+    .timeline-header {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+    }
+    
+    .timeline-segments {
+        overflow-x: scroll;
+    }
+    
+    .timeline-segment {
+        min-width: 40px;
+        padding: 2px 4px;
+    }
+    
+    .timeline-segment-header {
+        font-size: 10px;
+    }
+    
+    .timeline-segment-duration {
+        font-size: 9px;
+    }
+}
+
+/* Journey Timeline Container */
+.journey-timeline-container {
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+    margin: 20px 0;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Timeline Progress Indicator */
+.timeline-progress-indicator {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: #ff4757;
+    border-radius: 2px;
+    z-index: 100;
+    box-shadow: 0 0 8px rgba(255, 71, 87, 0.6);
+    display: none;
+    transition: left 0.1s ease;
+}
+
+.timeline-progress-indicator::before {
+    content: '▶';
+    position: absolute;
+    top: -8px;
+    left: -6px;
+    color: #ff4757;
+    font-size: 12px;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.timeline-progress-indicator::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: -3px;
+    width: 9px;
+    height: 9px;
+    background: #ff4757;
+    border-radius: 50%;
+    box-shadow: 0 2px 6px rgba(255, 71, 87, 0.4);
+}
+
+/* Enhanced timeline for better visibility */
+.timeline-editor {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    margin: 0;
+    padding: 15px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.timeline-segments {
+    position: relative;
+    height: 55px;
+    overflow-x: auto;
+    min-width: 100%;
+    background: linear-gradient(to bottom, #ffffff, #f8f9fa);
+}
+
+/* Timeline clicking functionality */
+.timeline-segments {
+    cursor: pointer;
+}
+
+.timeline-segments:hover .timeline-progress-indicator {
+    box-shadow: 0 0 12px rgba(255, 71, 87, 0.8);
+}
+
+/* Responsive timeline container */
+@media (max-width: 768px) {
+    .journey-timeline-container {
+        padding: 15px;
+        margin: 15px 0;
+    }
+    
+    .timeline-progress-indicator::before {
+        font-size: 10px;
+        top: -6px;
+        left: -5px;
+    }
+    
+    .timeline-progress-indicator::after {
+        width: 7px;
+        height: 7px;
+        bottom: -6px;
+        left: -2px;
+    }
 } 

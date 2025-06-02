@@ -657,9 +657,15 @@ class TrailReplayApp {
         
         document.getElementById('progressFill').style.width = `${progressPercent}%`;
         
-        // Show progress through the selected animation duration in seconds
-        const currentTimeSeconds = Math.floor(progress * this.totalAnimationTime);
-        document.getElementById('currentTime').textContent = this.formatTimeInSeconds(currentTimeSeconds);
+        // For journeys with segment timing, show elapsed time based on actual journey time
+        if (this.currentTrackData && this.currentTrackData.isJourney && this.mapRenderer.journeyElapsedTime !== undefined) {
+            const currentTimeSeconds = Math.floor(this.mapRenderer.journeyElapsedTime);
+            document.getElementById('currentTime').textContent = this.formatTimeInSeconds(currentTimeSeconds);
+        } else {
+            // Fallback: show progress through the selected animation duration in seconds
+            const currentTimeSeconds = Math.floor(progress * this.totalAnimationTime);
+            document.getElementById('currentTime').textContent = this.formatTimeInSeconds(currentTimeSeconds);
+        }
     }
 
     updateProgressBarMarkers() {
@@ -1134,6 +1140,23 @@ class TrailReplayApp {
             this.handleSegmentTimingUpdate(e.detail);
         });
 
+        // Listen for timeline seeking
+        document.addEventListener('timelineSeek', (e) => {
+            if (this.mapRenderer && this.currentTrackData) {
+                this.mapRenderer.setAnimationProgress(e.detail.progress);
+                this.updateProgressDisplay();
+                this.updateTimelineProgressIndicator(e.detail.progress);
+            }
+        });
+
+        // Listen for segment order changes
+        document.addEventListener('segmentOrderChanged', (e) => {
+            if (this.currentTrackData && this.currentTrackData.isJourney) {
+                // Rebuild journey with new segment order
+                this.rebuildJourneyFromSegments(e.detail.segments);
+            }
+        });
+
         // Listen for map access requests from journey builder for route drawing
         document.addEventListener('requestMapForDrawing', (e) => {
             if (this.mapRenderer && this.mapRenderer.map) {
@@ -1146,6 +1169,78 @@ class TrailReplayApp {
 
         // Make journey builder globally available for onclick handlers
         window.journeyBuilder = this.journeyBuilder;
+    }
+
+    // Setup real-time progress updates on timeline
+    setupTimelineProgressUpdates() {
+        // Update timeline progress indicator during animation
+        const updateTimelineProgress = () => {
+            if (this.mapRenderer && this.currentTrackData && this.currentTrackData.isJourney) {
+                const progress = this.mapRenderer.getAnimationProgress();
+                this.updateTimelineProgressIndicator(progress);
+            }
+            
+            if (this.isPlaying) {
+                requestAnimationFrame(updateTimelineProgress);
+            }
+        };
+        
+        // Start timeline progress updates when animation starts
+        document.addEventListener('animationStarted', updateTimelineProgress);
+        
+        // Override the existing progress update to include timeline
+        const originalStartProgressUpdate = this.startProgressUpdate.bind(this);
+        this.startProgressUpdate = () => {
+            originalStartProgressUpdate();
+            updateTimelineProgress();
+        };
+    }
+
+    // Update the progress indicator on the timeline
+    updateTimelineProgressIndicator(progress) {
+        const indicator = document.getElementById('timelineProgressIndicator');
+        if (!indicator || !this.currentTrackData || !this.currentTrackData.segmentTiming) return;
+        
+        // Use journeyElapsedTime from the MapRenderer if available
+        let currentTime = 0;
+        if (this.mapRenderer && this.mapRenderer.journeyElapsedTime !== undefined) {
+            currentTime = this.mapRenderer.journeyElapsedTime;
+        } else {
+            // Fallback to progress-based calculation
+            currentTime = progress * this.currentTrackData.segmentTiming.totalDuration;
+        }
+        
+        const pixelsPerSecond = 3 * (this.journeyBuilder.timelineScale || 1);
+        const position = currentTime * pixelsPerSecond;
+        
+        indicator.style.left = `${position}px`;
+        indicator.style.display = 'block';
+        
+        // Also update the current time display to match the timeline
+        const currentTimeElement = document.getElementById('currentTime');
+        if (currentTimeElement) {
+            currentTimeElement.textContent = this.formatTimeInSeconds(Math.floor(currentTime));
+        }
+    }
+
+    // Rebuild journey when segments are reordered
+    rebuildJourneyFromSegments(segments) {
+        try {
+            // Update the journey builder segments
+            this.journeyBuilder.segments = segments;
+            
+            // Rebuild the complete journey
+            const completeJourney = this.journeyBuilder.buildCompleteJourney();
+            
+            if (completeJourney.coordinates.length > 0) {
+                // Reload the journey data
+                this.loadJourneyData(completeJourney);
+                this.showMessage('Journey updated with new segment order', 'success');
+            }
+        } catch (error) {
+            console.error('Error rebuilding journey:', error);
+            this.showMessage('Error updating journey', 'error');
+        }
     }
 
     // Handle segment timing updates
@@ -1224,11 +1319,47 @@ class TrailReplayApp {
             this.showVisualizationSection();
             this.updateStats(trackData.stats);
             this.updateTimingControls(segmentTiming);
+            
+            // Render timeline under the map (visual feedback)
+            this.renderJourneyTimeline();
+            
+            // Keep journey builder section visible for configuration
+            this.showJourneyPlanningSection();
+            
             this.showMessage('Journey preview loaded!', 'success');
             
         } catch (error) {
             console.error('Error loading journey data:', error);
             this.showMessage('Error loading journey data', 'error');
+        }
+    }
+
+    // Render the journey timeline under the map
+    renderJourneyTimeline() {
+        // Find or create timeline container
+        let timelineContainer = document.getElementById('journeyTimelineContainer');
+        if (!timelineContainer) {
+            timelineContainer = document.createElement('div');
+            timelineContainer.id = 'journeyTimelineContainer';
+            timelineContainer.className = 'journey-timeline-container';
+            
+            // Insert after the map container
+            const mapContainer = document.querySelector('.map-container');
+            mapContainer.parentNode.insertBefore(timelineContainer, mapContainer.nextSibling);
+        }
+        
+        // Render the timeline using journey builder
+        this.journeyBuilder.renderTimelineEditor(timelineContainer);
+        
+        // Start progress indicator updates
+        this.setupTimelineProgressUpdates();
+    }
+
+    // Show journey planning section
+    showJourneyPlanningSection() {
+        const section = document.getElementById('journeyPlanningSection');
+        if (section) {
+            section.style.display = 'block';
         }
     }
 
@@ -1239,8 +1370,19 @@ class TrailReplayApp {
         let transportDuration = 0;
         const segmentTimings = [];
         
+        // First pass: calculate total coordinates to determine progress ratios
+        let totalCoordinates = 0;
         segments.forEach(segment => {
-            let segmentTime;
+            const segmentLength = segment.endIndex - segment.startIndex + 1;
+            totalCoordinates += segmentLength;
+        });
+        
+        let currentCoordIndex = 0;
+        
+        // Calculate timing for each segment
+        segments.forEach((segment, index) => {
+            let segmentTime = 0;
+            
             if (segment.type === 'track') {
                 // Get user-defined time or calculate default
                 segmentTime = segment.data.userTime || this.calculateDefaultTrackTime(segment.data);
@@ -1248,18 +1390,51 @@ class TrailReplayApp {
             } else if (segment.type === 'transportation' && segment.route) {
                 segmentTime = segment.route.userTime || this.calculateDefaultTransportTime(segment.mode, segment.route.distance / 1000);
                 transportDuration += segmentTime;
-            } else {
-                segmentTime = 0; // No route defined yet
+            } else if (segment.type === 'transportation' && segment.mode) {
+                // Transportation without route (fallback)
+                const distance = this.calculateDistanceFromPoints(segment.startPoint, segment.endPoint);
+                segmentTime = this.calculateDefaultTransportTime(segment.mode, distance);
+                transportDuration += segmentTime;
             }
             
+            // Calculate progress ratios based on coordinate positions in the combined journey
+            const segmentLength = segment.endIndex - segment.startIndex + 1;
+            const progressStartRatio = currentCoordIndex / (totalCoordinates - 1);
+            const progressEndRatio = (currentCoordIndex + segmentLength - 1) / (totalCoordinates - 1);
+            
+            // Create segment timing with precise coordinate mapping
             segmentTimings.push({
                 ...segment,
                 duration: segmentTime,
                 startTime: totalDuration,
-                endTime: totalDuration + segmentTime
+                endTime: totalDuration + segmentTime,
+                coordinateLength: segmentLength,
+                progressStartRatio: Math.max(0, Math.min(1, progressStartRatio)),
+                progressEndRatio: Math.max(0, Math.min(1, progressEndRatio)),
+                startCoordIndex: currentCoordIndex,
+                endCoordIndex: currentCoordIndex + segmentLength - 1
             });
             
             totalDuration += segmentTime;
+            currentCoordIndex += segmentLength;
+        });
+        
+        console.log('Detailed segment timing calculation:', {
+            totalDuration,
+            trackDuration,
+            transportDuration,
+            totalCoordinates,
+            segments: segmentTimings.map(s => ({
+                type: s.type,
+                mode: s.mode,
+                duration: s.duration,
+                startTime: s.startTime,
+                endTime: s.endTime,
+                progressStart: s.progressStartRatio.toFixed(3),
+                progressEnd: s.progressEndRatio.toFixed(3),
+                coordRange: `${s.startCoordIndex}-${s.endCoordIndex}`,
+                coordLength: s.coordinateLength
+            }))
         });
         
         return { 
@@ -1268,6 +1443,18 @@ class TrailReplayApp {
             transportDuration,
             segments: segmentTimings
         };
+    }
+
+    // Helper method to calculate distance between two points
+    calculateDistanceFromPoints(point1, point2) {
+        const R = 6371; // Earth's radius in km
+        const dLat = (point2[1] - point1[1]) * Math.PI / 180;
+        const dLon = (point2[0] - point1[0]) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(point1[1] * Math.PI / 180) * Math.cos(point2[1] * Math.PI / 180) *
+                  Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
     }
 
     // Calculate default track time

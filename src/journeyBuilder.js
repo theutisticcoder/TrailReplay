@@ -251,7 +251,7 @@ export class JourneyBuilder {
         this.renderSegmentsList();
     }
 
-    // Render the segments list UI
+    // Render the segments list UI (with timing summary and configuration)
     renderSegmentsList() {
         const segmentsList = document.getElementById('segmentsList');
         if (!segmentsList) return;
@@ -304,11 +304,18 @@ export class JourneyBuilder {
                 const distance = this.calculateDistance(segment.startPoint, segment.endPoint);
                 
                 if (segment.mode) {
-                    const routeInfo = segment.route ? 
-                        ` • ${this.formatDistance(segment.route.distance / 1000)} • ${this.formatDuration(segment.route.duration)}` :
-                        ' • Click to add route';
+                    let routeInfo = '';
+                    let transportTime = 0;
                     
-                    const transportTime = segment.route?.userTime || this.getDefaultTransportTime(segment.mode, distance);
+                    if (segment.route) {
+                        // Has route
+                        routeInfo = ` • ${this.formatDistance(segment.route.distance / 1000)} • ${this.formatDuration(segment.route.duration)}`;
+                        transportTime = segment.route.userTime || this.getDefaultTransportTime(segment.mode, distance);
+                    } else {
+                        // Has mode but no route yet - show estimated info
+                        routeInfo = ` • ~${distance.toFixed(1)}km • Estimated`;
+                        transportTime = this.getDefaultTransportTime(segment.mode, distance);
+                    }
                     
                     segmentElement.innerHTML = `
                         <div class="segment-icon">${this.getTransportIcon(segment.mode)}</div>
@@ -349,6 +356,335 @@ export class JourneyBuilder {
 
             segmentsList.appendChild(segmentElement);
         });
+    }
+
+    // Render visual timeline editor separately (called from main app)
+    renderTimelineEditor(container) {
+        if (!container) return;
+        
+        // Clear existing content
+        container.innerHTML = '';
+        
+        // Create timeline container
+        const timelineContainer = document.createElement('div');
+        timelineContainer.className = 'timeline-editor';
+        timelineContainer.innerHTML = `
+            <div class="timeline-header">
+                <h4>🎬 Journey Timeline</h4>
+                <div class="timeline-controls">
+                    <button class="timeline-zoom-btn" onclick="journeyBuilder.zoomTimeline(0.5)">➖</button>
+                    <span class="timeline-zoom-level">1x</span>
+                    <button class="timeline-zoom-btn" onclick="journeyBuilder.zoomTimeline(2)">➕</button>
+                </div>
+            </div>
+            <div class="timeline-track">
+                <div class="timeline-ruler"></div>
+                <div class="timeline-segments" id="timelineSegments">
+                    <div class="timeline-progress-indicator" id="timelineProgressIndicator"></div>
+                </div>
+            </div>
+        `;
+        
+        container.appendChild(timelineContainer);
+        
+        // Render timeline segments
+        this.renderTimelineSegments();
+    }
+
+    // Render timeline segments as visual blocks
+    renderTimelineSegments() {
+        const timelineSegments = document.getElementById('timelineSegments');
+        if (!timelineSegments) return;
+        
+        // Clear existing segments but keep progress indicator
+        const progressIndicator = document.getElementById('timelineProgressIndicator');
+        timelineSegments.innerHTML = '';
+        if (progressIndicator) {
+            timelineSegments.appendChild(progressIndicator);
+        } else {
+            // Create progress indicator if it doesn't exist
+            const newIndicator = document.createElement('div');
+            newIndicator.className = 'timeline-progress-indicator';
+            newIndicator.id = 'timelineProgressIndicator';
+            timelineSegments.appendChild(newIndicator);
+        }
+        
+        const timingSummary = this.calculateJourneyTiming();
+        const totalDuration = timingSummary.totalDuration;
+        
+        if (totalDuration === 0) return;
+        
+        // Timeline scale (pixels per second)
+        this.timelineScale = this.timelineZoom || 1;
+        const pixelsPerSecond = 3 * this.timelineScale; // Base 3px per second
+        
+        let currentTime = 0;
+        
+        this.segments.forEach((segment, index) => {
+            let segmentDuration = 0;
+            
+            if (segment.type === 'track') {
+                const estimatedTime = this.calculateTrackTime(segment.data);
+                segmentDuration = segment.userTime || estimatedTime;
+            } else if (segment.mode) {
+                // Transportation segment with mode
+                if (segment.route && segment.route.userTime) {
+                    segmentDuration = segment.route.userTime;
+                } else if (segment.startPoint && segment.endPoint) {
+                    const distance = this.calculateDistance(segment.startPoint, segment.endPoint);
+                    segmentDuration = this.getDefaultTransportTime(segment.mode, distance);
+                } else {
+                    segmentDuration = 30; // Default fallback
+                }
+            } else {
+                segmentDuration = 10; // Default for unset transportation
+            }
+            
+            const segmentWidth = segmentDuration * pixelsPerSecond;
+            const segmentElement = document.createElement('div');
+            segmentElement.className = `timeline-segment ${segment.type}`;
+            segmentElement.setAttribute('data-segment-index', index);
+            segmentElement.style.width = `${segmentWidth}px`;
+            segmentElement.style.left = `${currentTime * pixelsPerSecond}px`;
+            
+            // Add segment content
+            if (segment.type === 'track') {
+                segmentElement.innerHTML = `
+                    <div class="timeline-segment-header">
+                        <span class="timeline-segment-icon">${this.getTrackIcon(segment.data.data.activityType)}</span>
+                        <span class="timeline-segment-title">${segment.data.name}</span>
+                    </div>
+                    <div class="timeline-segment-duration">${segmentDuration}s</div>
+                    <div class="timeline-segment-resize-handle"></div>
+                `;
+                segmentElement.style.backgroundColor = '#4CAF50';
+            } else if (segment.mode) {
+                segmentElement.innerHTML = `
+                    <div class="timeline-segment-header">
+                        <span class="timeline-segment-icon">${this.getTransportIcon(segment.mode)}</span>
+                        <span class="timeline-segment-title">${segment.mode}</span>
+                    </div>
+                    <div class="timeline-segment-duration">${segmentDuration}s</div>
+                    <div class="timeline-segment-resize-handle"></div>
+                `;
+                const colors = {
+                    car: '#ff6b6b', boat: '#4ecdc4', plane: '#ffe66d', 
+                    train: '#a8e6cf', walk: '#ff9f43', cycling: '#48cae4'
+                };
+                segmentElement.style.backgroundColor = colors[segment.mode] || '#ff6b6b';
+            } else {
+                segmentElement.innerHTML = `
+                    <div class="timeline-segment-header">
+                        <span class="timeline-segment-icon">❓</span>
+                        <span class="timeline-segment-title">Add Transport</span>
+                    </div>
+                    <div class="timeline-segment-duration">${segmentDuration}s</div>
+                `;
+                segmentElement.style.backgroundColor = '#ccc';
+                segmentElement.style.borderStyle = 'dashed';
+            }
+            
+            // Add drag and resize functionality
+            this.setupTimelineSegmentInteraction(segmentElement, index);
+            
+            timelineSegments.appendChild(segmentElement);
+            currentTime += segmentDuration;
+        });
+        
+        // Update ruler
+        this.updateTimelineRuler(totalDuration, pixelsPerSecond);
+        
+        // Setup timeline clicking for scrubbing
+        this.setupTimelineScrubbing();
+    }
+
+    // Setup timeline clicking for scrubbing
+    setupTimelineScrubbing() {
+        const timelineSegments = document.getElementById('timelineSegments');
+        if (!timelineSegments) return;
+        
+        // Remove existing click listener
+        if (this.timelineClickListener) {
+            timelineSegments.removeEventListener('click', this.timelineClickListener);
+        }
+        
+        this.timelineClickListener = (e) => {
+            // Don't interfere with segment interactions
+            if (e.target.closest('.timeline-segment') && !e.target.classList.contains('timeline-segments')) {
+                return;
+            }
+            
+            const rect = timelineSegments.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const pixelsPerSecond = 3 * (this.timelineScale || 1);
+            const clickTime = clickX / pixelsPerSecond;
+            const totalDuration = this.calculateJourneyTiming().totalDuration;
+            const progress = Math.max(0, Math.min(1, clickTime / totalDuration));
+            
+            // Dispatch event to seek to this position
+            const seekEvent = new CustomEvent('timelineSeek', {
+                detail: { progress }
+            });
+            document.dispatchEvent(seekEvent);
+        };
+        
+        timelineSegments.addEventListener('click', this.timelineClickListener);
+    }
+
+    // Setup drag and resize for timeline segments
+    setupTimelineSegmentInteraction(element, segmentIndex) {
+        // Drag functionality
+        element.addEventListener('mousedown', (e) => {
+            if (e.target.classList.contains('timeline-segment-resize-handle')) {
+                this.startResize(e, element, segmentIndex);
+            } else {
+                this.startDrag(e, element, segmentIndex);
+            }
+        });
+        
+        // Click to edit
+        element.addEventListener('dblclick', () => {
+            const segment = this.segments[segmentIndex];
+            if (segment.type === 'transportation') {
+                this.editTransportation(segmentIndex);
+            }
+        });
+    }
+
+    // Start dragging segment
+    startDrag(e, element, segmentIndex) {
+        e.preventDefault();
+        const startX = e.clientX;
+        const initialLeft = element.offsetLeft;
+        
+        const handleMouseMove = (e) => {
+            const deltaX = e.clientX - startX;
+            const newLeft = Math.max(0, initialLeft + deltaX);
+            element.style.left = `${newLeft}px`;
+            element.style.zIndex = '1000';
+            element.classList.add('dragging');
+        };
+        
+        const handleMouseUp = () => {
+            element.style.zIndex = '';
+            element.classList.remove('dragging');
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+            
+            // Reorder segments based on new position
+            this.reorderSegmentsFromTimeline();
+        };
+        
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+    }
+
+    // Start resizing segment
+    startResize(e, element, segmentIndex) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const startX = e.clientX;
+        const startWidth = element.offsetWidth;
+        const pixelsPerSecond = 3 * (this.timelineScale || 1);
+        
+        const handleMouseMove = (e) => {
+            const deltaX = e.clientX - startX;
+            const newWidth = Math.max(30, startWidth + deltaX); // Minimum 30px
+            const newDuration = Math.max(5, Math.round(newWidth / pixelsPerSecond));
+            
+            element.style.width = `${newWidth}px`;
+            element.querySelector('.timeline-segment-duration').textContent = `${newDuration}s`;
+            element.classList.add('resizing');
+        };
+        
+        const handleMouseUp = () => {
+            element.classList.remove('resizing');
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+            
+            // Update segment duration using the same method as input changes
+            const newWidth = element.offsetWidth;
+            const newDuration = Math.max(5, Math.round(newWidth / pixelsPerSecond));
+            const segmentType = this.segments[segmentIndex].type === 'track' ? 'track' : 'transport';
+            
+            // Use the same updateSegmentTime method to keep everything in sync
+            this.updateSegmentTime(segmentIndex, newDuration, segmentType);
+        };
+        
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+    }
+
+    // Update timeline ruler
+    updateTimelineRuler(totalDuration, pixelsPerSecond) {
+        const ruler = document.querySelector('.timeline-ruler');
+        if (!ruler) return;
+        
+        ruler.innerHTML = '';
+        const tickInterval = totalDuration > 120 ? 30 : totalDuration > 60 ? 15 : 10; // seconds
+        
+        for (let time = 0; time <= totalDuration; time += tickInterval) {
+            const tick = document.createElement('div');
+            tick.className = 'timeline-tick';
+            tick.style.left = `${time * pixelsPerSecond}px`;
+            tick.innerHTML = `<span>${this.formatTime(time)}</span>`;
+            ruler.appendChild(tick);
+        }
+    }
+
+    // Format time for ruler
+    formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    // Zoom timeline
+    zoomTimeline(factor) {
+        this.timelineZoom = (this.timelineZoom || 1) * factor;
+        this.timelineZoom = Math.max(0.25, Math.min(4, this.timelineZoom)); // Limit zoom
+        
+        document.querySelector('.timeline-zoom-level').textContent = `${this.timelineZoom}x`;
+        this.renderTimelineSegments();
+    }
+
+    // Reorder segments based on timeline positions
+    reorderSegmentsFromTimeline() {
+        const timelineSegmentElements = document.querySelectorAll('.timeline-segment');
+        const segmentPositions = [];
+        
+        timelineSegmentElements.forEach((element, index) => {
+            const segmentIndex = parseInt(element.getAttribute('data-segment-index'));
+            segmentPositions.push({
+                element,
+                segmentIndex,
+                position: element.offsetLeft
+            });
+        });
+        
+        // Sort by position
+        segmentPositions.sort((a, b) => a.position - b.position);
+        
+        // Reorder segments array
+        const newSegments = [];
+        segmentPositions.forEach(item => {
+            newSegments.push(this.segments[item.segmentIndex]);
+        });
+        
+        this.segments = newSegments;
+        
+        // Re-render timeline and notify main app
+        this.renderTimelineSegments();
+        this.notifySegmentOrderChanged();
+    }
+
+    // Notify main app that segment order changed
+    notifySegmentOrderChanged() {
+        const event = new CustomEvent('segmentOrderChanged', {
+            detail: { segments: this.segments }
+        });
+        document.dispatchEvent(event);
     }
 
     // Get icon for transportation mode
@@ -975,20 +1311,54 @@ export class JourneyBuilder {
                 journey.stats.totalDistance += segment.data.stats.totalDistance;
                 journey.stats.elevationGain += segment.data.stats.elevationGain;
                 
-            } else if (segment.type === 'transportation' && segment.route) {
-                // Add transportation route coordinates
-                journey.coordinates.push(...segment.route.coordinates);
-                journey.segments.push({
-                    type: 'transportation',
-                    mode: segment.mode,
-                    startIndex: journey.coordinates.length - segment.route.coordinates.length,
-                    endIndex: journey.coordinates.length - 1,
-                    route: segment.route
-                });
+            } else if (segment.type === 'transportation') {
+                // Handle transportation segments - create route if it doesn't exist
+                let routeCoordinates = [];
+                let route = segment.route;
                 
-                // Add to stats
-                journey.stats.totalDistance += segment.route.distance / 1000; // convert to km
-                journey.stats.totalDuration += segment.route.duration;
+                if (segment.route && segment.route.coordinates) {
+                    // Use existing route
+                    routeCoordinates = segment.route.coordinates;
+                } else if (segment.mode && segment.startPoint && segment.endPoint) {
+                    // Create a simple straight-line route for transportation without explicit route
+                    routeCoordinates = [segment.startPoint, segment.endPoint];
+                    
+                    // Create a fallback route object
+                    const distance = this.calculateDistance(segment.startPoint, segment.endPoint) * 1000; // in meters
+                    const defaultTime = this.getDefaultTransportTime(segment.mode, distance / 1000);
+                    
+                    route = {
+                        coordinates: routeCoordinates,
+                        distance: distance,
+                        duration: defaultTime,
+                        userTime: defaultTime,
+                        provider: 'fallback',
+                        type: segment.mode
+                    };
+                    
+                    // Update the segment with the fallback route
+                    segment.route = route;
+                }
+                
+                if (routeCoordinates.length > 0) {
+                    // Add transportation route coordinates
+                    journey.coordinates.push(...routeCoordinates);
+                    journey.segments.push({
+                        type: 'transportation',
+                        mode: segment.mode,
+                        startIndex: journey.coordinates.length - routeCoordinates.length,
+                        endIndex: journey.coordinates.length - 1,
+                        route: route
+                    });
+                    
+                    // Add to stats
+                    if (route) {
+                        journey.stats.totalDistance += route.distance / 1000; // convert to km
+                        journey.stats.totalDuration += route.duration;
+                    }
+                } else {
+                    console.warn('Transportation segment has no coordinates:', segment);
+                }
             }
         });
 
@@ -1167,7 +1537,7 @@ export class JourneyBuilder {
         return Math.max(10, Math.min(120, Math.round(scaledTime))); // 10-120 seconds
     }
 
-    // Update segment time
+    // Update segment time (called from both input changes and drag/drop)
     updateSegmentTime(segmentIndex, newTime, segmentType) {
         const segment = this.segments[segmentIndex];
         if (!segment) return;
@@ -1177,16 +1547,38 @@ export class JourneyBuilder {
         
         if (segmentType === 'track') {
             segment.userTime = timeValue;
-        } else if (segmentType === 'transport' && segment.route) {
-            segment.route.userTime = timeValue;
-            // Also update the duration for consistency
-            segment.route.duration = timeValue; // Store as seconds for animation
+        } else if (segmentType === 'transport') {
+            if (segment.route) {
+                // Has route - update route timing
+                segment.route.userTime = timeValue;
+                segment.route.duration = timeValue; // Store as seconds for animation
+            } else if (segment.mode && segment.startPoint && segment.endPoint) {
+                // Has mode but no route - create a fallback route with timing
+                const distance = this.calculateDistance(segment.startPoint, segment.endPoint) * 1000; // in meters
+                
+                segment.route = {
+                    coordinates: [segment.startPoint, segment.endPoint],
+                    distance: distance,
+                    duration: timeValue,
+                    userTime: timeValue,
+                    provider: 'fallback',
+                    type: segment.mode
+                };
+            } else {
+                // Fallback - store time directly on segment
+                segment.userTime = timeValue;
+            }
         }
         
         console.log(`Updated ${segmentType} segment ${segmentIndex} time to ${timeValue} seconds`);
         
-        // Re-render to update timing summary
+        // Re-render segments list
         this.renderSegmentsList();
+        
+        // Re-render timeline if it exists
+        if (document.getElementById('timelineSegments')) {
+            this.renderTimelineSegments();
+        }
         
         // Notify the main app that timing has changed so it can update the animation system
         const timingUpdateEvent = new CustomEvent('segmentTimingUpdate', {
@@ -1209,10 +1601,22 @@ export class JourneyBuilder {
             if (segment.type === 'track') {
                 const estimatedTime = this.calculateTrackTime(segment.data);
                 trackDuration += segment.userTime || estimatedTime;
-            } else if (segment.type === 'transportation' && segment.route) {
-                const defaultTime = this.getDefaultTransportTime(segment.mode, 
-                    this.calculateDistance(segment.startPoint, segment.endPoint));
-                transportDuration += segment.route.userTime || defaultTime;
+            } else if (segment.type === 'transportation') {
+                let segmentDuration = 0;
+                
+                if (segment.route && segment.route.userTime) {
+                    // Use existing route time
+                    segmentDuration = segment.route.userTime;
+                } else if (segment.mode && segment.startPoint && segment.endPoint) {
+                    // Calculate fallback time for transportation without route
+                    const distance = this.calculateDistance(segment.startPoint, segment.endPoint);
+                    segmentDuration = this.getDefaultTransportTime(segment.mode, distance);
+                } else {
+                    // Default fallback
+                    segmentDuration = 30;
+                }
+                
+                transportDuration += segmentDuration;
             }
         });
         

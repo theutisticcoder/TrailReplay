@@ -29,6 +29,7 @@ export class MapRenderer {
         this.currentSegmentIndex = 0;
         this.segmentProgress = 0;
         this.lastAnimationTime = 0;
+        this.journeyElapsedTime = 0;
         
         this.initializeMap();
     }
@@ -997,6 +998,7 @@ export class MapRenderer {
         
         this.isAnimating = true;
         this.lastAnimationTime = 0; // Reset timing
+        this.journeyElapsedTime = 0; // Reset journey time
         
         // Initialize segment progress
         if (this.segmentTimings) {
@@ -1016,6 +1018,7 @@ export class MapRenderer {
         this.currentSegmentIndex = 0;
         this.segmentProgress = 0;
         this.lastAnimationTime = 0;
+        this.journeyElapsedTime = 0; // Reset journey time
         this.hideActiveAnnotation();
         this.updateCurrentPosition();
     }
@@ -1052,56 +1055,84 @@ export class MapRenderer {
         }
     }
 
-    // Handle animation with individual segment timing
+    // Handle animation with individual segment timing - completely rewritten for accuracy
     animateWithSegmentTiming(deltaTime) {
         // Convert deltaTime from milliseconds to seconds
         const deltaSeconds = deltaTime / 1000;
         
-        // Get the total time elapsed in the entire journey
-        const totalDuration = this.segmentTimings.totalDuration;
-        const currentTimeInJourney = this.animationProgress * totalDuration;
+        // Initialize journey elapsed time if not set
+        if (this.journeyElapsedTime === undefined || this.journeyElapsedTime === null) {
+            this.journeyElapsedTime = 0;
+        }
         
-        // Find which segment we should currently be in
-        let targetSegment = null;
-        let targetSegmentIndex = 0;
+        // Add elapsed time
+        this.journeyElapsedTime += deltaSeconds;
+        
+        const totalDuration = this.segmentTimings.totalDuration;
+        
+        // Clamp to total duration
+        if (this.journeyElapsedTime >= totalDuration) {
+            this.journeyElapsedTime = totalDuration;
+            this.animationProgress = 1;
+            this.isAnimating = false;
+            return;
+        }
+        
+        // Calculate overall progress based on time
+        const timeProgress = this.journeyElapsedTime / totalDuration;
+        
+        // Find the current segment based on elapsed time
+        let currentSegment = null;
+        let currentSegmentIndex = -1;
         
         for (let i = 0; i < this.segmentTimings.segments.length; i++) {
             const segment = this.segmentTimings.segments[i];
-            if (currentTimeInJourney >= segment.startTime && currentTimeInJourney < segment.endTime) {
-                targetSegment = segment;
-                targetSegmentIndex = i;
+            if (this.journeyElapsedTime >= segment.startTime && this.journeyElapsedTime <= segment.endTime) {
+                currentSegment = segment;
+                currentSegmentIndex = i;
                 break;
             }
         }
         
-        // Handle end of journey case
-        if (!targetSegment && this.segmentTimings.segments.length > 0) {
-            const lastSegment = this.segmentTimings.segments[this.segmentTimings.segments.length - 1];
-            if (currentTimeInJourney >= lastSegment.endTime) {
-                targetSegment = lastSegment;
-                targetSegmentIndex = this.segmentTimings.segments.length - 1;
+        // Handle edge cases
+        if (!currentSegment) {
+            if (this.journeyElapsedTime < this.segmentTimings.segments[0].startTime) {
+                // Before first segment
+                currentSegment = this.segmentTimings.segments[0];
+                currentSegmentIndex = 0;
+            } else {
+                // After last segment
+                const lastSegment = this.segmentTimings.segments[this.segmentTimings.segments.length - 1];
+                currentSegment = lastSegment;
+                currentSegmentIndex = this.segmentTimings.segments.length - 1;
             }
         }
         
-        if (targetSegment) {
-            // Calculate the progress increment in terms of total journey time
-            // Each segment gets its allocated duration regardless of content
-            const journeyProgressPerSecond = 1 / totalDuration;
-            const progressIncrement = deltaSeconds * journeyProgressPerSecond;
+        if (currentSegment) {
+            // Calculate progress within the current segment (0 to 1)
+            let segmentElapsedTime = this.journeyElapsedTime - currentSegment.startTime;
+            segmentElapsedTime = Math.max(0, Math.min(currentSegment.duration, segmentElapsedTime));
             
-            this.animationProgress += progressIncrement;
-            this.currentSegmentIndex = targetSegmentIndex;
+            const segmentProgress = currentSegment.duration > 0 ? 
+                segmentElapsedTime / currentSegment.duration : 1;
             
-            // Calculate progress within the current segment for visual feedback
-            const segmentLocalProgress = Math.max(0, Math.min(1, 
-                (currentTimeInJourney - targetSegment.startTime) / targetSegment.duration
-            ));
-            this.segmentProgress = segmentLocalProgress;
+            // Map segment progress directly to global coordinate progress
+            // Use linear interpolation between segment start and end progress ratios
+            const globalProgress = currentSegment.progressStartRatio + 
+                (segmentProgress * (currentSegment.progressEndRatio - currentSegment.progressStartRatio));
             
-            console.log(`Segment ${targetSegmentIndex} (${targetSegment.type}): allocated=${targetSegment.duration}s, progress=${segmentLocalProgress.toFixed(3)}, global=${this.animationProgress.toFixed(4)}`);
+            // Set the animation progress
+            this.animationProgress = Math.max(0, Math.min(1, globalProgress));
+            this.currentSegmentIndex = currentSegmentIndex;
+            this.segmentProgress = segmentProgress;
+            
+            // Debug logging (only occasionally to avoid spam)
+            if (Math.floor(this.journeyElapsedTime * 2) !== Math.floor((this.journeyElapsedTime - deltaSeconds) * 2)) {
+                console.log(`Segment ${currentSegmentIndex} (${currentSegment.type}): time=${this.journeyElapsedTime.toFixed(1)}s/${totalDuration}s, progress=${this.animationProgress.toFixed(3)}`);
+            }
         } else {
-            // Fallback if no segment found
-            this.animationProgress += 0.001 * this.animationSpeed;
+            // Fallback - shouldn't happen but just in case
+            this.animationProgress = Math.min(1, timeProgress);
         }
     }
 
@@ -1111,6 +1142,11 @@ export class MapRenderer {
 
     setAnimationProgress(progress) {
         this.animationProgress = Math.max(0, Math.min(1, progress));
+        
+        // Update journey elapsed time based on progress if we have segment timing
+        if (this.segmentTimings && this.segmentTimings.totalDuration) {
+            this.journeyElapsedTime = progress * this.segmentTimings.totalDuration;
+        }
         
         // Update segment progress if we have segment timing
         if (this.segmentTimings && this.segmentTimings.segments) {
@@ -1313,6 +1349,7 @@ export class MapRenderer {
     // Setup segment-aware animation
     setupSegmentAnimation(segments, segmentTiming) {
         this.segmentTimings = segmentTiming;
+        this.journeyElapsedTime = 0; // Reset journey time when setting up new segments
         console.log('Setting up segment animation with timing:', segmentTiming);
         
         // Reset animation state
