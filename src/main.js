@@ -32,7 +32,16 @@ class TrailReplayApp {
         // Initialize Journey Builder
         this.journeyBuilder = new JourneyBuilder();
         
+        // Settings
+        this.gpxOnlyStats = true; // Default to exclude transfer distances
+        
         this.initializeApp();
+
+        this.currentIcon = '🏃‍♂️';
+        this.isDrawingMode = false;
+        this.isAnnotationMode = false;
+        this.totalAnimationTime = 30; // Default 30 seconds for simple tracks
+        this.gpxOnlyStats = false; // New setting for GPX only statistics
     }
 
     async initializeApp() {
@@ -169,6 +178,20 @@ class TrailReplayApp {
             this.toggleLiveStats(e.target.checked);
         });
 
+        // GPX only stats toggle
+        const gpxOnlyStatsToggle = document.getElementById('gpxOnlyStats');
+        gpxOnlyStatsToggle.addEventListener('change', (e) => {
+            this.gpxOnlyStats = e.target.checked;
+            this.updateStatsDisplay();
+            
+            // Show feedback message
+            if (e.target.checked) {
+                this.showMessage(t('messages.gpxOnlyStatsEnabled'), 'info');
+            } else {
+                this.showMessage(t('messages.gpxOnlyStatsDisabled'), 'info');
+            }
+        });
+
         const terrain3dToggle = document.getElementById('terrain3d');
         terrain3dToggle.addEventListener('change', (e) => {
             if (this.mapRenderer) {
@@ -224,6 +247,17 @@ class TrailReplayApp {
 
         // Modal controls
         this.setupModalControls();
+
+        // Live stats toggle
+        document.getElementById('showLiveStats').addEventListener('change', (e) => {
+            this.toggleLiveStats(e.target.checked);
+        });
+
+        // GPX only stats toggle
+        document.getElementById('gpxOnlyStats').addEventListener('change', (e) => {
+            this.gpxOnlyStats = e.target.checked;
+            this.updateStatsDisplay();
+        });
     }
 
     setupModalControls() {
@@ -659,6 +693,48 @@ class TrailReplayApp {
         document.getElementById('totalTime').textContent = this.formatTimeInSeconds(this.totalAnimationTime);
     }
 
+    // Method to update stats display based on GPX only setting
+    updateStatsDisplay() {
+        if (!this.currentTrackData || !this.currentTrackData.stats) {
+            return;
+        }
+
+        let stats = { ...this.currentTrackData.stats };
+
+        // If GPX only stats is enabled and this is a journey, recalculate stats
+        if (this.gpxOnlyStats && this.currentTrackData.isJourney && this.currentTrackData.segments) {
+            stats = this.calculateGpxOnlyStats(this.currentTrackData);
+        }
+
+        this.updateStats(stats);
+        
+        // Also trigger live stats update if they're visible
+        if (!document.getElementById('liveStatsOverlay').classList.contains('hidden')) {
+            this.updateLiveStats();
+        }
+    }
+
+    // Calculate stats including only GPX track segments (excluding transportation)
+    calculateGpxOnlyStats(journeyData) {
+        let totalDistance = 0;
+        let totalElevationGain = 0;
+
+        if (journeyData.segments) {
+            journeyData.segments.forEach(segment => {
+                // Only include track segments, skip transportation segments
+                if (segment.type === 'track' && segment.data && segment.data.stats) {
+                    totalDistance += segment.data.stats.totalDistance || 0;
+                    totalElevationGain += segment.data.stats.elevationGain || 0;
+                }
+            });
+        }
+
+        return {
+            totalDistance: totalDistance,
+            elevationGain: totalElevationGain
+        };
+    }
+
     // New method to format time in MM:SS format
     formatTimeInSeconds(totalSeconds) {
         const minutes = Math.floor(totalSeconds / 60);
@@ -778,12 +854,28 @@ class TrailReplayApp {
             return;
         }
 
-        // Check if we already have a cached profile for this track
-        const trackId = this.currentTrackData.filename || 'unknown';
+        // Create a unique cache key - for journeys, include segment composition
+        let trackId;
+        if (this.currentTrackData.isJourney && this.currentTrackData.segments) {
+            // For journeys, create a cache key based on segment composition and order
+            const segmentIds = this.currentTrackData.segments.map(segment => {
+                if (segment.type === 'track') {
+                    return `track_${segment.data.filename || segment.data.name}`;
+                } else {
+                    return `${segment.type}_${segment.mode || 'unknown'}`;
+                }
+            }).join('|');
+            const trackPointsCount = this.currentTrackData.trackPoints.length;
+            trackId = `journey_${segmentIds}_${trackPointsCount}pts`;
+        } else {
+            trackId = this.currentTrackData.filename || 'unknown';
+        }
+
+        // Check if we already have a cached profile for this exact journey composition
         if (this.cachedElevationProfiles && this.cachedElevationProfiles[trackId]) {
             this.elevationProfile = this.cachedElevationProfiles[trackId];
             document.getElementById('elevationPath').setAttribute('d', this.elevationProfile.pathData);
-            console.log('Using cached elevation profile');
+            console.log('Using cached elevation profile for:', trackId);
             return;
         }
 
@@ -861,6 +953,25 @@ class TrailReplayApp {
         this.cachedElevationProfiles[trackId] = this.elevationProfile;
 
         console.log(`Generated elevation profile: ${elevations.length} points (optimized to ${pathPoints.length}), range: ${elevationRange.toFixed(1)}m`);
+    }
+
+    // Clear elevation profile cache (useful for journey updates)
+    clearElevationProfileCache(trackId = null) {
+        if (!this.cachedElevationProfiles) return;
+        
+        if (trackId) {
+            // Clear specific cache entry
+            delete this.cachedElevationProfiles[trackId];
+            console.log('Cleared elevation profile cache for:', trackId);
+        } else {
+            // Clear all journey-related cache entries
+            Object.keys(this.cachedElevationProfiles).forEach(key => {
+                if (key.startsWith('journey_')) {
+                    delete this.cachedElevationProfiles[key];
+                }
+            });
+            console.log('Cleared all journey elevation profile caches');
+        }
     }
 
     // Update elevation progress indicator
@@ -1978,6 +2089,8 @@ class TrailReplayApp {
     setupJourneyIntegration() {
         // Listen for journey preview events
         document.addEventListener('journeyPreview', (e) => {
+            // Clear elevation profile cache for journey updates
+            this.clearElevationProfileCache();
             this.loadJourneyData(e.detail.journey);
         });
 
@@ -2197,6 +2310,10 @@ class TrailReplayApp {
             this.synchronizeAllTimingDisplays(detailedSegmentTimingForMapRenderer);
         }
         
+        // Regenerate elevation profile since journey composition may have changed
+        this.clearElevationProfileCache(); // Clear cache first
+        this.generateElevationProfile();
+        
         console.log('🎯 MAIN APP: Timing update handling completed. totalAnimationTime set to:', this.totalAnimationTime);
     }
 
@@ -2348,6 +2465,9 @@ class TrailReplayApp {
             // Keep journey builder section visible for configuration
             this.showJourneyPlanningSection();
             
+            // Mark as journey and update stats with GPX only setting if applicable
+            this.currentTrackData.isJourney = true;
+            this.updateStatsDisplay();
             
         } catch (error) {
             console.error('Error loading journey data:', error);
@@ -2705,7 +2825,14 @@ class TrailReplayApp {
             }
             
             // Calculate current distance (distance traveled so far)
-            const totalDistance = this.currentTrackData.stats.totalDistance;
+            let totalDistance = this.currentTrackData.stats.totalDistance;
+            
+            // If GPX only stats is enabled and this is a journey, use only GPX track distances
+            if (this.gpxOnlyStats && this.currentTrackData.isJourney && this.currentTrackData.segments) {
+                const gpxStats = this.calculateGpxOnlyStats(this.currentTrackData);
+                totalDistance = gpxStats.totalDistance;
+            }
+            
             const currentDistance = progress * totalDistance;
             
             // Calculate actual elevation gain based on current position in track

@@ -165,6 +165,7 @@ export const translations = {
             terrain3d: "3D Terrain",
             terrainSource: "Elevation Data",
             showStats: "Show Live Stats",
+            gpxOnlyStats: "Exclude Transfer Distances",
             language: "Language"
         },
         
@@ -266,7 +267,9 @@ export const translations = {
             timingTracks: "Tracks:",
             timingTransportation: "Transportation:",
             timingNote: "💡 Adjust individual segment times in the Journey Builder above",
-            buyMeCoffee: "☕ Buy me a coffee"
+            buyMeCoffee: "☕ Buy me a coffee",
+            gpxOnlyStatsEnabled: "Transfer distances excluded from stats",
+            gpxOnlyStatsDisabled: "All distances included in stats"
         },
         
         journey: {
@@ -495,6 +498,7 @@ export const translations = {
             terrain3d: "Terreno 3D",
             terrainSource: "Datos de Elevación",
             showStats: "Mostrar Estadísticas en Vivo",
+            gpxOnlyStats: "No contar distancias en transfers",
             language: "Idioma"
         },
         
@@ -596,7 +600,9 @@ export const translations = {
             timingTracks: "Rutas:",
             timingTransportation: "Transporte:",
             timingNote: "💡 Ajusta los tiempos de los segmentos individuales en el Constructor de Viajes arriba",
-            buyMeCoffee: "☕ Invítame a un café"
+            buyMeCoffee: "☕ Invítame a un café",
+            gpxOnlyStatsEnabled: "Distancias de transfers excluidas de estadísticas",
+            gpxOnlyStatsDisabled: "Todas las distancias incluidas en estadísticas"
         },
         
         journey: {
