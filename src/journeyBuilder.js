@@ -49,9 +49,9 @@ export class JourneyBuilder {
             return;
         }
         
-        // Convert trackPoints to coordinates format expected by the system
-        const coordinates = trackData.trackPoints.map(point => [point.lon, point.lat]);
-        console.log(`Converted ${trackData.trackPoints.length} track points to coordinates`);
+        // Convert trackPoints to coordinates format expected by the system INCLUDING elevation
+        const coordinates = trackData.trackPoints.map(point => [point.lon, point.lat, point.elevation || 0]);
+        console.log(`Converted ${trackData.trackPoints.length} track points to coordinates with elevation`);
         
         const track = {
             id: Date.now() + Math.random(),
@@ -1462,6 +1462,7 @@ export class JourneyBuilder {
         // which contain the most up-to-date userTime values.
         this.segments.forEach(jbSegment => {
             if (jbSegment.type === 'track') {
+                // Track coordinates already include elevation from addTrack method
                 journey.coordinates.push(...jbSegment.data.data.coordinates);
                 
                 // Create the segment for the journey object
@@ -1482,9 +1483,24 @@ export class JourneyBuilder {
                 let route = jbSegment.route;
                 
                 if (jbSegment.route && jbSegment.route.coordinates) {
-                    routeCoordinates = jbSegment.route.coordinates;
+                    // Ensure transportation coordinates include elevation (interpolate if needed)
+                    routeCoordinates = jbSegment.route.coordinates.map(coord => {
+                        // If coordinate doesn't have elevation (length < 3), estimate it
+                        if (coord.length < 3) {
+                            // Use 0 elevation for transportation routes by default
+                            // In the future, we could interpolate elevation from nearby track points
+                            return [coord[0], coord[1], 0];
+                        }
+                        return coord;
+                    });
                 } else if (jbSegment.mode && jbSegment.startPoint && jbSegment.endPoint) {
-                    routeCoordinates = [jbSegment.startPoint, jbSegment.endPoint];
+                    // Create simple line between start and end points with elevation
+                    const startElevation = jbSegment.startPoint[2] || 0;
+                    const endElevation = jbSegment.endPoint[2] || 0;
+                    routeCoordinates = [
+                        [jbSegment.startPoint[0], jbSegment.startPoint[1], startElevation],
+                        [jbSegment.endPoint[0], jbSegment.endPoint[1], endElevation]
+                    ];
                     const distance = this.calculateDistance(jbSegment.startPoint, jbSegment.endPoint) * 1000;
                     // Use jbSegment.userTime if set by user, otherwise default.
                     const transportTime = (jbSegment.userTime !== undefined && jbSegment.userTime !== null) 

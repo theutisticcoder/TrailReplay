@@ -969,15 +969,24 @@ class TrailReplayApp {
 
         try {
             this.showMessage(t('messages.exportVideoPrepare'), 'info');
+            
+            // Step 1: Reset animation to the beginning and hide UI
+            this.resetAnimation();
             hideUI();
             await new Promise(resolve => setTimeout(resolve, 500)); // Wait for UI to hide
 
-            // Reset animation to the beginning
-            this.resetAnimation();
-            await new Promise(resolve => setTimeout(resolve, 200)); // Ensure reset completes
+            // Step 2: Preload map tiles for the entire route
+            this.showMessage('🗺️ Preloading map tiles for smooth video...', 'info');
+            await this.preloadMapTilesForRoute();
+            
+            // Step 3: Wait for all tiles to finish loading
+            await this.waitForMapTilesToLoad();
+            
+            // Step 4: Additional buffer time to ensure everything is rendered
+            this.showMessage('📹 Final preparations...', 'info');
+            await new Promise(resolve => setTimeout(resolve, 1000));
 
             // Get a stream from the canvas element
-            // Note: captureStream is more direct for canvas than getDisplayMedia
             if (!mapElement.captureStream) {
                 showUI();
                 this.showMessage('Browser does not support canvas.captureStream()', 'error');
@@ -1033,8 +1042,6 @@ class TrailReplayApp {
             this.showMessage(t('messages.exportVideoRecording'), 'info');
 
             // Wait for animation to complete
-            // We need a reliable way to know when animation finishes.
-            // The existing startProgressUpdate has logic for this.
             await new Promise(resolve => {
                 const checkCompletion = () => {
                     const progress = this.mapRenderer.getAnimationProgress();
@@ -1061,6 +1068,137 @@ class TrailReplayApp {
                 stream.getTracks().forEach(track => track.stop());
             }
         }
+    }
+
+    // Preload map tiles for the entire route
+    async preloadMapTilesForRoute() {
+        if (!this.mapRenderer || !this.currentTrackData) return;
+        
+        const map = this.mapRenderer.map;
+        const bounds = this.currentTrackData.bounds;
+        
+        if (!bounds) return;
+        
+        console.log('Preloading tiles for route bounds:', bounds);
+        
+        // Calculate zoom levels to preload (current zoom and one level higher for detail)
+        const currentZoom = Math.floor(map.getZoom());
+        const maxZoom = Math.min(currentZoom + 2, 18); // Don't go too high
+        const minZoom = Math.max(currentZoom - 1, 8);  // Don't go too low
+        
+        // Fit to bounds to ensure the right area is visible
+        map.fitBounds([
+            [bounds.west, bounds.south],
+            [bounds.east, bounds.north]
+        ], {
+            padding: 100,
+            duration: 0 // No animation during preload
+        });
+        
+        // Force map to render
+        map.triggerRepaint();
+        
+        // Wait a bit for the fit to complete
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Preload tiles by visiting key points along the route
+        const trackPoints = this.currentTrackData.trackPoints;
+        const samplePoints = [];
+        
+        // Sample every 10th point or so to avoid too many operations
+        const step = Math.max(1, Math.floor(trackPoints.length / 20));
+        for (let i = 0; i < trackPoints.length; i += step) {
+            samplePoints.push(trackPoints[i]);
+        }
+        
+        // Visit each sample point to trigger tile loading
+        for (const point of samplePoints) {
+            map.setCenter([point.lon, point.lat]);
+            map.triggerRepaint();
+            await new Promise(resolve => setTimeout(resolve, 50)); // Small delay between points
+        }
+        
+        // Return to the starting position
+        if (trackPoints.length > 0) {
+            map.setCenter([trackPoints[0].lon, trackPoints[0].lat]);
+        }
+        
+        console.log('Tile preloading completed');
+    }
+
+    // Wait for all map tiles to finish loading
+    async waitForMapTilesToLoad() {
+        if (!this.mapRenderer) return;
+        
+        const map = this.mapRenderer.map;
+        
+        return new Promise((resolve) => {
+            // Check if map is already loaded
+            if (map.loaded() && map.isStyleLoaded()) {
+                console.log('Map already loaded');
+                resolve();
+                return;
+            }
+            
+            let loadTimeout;
+            let isResolved = false;
+            
+            const resolveOnce = () => {
+                if (!isResolved) {
+                    isResolved = true;
+                    clearTimeout(loadTimeout);
+                    console.log('Map tiles loading completed');
+                    resolve();
+                }
+            };
+            
+            // Listen for various map loading events
+            const onLoad = () => {
+                if (map.loaded() && map.isStyleLoaded()) {
+                    resolveOnce();
+                }
+            };
+            
+            const onData = (e) => {
+                if (e.dataType === 'source' && e.isSourceLoaded) {
+                    // Check if all sources are loaded
+                    setTimeout(() => {
+                        if (map.loaded() && map.isStyleLoaded()) {
+                            resolveOnce();
+                        }
+                    }, 100);
+                }
+            };
+            
+            const onIdle = () => {
+                // Map is idle, likely finished loading tiles
+                resolveOnce();
+            };
+            
+            // Set up event listeners
+            map.on('load', onLoad);
+            map.on('data', onData);
+            map.on('idle', onIdle);
+            
+            // Force trigger loading check
+            onLoad();
+            
+            // Fallback timeout to prevent hanging (max 10 seconds)
+            loadTimeout = setTimeout(() => {
+                console.log('Map loading timeout reached, proceeding anyway');
+                resolveOnce();
+            }, 10000);
+            
+            // Clean up listeners after resolution
+            const cleanup = () => {
+                map.off('load', onLoad);
+                map.off('data', onData);
+                map.off('idle', onIdle);
+            };
+            
+            // Ensure cleanup happens
+            setTimeout(cleanup, 15000);
+        });
     }
 
     addLanguageSwitcher() {
@@ -2085,12 +2223,14 @@ class TrailReplayApp {
     updateLiveStats() {
         const overlay = document.getElementById('liveStatsOverlay');
         if (!overlay || overlay.classList.contains('hidden')) return;
+        
         // If no data, show placeholders
         if (!this.mapRenderer || !this.currentTrackData) {
             document.getElementById('liveDistance').textContent = '–';
             document.getElementById('liveElevation').textContent = '–';
             return;
         }
+        
         try {
             // Ensure GPX parser is ready
             if (!this.mapRenderer.ensureGPXParserReady()) {
@@ -2098,39 +2238,110 @@ class TrailReplayApp {
                 document.getElementById('liveElevation').textContent = '–';
                 return;
             }
+            
             const progress = this.mapRenderer.getAnimationProgress();
             const currentPoint = this.mapRenderer.gpxParser.getInterpolatedPoint(progress);
+            
             if (!currentPoint) {
                 document.getElementById('liveDistance').textContent = '–';
                 document.getElementById('liveElevation').textContent = '–';
                 return;
             }
+            
             // Calculate current distance (distance traveled so far)
             const totalDistance = this.currentTrackData.stats.totalDistance;
             const currentDistance = progress * totalDistance;
-            // Calculate current elevation gain (accumulated elevation gain so far)
-            const totalElevationGain = this.currentTrackData.stats.elevationGain || 0;
-            const currentElevationGain = progress * totalElevationGain;
+            
+            // Calculate actual elevation gain based on current position in track
+            const currentElevationGain = this.calculateActualElevationGain(progress);
+            
             // Format and update the display values
             const distanceElement = document.getElementById('liveDistance');
             const elevationElement = document.getElementById('liveElevation');
+            
             if (distanceElement) {
                 const formattedDistance = this.gpxParser.formatDistance(currentDistance);
                 if (distanceElement.textContent !== formattedDistance) {
                     this.animateValueChange(distanceElement, formattedDistance);
                 }
             }
+            
             if (elevationElement) {
                 const formattedElevation = this.gpxParser.formatElevation(currentElevationGain);
                 if (elevationElement.textContent !== formattedElevation) {
                     this.animateValueChange(elevationElement, formattedElevation);
                 }
             }
+            
         } catch (error) {
             document.getElementById('liveDistance').textContent = '–';
             document.getElementById('liveElevation').textContent = '–';
             console.warn('Error updating live stats:', error);
         }
+    }
+
+    // Calculate actual elevation gain based on current progress through the track
+    calculateActualElevationGain(progress) {
+        if (!this.currentTrackData || !this.currentTrackData.trackPoints) {
+            return 0;
+        }
+        
+        const trackPoints = this.currentTrackData.trackPoints;
+        if (trackPoints.length === 0) {
+            return 0;
+        }
+        
+        // Debug: Check if we have elevation data (only once)
+        if (!this._elevationDataChecked) {
+            const hasElevationData = trackPoints.some(point => point.elevation && point.elevation > 0);
+            if (!hasElevationData) {
+                console.log('Warning: No elevation data found in track points');
+                console.log('First 3 track points:', trackPoints.slice(0, 3).map(p => ({
+                    lat: p.lat,
+                    lon: p.lon,
+                    elevation: p.elevation
+                })));
+            } else {
+                console.log('Elevation data found in track points');
+            }
+            this._elevationDataChecked = true;
+        }
+        
+        // Calculate the current point index based on progress
+        const totalPoints = trackPoints.length;
+        const currentIndex = Math.min(Math.floor(progress * (totalPoints - 1)), totalPoints - 1);
+        
+        // Calculate actual elevation gain up to the current point
+        let elevationGain = 0;
+        let previousElevation = trackPoints[0].elevation || 0;
+        
+        for (let i = 1; i <= currentIndex; i++) {
+            const currentElevation = trackPoints[i].elevation || 0;
+            
+            // Only count positive elevation changes as gain
+            if (currentElevation > previousElevation) {
+                elevationGain += currentElevation - previousElevation;
+            }
+            
+            previousElevation = currentElevation;
+        }
+        
+        // If we're between two points, interpolate the elevation gain for the partial segment
+        if (currentIndex < totalPoints - 1) {
+            const fraction = (progress * (totalPoints - 1)) - currentIndex;
+            if (fraction > 0) {
+                const currentElevation = trackPoints[currentIndex].elevation || 0;
+                const nextElevation = trackPoints[currentIndex + 1].elevation || 0;
+                
+                // Only add partial gain if the next point is higher
+                if (nextElevation > currentElevation) {
+                    const partialGain = (nextElevation - currentElevation) * fraction;
+                    elevationGain += partialGain;
+                }
+            }
+        }
+        
+        return elevationGain;
     }
 
     animateValueChange(element, newValue) {
