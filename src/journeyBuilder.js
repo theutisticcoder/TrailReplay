@@ -823,16 +823,23 @@ export class JourneyBuilder {
         const transportOptions = document.getElementById('transportationOptions');
         const segmentIndex = parseInt(transportOptions.getAttribute('data-segment-index'));
         
-        // Find which tracks this transportation connects
-        const trackIndex = Math.floor(segmentIndex / 2); // Approximate track index
+        // Find the track segments
+        const trackSegments = this.segments.filter(s => s.type === 'track');
         
-        if (trackIndex >= 0 && trackIndex < this.tracks.length - 1) {
-            const startPoint = this.tracks[trackIndex].endPoint;
-            const endPoint = this.tracks[trackIndex + 1].startPoint;
+        // Find which tracks this transportation connects based on the segment index
+        const trackIndex = segmentIndex;
+        
+        if (trackIndex >= 0 && trackIndex < trackSegments.length - 1) {
+            // Find the actual indices in the full segments array
+            const currentTrackIndex = this.segments.findIndex(s => s === trackSegments[trackIndex]);
+            const nextTrackIndex = this.segments.findIndex(s => s === trackSegments[trackIndex + 1]);
+            
+            const startPoint = trackSegments[trackIndex].endPoint;
+            const endPoint = trackSegments[trackIndex + 1].startPoint;
             
             // Create a new transportation segment
             const transportSegment = {
-                id: `transport_${trackIndex}`,
+                id: `transport_${Date.now()}`,
                 type: 'transportation',
                 mode: mode,
                 startPoint: startPoint,
@@ -842,7 +849,14 @@ export class JourneyBuilder {
             };
             
             // Add the transport segment at the right position in the segments array
-            const insertPosition = (trackIndex * 2) + 1; // After the track, before next track
+            const insertPosition = currentTrackIndex + 1;
+            
+            // Remove any existing transportation segment between these tracks
+            if (nextTrackIndex - currentTrackIndex > 1) {
+                this.segments.splice(currentTrackIndex + 1, nextTrackIndex - currentTrackIndex - 1);
+            }
+            
+            // Insert the new transport segment
             this.segments.splice(insertPosition, 0, transportSegment);
             
             console.log(`Added ${mode} transport between track ${trackIndex} and ${trackIndex + 1}`);
