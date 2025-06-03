@@ -568,6 +568,15 @@ export class MapRenderer {
     }
 
     async updateCurrentPosition() {
+        // Performance throttling during recording
+        if (this.performanceMode && this.updateThrottle) {
+            const now = performance.now();
+            if (this.lastUpdateTime && (now - this.lastUpdateTime) < this.updateThrottle) {
+                return; // Skip this update
+            }
+            this.lastUpdateTime = now;
+        }
+        
         // Ensure GPX parser is ready
         if (!this.ensureGPXParserReady()) {
             return;
@@ -607,11 +616,13 @@ export class MapRenderer {
             // ALWAYS check for icon changes at current position
             this.checkIconChanges(this.animationProgress);
 
-            // Check for annotations
-            this.checkAnnotations(this.animationProgress);
+            // Check for annotations (skip during performance mode to reduce overhead)
+            if (!this.performanceMode) {
+                this.checkAnnotations(this.animationProgress);
+            }
 
             // Auto zoom to follow the marker (only if auto zoom is enabled and we're not manually seeking)
-            if (this.autoZoom && this.isAnimating) {
+            if (this.autoZoom && this.isAnimating && !this.performanceMode) {
                 if (this.is3DMode) {
                     // In 3D mode, maintain the camera angle while following
                     this.map.easeTo({
@@ -1808,5 +1819,115 @@ export class MapRenderer {
     // Check if terrain is supported by the current MapLibre version
     isTerrainSupported() {
         return typeof this.map.setTerrain === 'function' && typeof this.map.addSource === 'function';
+    }
+
+    // Performance mode for video recording
+    setPerformanceMode(enabled) {
+        this.performanceMode = enabled;
+        
+        if (enabled) {
+            console.log('Enabling performance mode for video recording');
+            
+            // Disable expensive map features during recording
+            this.originalMapSettings = {
+                antialias: this.map.getCanvas().getContext('webgl2', { antialias: true }),
+                preserveDrawingBuffer: this.map.getCanvas().getContext('webgl2', { preserveDrawingBuffer: true })
+            };
+            
+            // Reduce map update frequency during recording
+            this.updateThrottle = 16; // ~60fps max
+            
+            // Disable auto-following during recording for stability
+            this.recordingAutoZoom = this.autoZoom;
+            this.autoZoom = false;
+            
+        } else {
+            console.log('Disabling performance mode');
+            
+            // Restore original settings
+            if (this.recordingAutoZoom !== undefined) {
+                this.autoZoom = this.recordingAutoZoom;
+                this.recordingAutoZoom = undefined;
+            }
+            
+            this.updateThrottle = 0;
+            this.originalMapSettings = null;
+        }
+    }
+
+    // Optimize map for recording
+    optimizeForRecording() {
+        if (!this.map) return;
+        
+        try {
+            // Enable preserveDrawingBuffer for smooth canvas capture
+            const canvas = this.map.getCanvas();
+            const gl = canvas.getContext('webgl2', { preserveDrawingBuffer: true });
+            
+            // Reduce tile cache size temporarily to free memory
+            if (this.map.style && this.map.style.sourceCaches) {
+                Object.values(this.map.style.sourceCaches).forEach(sourceCache => {
+                    if (sourceCache._cache) {
+                        sourceCache._cache.max = 50; // Reduce from default
+                    }
+                });
+            }
+            
+            // Force a repaint to stabilize the canvas
+            this.map.triggerRepaint();
+            
+            console.log('Map optimized for recording');
+            
+        } catch (error) {
+            console.warn('Could not fully optimize map for recording:', error);
+        }
+    }
+
+    // Enhanced tile loading detection
+    areTilesLoaded() {
+        if (!this.map || !this.map.style) return true;
+        
+        try {
+            const sources = this.map.style.sourceCaches;
+            for (const sourceId in sources) {
+                const source = sources[sourceId];
+                if (source && source._tiles) {
+                    for (const tileId in source._tiles) {
+                        const tile = source._tiles[tileId];
+                        if (tile.state === 'loading' || tile.state === 'reloading') {
+                            return false;
+                        }
+                    }
+                }
+            }
+            return true;
+        } catch (error) {
+            console.warn('Error checking tile loading status:', error);
+            return true; // Assume loaded if we can't check
+        }
+    }
+
+    // Memory cleanup for better performance
+    cleanupForPerformance() {
+        try {
+            // Clear any cached resources
+            if (this.map && this.map.style && this.map.style.sourceCaches) {
+                Object.values(this.map.style.sourceCaches).forEach(sourceCache => {
+                    if (sourceCache._cache && sourceCache._cache.reset) {
+                        sourceCache._cache.reset();
+                    }
+                });
+            }
+            
+            // Force garbage collection if available
+            if (window.gc) {
+                window.gc();
+            }
+            
+            console.log('Performed memory cleanup for better performance');
+            
+        } catch (error) {
+            console.warn('Error during memory cleanup:', error);
+        }
     }
 } 

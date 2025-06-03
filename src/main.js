@@ -730,39 +730,60 @@ class TrailReplayApp {
     }
 
     updateProgressDisplay() {
+        // Skip expensive operations during recording
+        if (this.recordingMode) {
+            return;
+        }
+        
         const progress = this.mapRenderer.getAnimationProgress();
         const progressPercent = progress * 100;
         
-        // Update the elevation profile progress
+        // Update the elevation profile progress (throttled)
         this.updateElevationProgress(progress);
         
-        // For journeys with segment timing, show elapsed time based on actual journey time
-        if (this.currentTrackData && this.currentTrackData.isJourney && this.mapRenderer.journeyElapsedTime !== undefined) {
-            const currentTimeSeconds = Math.floor(this.mapRenderer.journeyElapsedTime);
-            document.getElementById('currentTime').textContent = this.formatTimeInSeconds(currentTimeSeconds);
-            
-            // Also ensure the total time reflects the current segment timing
-            if (this.currentTrackData.segmentTiming && this.currentTrackData.segmentTiming.totalDuration) {
-                document.getElementById('totalTime').textContent = this.formatTimeInSeconds(this.currentTrackData.segmentTiming.totalDuration);
+        // Batch time updates for better performance
+        const updateTimeDisplay = () => {
+            // For journeys with segment timing, show elapsed time based on actual journey time
+            if (this.currentTrackData && this.currentTrackData.isJourney && this.mapRenderer.journeyElapsedTime !== undefined) {
+                const currentTimeSeconds = Math.floor(this.mapRenderer.journeyElapsedTime);
+                document.getElementById('currentTime').textContent = this.formatTimeInSeconds(currentTimeSeconds);
+                
+                // Also ensure the total time reflects the current segment timing
+                if (this.currentTrackData.segmentTiming && this.currentTrackData.segmentTiming.totalDuration) {
+                    document.getElementById('totalTime').textContent = this.formatTimeInSeconds(this.currentTrackData.segmentTiming.totalDuration);
+                }
+            } else {
+                // Fallback: show progress through the selected animation duration in seconds
+                const currentTimeSeconds = Math.floor(progress * this.totalAnimationTime);
+                document.getElementById('currentTime').textContent = this.formatTimeInSeconds(currentTimeSeconds);
+                
+                // Ensure total time shows the current animation time
+                document.getElementById('totalTime').textContent = this.formatTimeInSeconds(this.totalAnimationTime);
             }
-        } else {
-            // Fallback: show progress through the selected animation duration in seconds
-            const currentTimeSeconds = Math.floor(progress * this.totalAnimationTime);
-            document.getElementById('currentTime').textContent = this.formatTimeInSeconds(currentTimeSeconds);
-            
-            // Ensure total time shows the current animation time
-            document.getElementById('totalTime').textContent = this.formatTimeInSeconds(this.totalAnimationTime);
+        };
+        
+        // Throttle time updates during animation
+        if (!this.isPlaying || (this.frameCount % 5 === 0)) {
+            updateTimeDisplay();
         }
         
-        // Update live stats if enabled
+        // Update live stats with throttling
         this.updateLiveStats();
-        
     }
 
     // Generate elevation profile SVG path
     generateElevationProfile() {
         if (!this.currentTrackData || !this.currentTrackData.trackPoints) {
             console.log('No track data available for elevation profile');
+            return;
+        }
+
+        // Check if we already have a cached profile for this track
+        const trackId = this.currentTrackData.filename || 'unknown';
+        if (this.cachedElevationProfiles && this.cachedElevationProfiles[trackId]) {
+            this.elevationProfile = this.cachedElevationProfiles[trackId];
+            document.getElementById('elevationPath').setAttribute('d', this.elevationProfile.pathData);
+            console.log('Using cached elevation profile');
             return;
         }
 
@@ -783,15 +804,34 @@ class TrailReplayApp {
             const pathData = `M0,${flatY} L${svgWidth},${flatY} L${svgWidth},${svgHeight} L0,${svgHeight} Z`;
             
             document.getElementById('elevationPath').setAttribute('d', pathData);
+            
+            // Cache the flat profile
+            this.elevationProfile = {
+                points: [`0,${flatY}`, `${svgWidth},${flatY}`],
+                minElevation,
+                maxElevation,
+                elevationRange,
+                svgWidth,
+                svgHeight,
+                padding,
+                pathData
+            };
+            
             console.log('Generated flat elevation profile (no elevation variation)');
             return;
         }
 
-        // Generate path points
+        // Generate path points with optimization for large datasets
         const pathPoints = [];
-        for (let i = 0; i < trackPoints.length; i++) {
-            const x = (i / (trackPoints.length - 1)) * svgWidth;
-            const normalizedElevation = (elevations[i] - minElevation) / elevationRange;
+        const pointCount = trackPoints.length;
+        
+        // Optimize point generation for large tracks
+        const step = pointCount > 1000 ? Math.ceil(pointCount / 800) : 1;
+        
+        for (let i = 0; i < pointCount; i += step) {
+            const actualIndex = Math.min(i, pointCount - 1);
+            const x = (actualIndex / (pointCount - 1)) * svgWidth;
+            const normalizedElevation = (elevations[actualIndex] - minElevation) / elevationRange;
             const y = svgHeight - (normalizedElevation * (svgHeight - padding * 2)) - padding;
             pathPoints.push(`${x.toFixed(2)},${y.toFixed(2)}`);
         }
@@ -802,7 +842,7 @@ class TrailReplayApp {
         // Update the elevation path
         document.getElementById('elevationPath').setAttribute('d', pathData);
         
-        // Store elevation data for progress updates
+        // Store elevation data for progress updates with caching
         this.elevationProfile = {
             points: pathPoints,
             minElevation,
@@ -810,14 +850,26 @@ class TrailReplayApp {
             elevationRange,
             svgWidth,
             svgHeight,
-            padding
+            padding,
+            pathData
         };
 
-        console.log(`Generated elevation profile: ${elevations.length} points, range: ${elevationRange.toFixed(1)}m`);
+        // Cache the profile for future use
+        if (!this.cachedElevationProfiles) {
+            this.cachedElevationProfiles = {};
+        }
+        this.cachedElevationProfiles[trackId] = this.elevationProfile;
+
+        console.log(`Generated elevation profile: ${elevations.length} points (optimized to ${pathPoints.length}), range: ${elevationRange.toFixed(1)}m`);
     }
 
     // Update elevation progress indicator
     updateElevationProgress(progress) {
+        // Skip expensive operations during recording
+        if (this.recordingMode) {
+            return;
+        }
+        
         if (!this.elevationProfile) {
             // Fallback to flat progress bar behavior
             const progressFill = document.getElementById('progressFill');
@@ -851,65 +903,87 @@ class TrailReplayApp {
             }
         }
 
-        // Update progress indicator position
+        // Batch DOM updates for better performance
         const progressIndicator = document.getElementById('progressIndicator');
+        const progressPath = document.getElementById('progressPath');
+        
         if (progressIndicator) {
-            progressIndicator.setAttribute('cx', currentX.toFixed(2));
-            progressIndicator.setAttribute('cy', currentY.toFixed(2));
+            // Use transform instead of attribute change for better performance
+            progressIndicator.style.transform = `translate(${currentX}px, ${currentY}px)`;
         }
 
-        // Update progress path (filled area up to current position)
-        const progressPath = document.getElementById('progressPath');
+        // Update progress path less frequently during animation for performance
         if (progressPath && points.length > 0) {
-            const progressPoints = points.slice(0, currentPointIndex + 1);
-            if (progressPoints.length > 0) {
-                // Add the current interpolated point
-                progressPoints.push(`${currentX.toFixed(2)},${currentY.toFixed(2)}`);
-                
-                // Create filled area from bottom to elevation profile
-                const progressPathData = `M0,${svgHeight} L${progressPoints.join(' L')} L${currentX},${svgHeight} Z`;
-                progressPath.setAttribute('d', progressPathData);
+            // Only update every few frames during animation to reduce overhead
+            const shouldUpdatePath = !this.isPlaying || (this.frameCount % 3 === 0);
+            if (shouldUpdatePath) {
+                const progressPoints = points.slice(0, currentPointIndex + 1);
+                if (progressPoints.length > 0) {
+                    // Add the current interpolated point
+                    progressPoints.push(`${currentX.toFixed(2)},${currentY.toFixed(2)}`);
+                    
+                    // Create filled area from bottom to elevation profile
+                    const progressPathData = `M0,${svgHeight} L${progressPoints.join(' L')} L${currentX},${svgHeight} Z`;
+                    progressPath.setAttribute('d', progressPathData);
+                }
             }
         }
+        
+        // Track frame count for throttling
+        this.frameCount = (this.frameCount || 0) + 1;
     }
 
     // Update progress bar markers for elevation profile
     updateProgressBarMarkers() {
-        if (!this.mapRenderer) return;
+        // Skip during recording for performance
+        if (this.recordingMode || !this.mapRenderer) {
+            return;
+        }
+
+        // Throttle marker updates
+        const now = performance.now();
+        if (this.lastMarkerUpdate && (now - this.lastMarkerUpdate) < 200) {
+            return; // Update markers max every 200ms
+        }
+        this.lastMarkerUpdate = now;
 
         // Update icon change markers
         const iconChangeMarkers = document.getElementById('iconChangeMarkers');
-        iconChangeMarkers.innerHTML = '';
+        if (iconChangeMarkers) {
+            iconChangeMarkers.innerHTML = '';
 
-        this.mapRenderer.getIconChanges().forEach(change => {
-            const marker = document.createElement('div');
-            marker.className = 'icon-change-marker';
-            
-            // Position marker based on elevation profile if available
-            const markerPosition = this.getElevationMarkerPosition(change.progress);
-            marker.style.left = `${markerPosition.x}%`;
-            marker.style.top = `${markerPosition.y}px`;
-            marker.title = `Icon change to ${change.icon}`;
-            
-            iconChangeMarkers.appendChild(marker);
-        });
+            this.mapRenderer.getIconChanges().forEach(change => {
+                const marker = document.createElement('div');
+                marker.className = 'icon-change-marker';
+                
+                // Position marker based on elevation profile if available
+                const markerPosition = this.getElevationMarkerPosition(change.progress);
+                marker.style.left = `${markerPosition.x}%`;
+                marker.style.top = `${markerPosition.y}px`;
+                marker.title = `Icon change to ${change.icon}`;
+                
+                iconChangeMarkers.appendChild(marker);
+            });
+        }
 
         // Update annotation markers
         const annotationMarkers = document.getElementById('annotationMarkers');
-        annotationMarkers.innerHTML = '';
+        if (annotationMarkers) {
+            annotationMarkers.innerHTML = '';
 
-        this.mapRenderer.getAnnotations().forEach(annotation => {
-            const marker = document.createElement('div');
-            marker.className = 'annotation-marker';
-            
-            // Position marker based on elevation profile if available
-            const markerPosition = this.getElevationMarkerPosition(annotation.progress);
-            marker.style.left = `${markerPosition.x}%`;
-            marker.style.top = `${markerPosition.y}px`;
-            marker.title = annotation.title;
-            
-            annotationMarkers.appendChild(marker);
-        });
+            this.mapRenderer.getAnnotations().forEach(annotation => {
+                const marker = document.createElement('div');
+                marker.className = 'annotation-marker';
+                
+                // Position marker based on elevation profile if available
+                const markerPosition = this.getElevationMarkerPosition(annotation.progress);
+                marker.style.left = `${markerPosition.x}%`;
+                marker.style.top = `${markerPosition.y}px`;
+                marker.title = annotation.title;
+                
+                annotationMarkers.appendChild(marker);
+            });
+        }
     }
 
     // Get marker position on elevation profile
@@ -1074,7 +1148,7 @@ class TrailReplayApp {
             return;
         }
 
-        const mapElement = this.mapRenderer.map.getCanvas(); // Get the map canvas
+        const mapElement = this.mapRenderer.map.getCanvas();
         if (!mapElement) {
             this.showMessage(t('messages.mapNotReady'), 'error');
             console.error('Map canvas element not found.');
@@ -1084,6 +1158,37 @@ class TrailReplayApp {
         let recordedChunks = [];
         let mediaRecorder;
         let stream;
+        let performanceMode = false;
+        let progressModal;
+
+        // Create enhanced progress modal
+        const createProgressModal = () => {
+            const modal = document.createElement('div');
+            modal.className = 'video-export-progress';
+            modal.id = 'videoExportProgress';
+            modal.innerHTML = `
+                <h3>🎥 Exporting Video</h3>
+                <div class="video-export-progress-bar">
+                    <div class="video-export-progress-fill" id="exportProgressFill"></div>
+                </div>
+                <div class="video-export-status" id="exportStatus">Preparing for export...</div>
+                <div class="video-export-tips">
+                    <strong>💡 Tips for best results:</strong><br>
+                    • Keep this browser tab active<br>
+                    • Close other heavy applications<br>
+                    • Let the process complete without interruption
+                </div>
+            `;
+            document.body.appendChild(modal);
+            return modal;
+        };
+
+        const updateProgress = (percent, status) => {
+            const fillElement = document.getElementById('exportProgressFill');
+            const statusElement = document.getElementById('exportStatus');
+            if (fillElement) fillElement.style.width = `${percent}%`;
+            if (statusElement) statusElement.textContent = status;
+        };
 
         // Elements to hide during recording
         const elementsToHideSelectors = [
@@ -1097,7 +1202,7 @@ class TrailReplayApp {
             '.journey-timeline-container',
             '.live-stats-overlay',
             '.language-switcher',
-            '#toast-container', // Assuming toasts are in a container
+            '#toast-container',
             'footer'
         ];
 
@@ -1106,7 +1211,6 @@ class TrailReplayApp {
             elementsToHideSelectors.forEach(selector => {
                 document.querySelectorAll(selector).forEach(el => el.style.visibility = 'hidden');
             });
-            // Specifically ensure map controls are not captured if they are separate overlays
             const mapControls = mapElement.parentElement?.querySelectorAll('.maplibregl-ctrl-top-right, .maplibregl-ctrl-top-left, .maplibregl-ctrl-bottom-left, .maplibregl-ctrl-bottom-right');
             mapControls?.forEach(ctrl => ctrl.style.visibility = 'hidden');
         };
@@ -1120,41 +1224,71 @@ class TrailReplayApp {
             mapControls?.forEach(ctrl => ctrl.style.visibility = 'visible');
         };
 
+        const enablePerformanceMode = () => {
+            performanceMode = true;
+            this.mapRenderer.setPerformanceMode(true);
+            this.startPerformanceMonitoring();
+        };
+
+        const disablePerformanceMode = () => {
+            performanceMode = false;
+            this.mapRenderer.setPerformanceMode(false);
+            this.stopPerformanceMonitoring();
+        };
+
+        const cleanup = () => {
+            if (progressModal) {
+                progressModal.remove();
+            }
+            showUI();
+            disablePerformanceMode();
+        };
+
         try {
-            this.showMessage(t('messages.exportVideoPrepare'), 'info');
+            // Show enhanced progress modal
+            progressModal = createProgressModal();
+            updateProgress(0, 'Preparing for export...');
             
-            // Step 1: Reset animation to the beginning and hide UI
+            // Step 1: Reset animation and hide UI
             this.resetAnimation();
             hideUI();
-            await new Promise(resolve => setTimeout(resolve, 500)); // Wait for UI to hide
+            await new Promise(resolve => setTimeout(resolve, 300));
+            updateProgress(10, 'UI hidden, preparing map...');
 
-            // Step 2: Preload map tiles for the entire route
-            this.showMessage('🗺️ Preloading map tiles for smooth video...', 'info');
-            await this.preloadMapTilesForRoute();
-            
-            // Step 3: Wait for all tiles to finish loading
-            await this.waitForMapTilesToLoad();
-            
-            // Step 4: Additional buffer time to ensure everything is rendered
-            this.showMessage('📹 Final preparations...', 'info');
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Step 2: Enable performance mode
+            enablePerformanceMode();
+            updateProgress(15, 'Performance mode enabled...');
 
-            // Get a stream from the canvas element
+            // Step 3: Enhanced tile preloading
+            updateProgress(20, 'Preloading map tiles...');
+            await this.enhancedTilePreloading((progress) => {
+                updateProgress(20 + (progress * 30), `Loading tiles... ${progress.toFixed(0)}%`);
+            });
+            
+            // Step 4: Wait for tiles to load
+            updateProgress(50, 'Waiting for all tiles to load...');
+            await this.waitForMapTilesToLoadWithTimeout(5000);
+            
+            // Step 5: Final preparations
+            updateProgress(60, 'Optimizing for recording...');
+            await this.prepareForRecording();
+            updateProgress(70, 'Starting video capture...');
+
+            // Get stream from canvas
             if (!mapElement.captureStream) {
-                showUI();
+                cleanup();
                 this.showMessage('Browser does not support canvas.captureStream()', 'error');
-                console.error('canvas.captureStream() not supported.');
                 return;
             }
-            stream = mapElement.captureStream(30); // 30 FPS
+            stream = mapElement.captureStream(30);
 
             const options = {
-                mimeType: 'video/webm; codecs=vp9', // VP9 is good quality and widely supported for WebM
-                videoBitsPerSecond: 2500000 // 2.5 Mbps
+                mimeType: 'video/webm; codecs=vp9',
+                videoBitsPerSecond: 3000000
             };
             if (!MediaRecorder.isTypeSupported(options.mimeType)) {
                 console.warn(`${options.mimeType} not supported, trying with default.`);
-                delete options.mimeType; // Fallback to browser default
+                delete options.mimeType;
             }
 
             mediaRecorder = new MediaRecorder(stream, options);
@@ -1166,8 +1300,9 @@ class TrailReplayApp {
             };
 
             mediaRecorder.onstop = () => {
+                updateProgress(95, 'Processing video file...');
                 const blob = new Blob(recordedChunks, {
-                    type: recordedChunks[0]?.type || 'video/webm' // Use the type from the first chunk or default
+                    type: recordedChunks[0]?.type || 'video/webm'
                 });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -1178,26 +1313,47 @@ class TrailReplayApp {
                 a.click();
                 window.URL.revokeObjectURL(url);
                 document.body.removeChild(a);
-                this.showMessage(t('messages.exportComplete'), 'success');
-                showUI();
+                
+                updateProgress(100, 'Video export complete!');
+                setTimeout(() => {
+                    this.showMessage(t('messages.exportComplete'), 'success');
+                    cleanup();
+                }, 1000);
             };
 
             mediaRecorder.onerror = (event) => {
                 console.error('MediaRecorder error:', event.error);
                 this.showMessage(`${t('messages.exportError')}: ${event.error.name}`, 'error');
-                showUI();
+                cleanup();
                 stream.getTracks().forEach(track => track.stop());
             };
 
-            // Start recording and animation
+            // Start recording
+            updateProgress(75, 'Recording animation...');
             mediaRecorder.start();
-            this.togglePlayback(); // Starts animation and progress updates
-            this.showMessage(t('messages.exportVideoRecording'), 'info');
+            this.togglePlayback();
 
-            // Wait for animation to complete
+            // Monitor recording progress
             await new Promise(resolve => {
+                let frameCount = 0;
+                const startTime = performance.now();
+                
                 const checkCompletion = () => {
                     const progress = this.mapRenderer.getAnimationProgress();
+                    frameCount++;
+                    
+                    // Update progress every 30 frames
+                    if (frameCount % 30 === 0) {
+                        const recordingProgress = 75 + (progress * 20); // 75-95% range
+                        const elapsed = ((performance.now() - startTime) / 1000).toFixed(1);
+                        updateProgress(recordingProgress, `Recording... ${(progress * 100).toFixed(1)}% (${elapsed}s)`);
+                        
+                        // Log performance data
+                        if (this.performanceData) {
+                            console.log(`Recording performance: FPS: ${this.performanceData.fps}, Memory: ${this.performanceData.memory}MB`);
+                        }
+                    }
+                    
                     if (progress >= 1 || !this.isPlaying) {
                         if (mediaRecorder.state === 'recording') {
                             mediaRecorder.stop();
@@ -1213,7 +1369,7 @@ class TrailReplayApp {
         } catch (error) {
             console.error('Error exporting video:', error);
             this.showMessage(`${t('messages.exportError')}: ${error.message}`, 'error');
-            showUI();
+            cleanup();
             if (mediaRecorder && mediaRecorder.state === 'recording') {
                 mediaRecorder.stop();
             }
@@ -1223,8 +1379,8 @@ class TrailReplayApp {
         }
     }
 
-    // Preload map tiles for the entire route
-    async preloadMapTilesForRoute() {
+    // Enhanced tile preloading with progress callback
+    async enhancedTilePreloading(progressCallback) {
         if (!this.mapRenderer || !this.currentTrackData) return;
         
         const map = this.mapRenderer.map;
@@ -1232,126 +1388,252 @@ class TrailReplayApp {
         
         if (!bounds) return;
         
-        console.log('Preloading tiles for route bounds:', bounds);
+        console.log('Starting enhanced tile preloading for route bounds:', bounds);
         
-        // Calculate zoom levels to preload (current zoom and one level higher for detail)
+        // Calculate optimal zoom levels based on route characteristics
         const currentZoom = Math.floor(map.getZoom());
-        const maxZoom = Math.min(currentZoom + 2, 18); // Don't go too high
-        const minZoom = Math.max(currentZoom - 1, 8);  // Don't go too low
+        const routeDistance = this.currentTrackData.stats.totalDistance;
         
-        // Fit to bounds to ensure the right area is visible
+        // Adjust zoom range based on route distance
+        let maxZoom, minZoom;
+        if (routeDistance < 5) {
+            maxZoom = Math.min(currentZoom + 2, 17);
+            minZoom = Math.max(currentZoom - 1, 10);
+        } else if (routeDistance > 50) {
+            maxZoom = Math.min(currentZoom + 1, 15);
+            minZoom = Math.max(currentZoom - 2, 8);
+        } else {
+            maxZoom = Math.min(currentZoom + 1, 16);
+            minZoom = Math.max(currentZoom - 1, 9);
+        }
+        
+        // Fit to bounds with appropriate padding
+        const padding = Math.min(100, Math.max(20, routeDistance * 2));
         map.fitBounds([
             [bounds.west, bounds.south],
             [bounds.east, bounds.north]
         ], {
-            padding: 100,
-            duration: 0 // No animation during preload
+            padding: padding,
+            duration: 0,
+            maxZoom: maxZoom
         });
         
-        // Force map to render
         map.triggerRepaint();
+        await new Promise(resolve => setTimeout(resolve, 300));
         
-        // Wait a bit for the fit to complete
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Preload tiles by visiting key points along the route
+        // Strategic point sampling based on route characteristics
         const trackPoints = this.currentTrackData.trackPoints;
-        const samplePoints = [];
+        const samplePoints = this.calculateStrategicSamplePoints(trackPoints, routeDistance);
         
-        // Sample every 10th point or so to avoid too many operations
-        const step = Math.max(1, Math.floor(trackPoints.length / 20));
-        for (let i = 0; i < trackPoints.length; i += step) {
-            samplePoints.push(trackPoints[i]);
-        }
+        console.log(`Preloading tiles for ${samplePoints.length} strategic points`);
         
-        // Visit each sample point to trigger tile loading
-        for (const point of samplePoints) {
+        // Visit each sample point with adaptive timing
+        for (let i = 0; i < samplePoints.length; i++) {
+            const point = samplePoints[i];
+            
+            // Pan to point
             map.setCenter([point.lon, point.lat]);
             map.triggerRepaint();
-            await new Promise(resolve => setTimeout(resolve, 50)); // Small delay between points
+            
+            // Adaptive delay based on point importance
+            const delay = point.critical ? 100 : 50;
+            await new Promise(resolve => setTimeout(resolve, delay));
+            
+            // Update progress
+            if (i % 5 === 0) {
+                const progress = ((i / samplePoints.length) * 100).toFixed(0);
+                console.log(`Tile preloading progress: ${progress}%`);
+            }
         }
         
-        // Return to the starting position
+        // Return to starting position
         if (trackPoints.length > 0) {
             map.setCenter([trackPoints[0].lon, trackPoints[0].lat]);
+            map.triggerRepaint();
         }
         
-        console.log('Tile preloading completed');
+        console.log('Enhanced tile preloading completed');
     }
 
-    // Wait for all map tiles to finish loading
-    async waitForMapTilesToLoad() {
+    // Calculate strategic sample points for efficient tile loading
+    calculateStrategicSamplePoints(trackPoints, routeDistance) {
+        const samplePoints = [];
+        
+        // Always include start and end
+        samplePoints.push({ ...trackPoints[0], critical: true });
+        if (trackPoints.length > 1) {
+            samplePoints.push({ ...trackPoints[trackPoints.length - 1], critical: true });
+        }
+        
+        // Adaptive sampling based on route length
+        let sampleRate;
+        if (routeDistance < 5) {
+            sampleRate = Math.max(1, Math.floor(trackPoints.length / 15)); // More samples for short routes
+        } else if (routeDistance > 50) {
+            sampleRate = Math.max(1, Math.floor(trackPoints.length / 8)); // Fewer samples for long routes
+        } else {
+            sampleRate = Math.max(1, Math.floor(trackPoints.length / 12)); // Medium sampling
+        }
+        
+        // Sample points along the route
+        for (let i = sampleRate; i < trackPoints.length - sampleRate; i += sampleRate) {
+            samplePoints.push({ ...trackPoints[i], critical: false });
+        }
+        
+        // Add elevation change points (peaks and valleys)
+        if (trackPoints.length > 10) {
+            const elevationPoints = this.findElevationChangePoints(trackPoints);
+            elevationPoints.forEach(point => {
+                samplePoints.push({ ...point, critical: true });
+            });
+        }
+        
+        // Remove duplicates and sort by index
+        const uniquePoints = [];
+        const seenIndices = new Set();
+        
+        samplePoints.forEach(point => {
+            const index = trackPoints.findIndex(tp => tp.lon === point.lon && tp.lat === point.lat);
+            if (!seenIndices.has(index)) {
+                seenIndices.add(index);
+                uniquePoints.push(point);
+            }
+        });
+        
+        return uniquePoints;
+    }
+
+    // Find significant elevation change points
+    findElevationChangePoints(trackPoints) {
+        const elevationPoints = [];
+        const elevations = trackPoints.map(p => p.elevation || 0);
+        
+        if (elevations.length < 10) return elevationPoints;
+        
+        const minElevation = Math.min(...elevations);
+        const maxElevation = Math.max(...elevations);
+        const elevationRange = maxElevation - minElevation;
+        
+        // Only add elevation points if there's significant variation
+        if (elevationRange < 50) return elevationPoints;
+        
+        // Find peaks and valleys
+        for (let i = 5; i < trackPoints.length - 5; i++) {
+            const current = elevations[i];
+            const before = elevations.slice(i - 5, i);
+            const after = elevations.slice(i + 1, i + 6);
+            
+            const isLocalMax = before.every(e => e <= current) && after.every(e => e <= current);
+            const isLocalMin = before.every(e => e >= current) && after.every(e => e >= current);
+            
+            if (isLocalMax || isLocalMin) {
+                elevationPoints.push(trackPoints[i]);
+            }
+        }
+        
+        return elevationPoints;
+    }
+
+    // Enhanced tile loading wait with timeout
+    async waitForMapTilesToLoadWithTimeout(timeoutMs = 8000) {
         if (!this.mapRenderer) return;
         
         const map = this.mapRenderer.map;
         
         return new Promise((resolve) => {
-            // Check if map is already loaded
-            if (map.loaded() && map.isStyleLoaded()) {
-                console.log('Map already loaded');
-                resolve();
-                return;
-            }
-            
-            let loadTimeout;
             let isResolved = false;
             
             const resolveOnce = () => {
                 if (!isResolved) {
                     isResolved = true;
-                    clearTimeout(loadTimeout);
                     console.log('Map tiles loading completed');
                     resolve();
                 }
             };
             
-            // Listen for various map loading events
+            // Enhanced loading detection
+            const checkLoading = () => {
+                if (map.loaded() && map.isStyleLoaded() && !map.areTilesLoaded()) {
+                    return false;
+                }
+                return true;
+            };
+            
+            // Multiple event listeners for comprehensive detection
             const onLoad = () => {
-                if (map.loaded() && map.isStyleLoaded()) {
-                    resolveOnce();
+                if (checkLoading()) {
+                    setTimeout(resolveOnce, 100); // Small delay to ensure stability
                 }
             };
             
             const onData = (e) => {
                 if (e.dataType === 'source' && e.isSourceLoaded) {
-                    // Check if all sources are loaded
                     setTimeout(() => {
-                        if (map.loaded() && map.isStyleLoaded()) {
+                        if (checkLoading()) {
                             resolveOnce();
                         }
-                    }, 100);
+                    }, 50);
                 }
             };
             
             const onIdle = () => {
-                // Map is idle, likely finished loading tiles
-                resolveOnce();
+                if (checkLoading()) {
+                    resolveOnce();
+                }
             };
             
             // Set up event listeners
             map.on('load', onLoad);
             map.on('data', onData);
             map.on('idle', onIdle);
+            map.on('sourcedata', onData);
             
-            // Force trigger loading check
-            onLoad();
-            
-            // Fallback timeout to prevent hanging (max 10 seconds)
-            loadTimeout = setTimeout(() => {
-                console.log('Map loading timeout reached, proceeding anyway');
+            // Initial check
+            if (checkLoading()) {
                 resolveOnce();
-            }, 10000);
+            }
             
-            // Clean up listeners after resolution
+            // Timeout with warning
+            const timeout = setTimeout(() => {
+                if (!isResolved) {
+                    console.warn(`Tile loading timeout after ${timeoutMs}ms, proceeding anyway`);
+                    resolveOnce();
+                }
+            }, timeoutMs);
+            
+            // Cleanup
             const cleanup = () => {
+                clearTimeout(timeout);
                 map.off('load', onLoad);
                 map.off('data', onData);
                 map.off('idle', onIdle);
+                map.off('sourcedata', onData);
             };
             
             // Ensure cleanup happens
-            setTimeout(cleanup, 15000);
+            setTimeout(cleanup, timeoutMs + 1000);
         });
+    }
+
+    // Prepare system for optimal recording performance
+    async prepareForRecording() {
+        // Memory cleanup
+        if (window.gc) {
+            window.gc(); // Force garbage collection if available
+        }
+        
+        // Disable auto-refresh features during recording
+        this.recordingMode = true;
+        
+        // Optimize map for recording
+        if (this.mapRenderer) {
+            this.mapRenderer.optimizeForRecording();
+        }
+        
+        // Final stability wait
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        console.log('System prepared for optimal recording performance');
     }
 
     addLanguageSwitcher() {
@@ -2386,6 +2668,11 @@ class TrailReplayApp {
         const overlay = document.getElementById('liveStatsOverlay');
         if (!overlay || overlay.classList.contains('hidden')) return;
         
+        // Skip expensive operations during recording
+        if (this.recordingMode) {
+            return;
+        }
+        
         // If no data, show placeholders
         if (!this.mapRenderer || !this.currentTrackData) {
             document.getElementById('liveDistance').textContent = '–';
@@ -2394,6 +2681,13 @@ class TrailReplayApp {
         }
         
         try {
+            // Throttle updates during animation for performance
+            const now = performance.now();
+            if (this.lastStatsUpdate && (now - this.lastStatsUpdate) < 100) {
+                return; // Skip if updated less than 100ms ago
+            }
+            this.lastStatsUpdate = now;
+            
             // Ensure GPX parser is ready
             if (!this.mapRenderer.ensureGPXParserReady()) {
                 document.getElementById('liveDistance').textContent = '–';
@@ -2417,21 +2711,31 @@ class TrailReplayApp {
             // Calculate actual elevation gain based on current position in track
             const currentElevationGain = this.calculateActualElevationGain(progress);
             
-            // Format and update the display values
+            // Format and update the display values with optimized DOM updates
             const distanceElement = document.getElementById('liveDistance');
             const elevationElement = document.getElementById('liveElevation');
             
             if (distanceElement) {
                 const formattedDistance = this.gpxParser.formatDistance(currentDistance);
                 if (distanceElement.textContent !== formattedDistance) {
-                    this.animateValueChange(distanceElement, formattedDistance);
+                    // Skip animation during heavy operations
+                    if (this.isPlaying && this.mapRenderer.isAnimating) {
+                        distanceElement.textContent = formattedDistance;
+                    } else {
+                        this.animateValueChange(distanceElement, formattedDistance);
+                    }
                 }
             }
             
             if (elevationElement) {
                 const formattedElevation = this.gpxParser.formatElevation(currentElevationGain);
                 if (elevationElement.textContent !== formattedElevation) {
-                    this.animateValueChange(elevationElement, formattedElevation);
+                    // Skip animation during heavy operations
+                    if (this.isPlaying && this.mapRenderer.isAnimating) {
+                        elevationElement.textContent = formattedElevation;
+                    } else {
+                        this.animateValueChange(elevationElement, formattedElevation);
+                    }
                 }
             }
             

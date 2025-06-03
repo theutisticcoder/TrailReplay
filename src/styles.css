@@ -598,7 +598,7 @@ input:checked + .toggle-slider:before {
 .map-watermark {
     position: absolute;
     top: 1rem;
-    right: 1rem;
+    left: 1rem;
     z-index: 500; /* Below controls but above map */
     pointer-events: none; /* Don't interfere with map interactions */
 }
@@ -1825,14 +1825,15 @@ body.route-drawing-active .transportation-options {
 }
 
 .progress-control-btn.primary {
-    background: var(--trail-orange);
-    border-color: var(--trail-orange);
+    background: var(--evergreen);
+    border-color: var(--canvas);
 }
 
 .progress-control-btn:hover {
     background: var(--canvas);
     color: var(--evergreen);
     transform: translateY(-1px);
+    border-color: var(--trail-orange);
 }
 
 /* Responsive Design */
@@ -1906,6 +1907,189 @@ body.video-export-active .maplibregl-ctrl-bottom-right {
 /* Ensure the map container itself remains visible and takes full space if needed */
 body.video-export-active .map-container {
     /* Potentially adjust if other elements are affecting its layout during export */
+    transform: translateZ(0); /* Force hardware acceleration */
+    backface-visibility: hidden; /* Optimize for performance */
+}
+
+/* Performance optimizations for recording mode */
+body.video-export-active * {
+    animation-duration: 0s !important; /* Disable all animations during recording */
+    animation-delay: 0s !important;
+    transition-duration: 0s !important; /* Disable all transitions during recording */
+    transition-delay: 0s !important;
+}
+
+/* Optimize canvas rendering during recording */
+body.video-export-active .map canvas {
+    image-rendering: optimizeSpeed;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: optimize-contrast;
+    image-rendering: pixelated;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
+/* Video export progress indicator */
+.video-export-progress {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--canvas);
+    border: 2px solid var(--trail-orange);
+    border-radius: 8px;
+    padding: 2rem;
+    z-index: 10000;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    text-align: center;
+    min-width: 300px;
+}
+
+.video-export-progress h3 {
+    color: var(--evergreen);
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+}
+
+.video-export-progress-bar {
+    width: 100%;
+    height: 8px;
+    background: var(--evergreen-40);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+.video-export-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--trail-orange), var(--lake-teal));
+    border-radius: 4px;
+    width: 0%;
+    transition: width 0.3s ease;
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { background-position: -200px 0; }
+    100% { background-position: calc(200px + 100%) 0; }
+}
+
+.video-export-status {
+    color: var(--evergreen);
+    font-size: 0.9rem;
+    opacity: 0.8;
+    margin-bottom: 0.5rem;
+}
+
+.video-export-tips {
+    background: var(--trail-orange-15);
+    border-radius: 6px;
+    padding: 1rem;
+    margin-top: 1rem;
+    font-size: 0.85rem;
+    color: var(--evergreen);
+    line-height: 1.4;
+}
+
+/* Performance indicators */
+.performance-monitor {
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    background: rgba(27, 42, 32, 0.9);
+    color: var(--canvas);
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    z-index: 9999;
+    backdrop-filter: blur(5px);
+    border: 1px solid var(--evergreen);
+    display: none; /* Hidden by default */
+}
+
+.performance-monitor.active {
+    display: block;
+}
+
+.performance-stat {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.25rem;
+}
+
+.performance-stat:last-child {
+    margin-bottom: 0;
+}
+
+.performance-value {
+    color: var(--trail-orange);
+    font-weight: 600;
+}
+
+.performance-value.warning {
+    color: #ff6b6b;
+}
+
+.performance-value.good {
+    color: var(--lake-teal);
+}
+
+/* Optimized elevation profile for recording */
+body.video-export-active .elevation-progress-bar {
+    will-change: transform;
+    transform: translateZ(0);
+}
+
+body.video-export-active #elevationPath,
+body.video-export-active #progressPath {
+    will-change: d;
+    transform: translateZ(0);
+}
+
+body.video-export-active #progressIndicator {
+    will-change: transform;
+    transform: translateZ(0);
+}
+
+/* Reduce visual complexity during recording */
+body.video-export-active .timeline-segment {
+    box-shadow: none !important;
+    transition: none !important;
+    animation: none !important;
+}
+
+body.video-export-active .map-watermark {
+    display: none; /* Hide watermark during recording */
+}
+
+/* Optimize map controls area */
+body.video-export-active .map-controls-overlay {
+    display: none !important;
+}
+
+/* Memory optimization hints */
+.memory-optimized {
+    contain: layout style paint;
+    content-visibility: auto;
+    contain-intrinsic-size: 100px;
+}
+
+/* Smooth canvas capture */
+.map canvas {
+    image-rendering: auto;
+    image-rendering: crisp-edges;
+    image-rendering: pixelated;
+}
+
+/* High quality recording mode */
+body.high-quality-recording .map canvas {
+    image-rendering: auto;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: optimize-contrast;
 }
 
 /* Timeline Editor */
