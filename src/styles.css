@@ -1534,6 +1534,20 @@ body.video-export-active .map-watermark {
     border: 2px solid var(--trail-orange);
 }
 
+/* Transportation Options - Route Drawing Mode */
+body.route-drawing-active .transportation-options {
+    position: fixed;
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    background: var(--canvas);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    margin: 0;
+    max-width: 600px;
+    width: calc(100% - 2rem);
+}
+
 .transportation-options h4 {
     color: var(--evergreen);
     margin-bottom: 1rem;
@@ -1564,12 +1578,270 @@ body.video-export-active .map-watermark {
     transform: translateY(-2px);
 }
 
-/* Journey Timeline Container */
-.journey-timeline-container {
+/* Route Drawing Overlay - Remove background and blur */
+.route-drawing-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
     width: 100%;
-    margin: 2rem 0;
-    padding: 0;
-    box-sizing: border-box;
+    height: 100%;
+    background: none;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: none;
+    pointer-events: none;
+}
+
+.route-drawing-controls {
+    pointer-events: auto;
+    margin-top: 5rem;
+    background: var(--canvas);
+    border-radius: 6px;
+    padding: 1.5rem;
+    border: 2px solid var(--evergreen);
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.route-drawing-info {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.route-drawing-mode {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--evergreen);
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.route-drawing-details {
+    margin: 1rem 0;
+    padding: 1rem;
+    background: var(--trail-orange-15);
+    border-radius: 6px;
+}
+
+.route-distance {
+    color: var(--evergreen);
+    font-weight: 600;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.route-timing {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    color: var(--evergreen);
+}
+
+.route-timing input {
+    width: 80px;
+    padding: 0.25rem 0.5rem;
+    border: 2px solid var(--evergreen);
+    border-radius: 4px;
+    text-align: center;
+    background: var(--canvas);
+    color: var(--evergreen);
+}
+
+.route-drawing-points {
+    color: var(--evergreen);
+    font-weight: 600;
+}
+
+.route-drawing-instructions {
+    background: var(--trail-orange-15);
+    padding: 1rem;
+    border-radius: 6px;
+    margin-bottom: 1.5rem;
+}
+
+.route-drawing-instructions p {
+    margin-bottom: 0.5rem;
+    color: var(--evergreen);
+}
+
+.route-drawing-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.btn-primary {
+    background: var(--trail-orange);
+    color: var(--canvas);
+    border: 2px solid var(--trail-orange);
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 200ms ease-out;
+    font-family: inherit;
+}
+
+.btn-primary:hover {
+    background: var(--evergreen);
+    border-color: var(--evergreen);
+    transform: translateY(-2px);
+}
+
+.btn-primary:disabled {
+    background: var(--evergreen-40);
+    border-color: var(--evergreen-40);
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Live Stats Overlay */
+.live-stats-overlay {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    background: rgba(27, 42, 32, 0.9);
+    border-radius: 6px;
+    padding: 1rem;
+    color: var(--canvas);
+    backdrop-filter: blur(10px);
+    border: 2px solid var(--evergreen);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 150px;
+    z-index: 1100;
+}
+
+.live-stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.live-stat-label {
+    font-size: 0.9rem;
+    opacity: 0.8;
+}
+
+.live-stat-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+/* Progress Container Updates */
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.progress-controls {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.progress-control-btn {
+    background: transparent;
+    color: var(--canvas);
+    border: 2px solid var(--canvas);
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 200ms ease-out;
+    font-family: inherit;
+}
+
+.progress-control-btn.primary {
+    background: var(--trail-orange);
+    border-color: var(--trail-orange);
+}
+
+.progress-control-btn:hover {
+    background: var(--canvas);
+    color: var(--evergreen);
+    transform: translateY(-1px);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .tracks-header,
+    .segments-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .journey-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+    
+    .timing-breakdown {
+        grid-template-columns: 1fr;
+    }
+    
+    .segment-item,
+    .track-item {
+        flex-direction: column;
+        align-items: flex-start;
+        text-align: left;
+    }
+    
+    .segment-timing,
+    .route-timing {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+    }
+    
+    .route-drawing-controls {
+        padding: 1rem;
+    }
+    
+    .route-drawing-buttons {
+        flex-direction: column;
+    }
+    
+    .live-stats-overlay {
+        position: relative;
+        margin-bottom: 1rem;
+    }
+}
+
+/* Video Export Specific Styles */
+body.video-export-active .header,
+body.video-export-active .controls-panel,
+body.video-export-active .stats-section,
+body.video-export-active .progress-bar-container,
+body.video-export-active .annotations-section,
+body.video-export-active .icon-timeline-section,
+body.video-export-active .journey-planning-section,
+body.video-export-active .journey-timeline-container,
+body.video-export-active .live-stats-overlay,
+body.video-export-active .language-switcher,
+body.video-export-active .toast, /* Hide individual toasts */
+body.video-export-active #toast-container, /* Hide toast container if it exists */
+body.video-export-active footer,
+body.video-export-active .maplibregl-ctrl-top-right,
+body.video-export-active .maplibregl-ctrl-top-left,
+body.video-export-active .maplibregl-ctrl-bottom-left,
+body.video-export-active .maplibregl-ctrl-bottom-right {
+    visibility: hidden !important;
+    opacity: 0 !important; /* Also set opacity for good measure */
+    pointer-events: none !important; /* Prevent any interaction */
+}
+
+/* Ensure the map container itself remains visible and takes full space if needed */
+body.video-export-active .map-container {
+    /* Potentially adjust if other elements are affecting its layout during export */
 }
 
 /* Timeline Editor */
@@ -1922,21 +2194,25 @@ body.video-export-active .map-watermark {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(27, 42, 32, 0.9);
+    background: none;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
-    z-index: 10000;
-    backdrop-filter: blur(5px);
+    z-index: 1000;
+    backdrop-filter: none;
+    pointer-events: none;
 }
 
 .route-drawing-controls {
+    pointer-events: auto;
+    margin-top: 5rem;
     background: var(--canvas);
     border-radius: 6px;
-    padding: 2rem;
+    padding: 1.5rem;
     border: 2px solid var(--evergreen);
     max-width: 500px;
     width: 90%;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .route-drawing-info {
@@ -2102,77 +2378,4 @@ body.video-export-active .map-watermark {
     background: var(--canvas);
     color: var(--evergreen);
     transform: translateY(-1px);
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    .tracks-header,
-    .segments-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.5rem;
-    }
-    
-    .journey-actions {
-        width: 100%;
-        justify-content: flex-start;
-    }
-    
-    .timing-breakdown {
-        grid-template-columns: 1fr;
-    }
-    
-    .segment-item,
-    .track-item {
-        flex-direction: column;
-        align-items: flex-start;
-        text-align: left;
-    }
-    
-    .segment-timing,
-    .route-timing {
-        flex-wrap: wrap;
-        justify-content: flex-start;
-    }
-    
-    .route-drawing-controls {
-        padding: 1rem;
-    }
-    
-    .route-drawing-buttons {
-        flex-direction: column;
-    }
-    
-    .live-stats-overlay {
-        position: relative;
-        margin-bottom: 1rem;
-    }
-}
-
-/* Video Export Specific Styles */
-body.video-export-active .header,
-body.video-export-active .controls-panel,
-body.video-export-active .stats-section,
-body.video-export-active .progress-bar-container,
-body.video-export-active .annotations-section,
-body.video-export-active .icon-timeline-section,
-body.video-export-active .journey-planning-section,
-body.video-export-active .journey-timeline-container,
-body.video-export-active .live-stats-overlay,
-body.video-export-active .language-switcher,
-body.video-export-active .toast, /* Hide individual toasts */
-body.video-export-active #toast-container, /* Hide toast container if it exists */
-body.video-export-active footer,
-body.video-export-active .maplibregl-ctrl-top-right,
-body.video-export-active .maplibregl-ctrl-top-left,
-body.video-export-active .maplibregl-ctrl-bottom-left,
-body.video-export-active .maplibregl-ctrl-bottom-right {
-    visibility: hidden !important;
-    opacity: 0 !important; /* Also set opacity for good measure */
-    pointer-events: none !important; /* Prevent any interaction */
-}
-
-/* Ensure the map container itself remains visible and takes full space if needed */
-body.video-export-active .map-container {
-    /* Potentially adjust if other elements are affecting its layout during export */
 } 

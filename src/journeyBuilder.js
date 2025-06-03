@@ -297,7 +297,7 @@ export class JourneyBuilder {
             const trackElement = document.createElement('div');
             trackElement.className = 'segment-item track';
             trackElement.innerHTML = `
-                <div class="segment-icon">${this.getTrackIcon(trackSegment.data.data.activityType)}</div>
+                <div class="segment-icon">${this.getTrackIcon(trackSegment.data.activityType)}</div>
                 <div class="segment-content">
                     <div class="segment-title">${trackSegment.data.name}</div>
                     <div class="segment-description">
@@ -812,8 +812,10 @@ export class JourneyBuilder {
         transportOptions.style.display = 'block';
         transportOptions.setAttribute('data-segment-index', segmentIndex);
 
-        // Scroll to transportation options
-        transportOptions.scrollIntoView({ behavior: 'smooth' });
+        // Don't scroll when in route drawing mode
+        if (!document.body.classList.contains('route-drawing-active')) {
+            transportOptions.scrollIntoView({ behavior: 'smooth' });
+        }
     }
 
     // Add transportation segment
@@ -867,6 +869,9 @@ export class JourneyBuilder {
 
     // Check if map is available for route drawing, auto-preview if needed
     checkMapAccessAndDraw(segmentIndex, mode) {
+        // Add route-drawing-active class to body
+        document.body.classList.add('route-drawing-active');
+        
         // Try to access map for route drawing
         const requestMapEvent = new CustomEvent('requestMapForDrawing', {
             detail: { 
@@ -1345,6 +1350,9 @@ export class JourneyBuilder {
 
     // Cleanup route drawing mode
     cleanupRouteDrawing() {
+        // Remove route-drawing-active class from body
+        document.body.classList.remove('route-drawing-active');
+        
         // Remove UI overlay
         const overlay = document.getElementById('routeDrawingOverlay');
         if (overlay) {
