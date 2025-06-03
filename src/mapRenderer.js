@@ -1303,6 +1303,39 @@ export class MapRenderer {
         this.updateCurrentPosition();
     }
 
+    // Set journey elapsed time directly (for synchronization)
+    setJourneyElapsedTime(timeInSeconds) {
+        if (!this.segmentTimings) {
+            console.warn('Cannot set journey elapsed time: no segment timing data available');
+            return;
+        }
+        
+        this.journeyElapsedTime = Math.max(0, Math.min(timeInSeconds, this.segmentTimings.totalDuration));
+        console.log(`Journey elapsed time set to: ${this.journeyElapsedTime.toFixed(1)}s / ${this.segmentTimings.totalDuration}s`);
+        
+        // Update segment progress based on the new time
+        if (this.segmentTimings.segments) {
+            // Find which segment this time falls into
+            for (let i = 0; i < this.segmentTimings.segments.length; i++) {
+                const segment = this.segmentTimings.segments[i];
+                if (this.journeyElapsedTime >= segment.startTime && this.journeyElapsedTime <= segment.endTime) {
+                    this.currentSegmentIndex = i;
+                    // Calculate progress within this segment (0-1)
+                    if (segment.duration > 0) {
+                        this.segmentProgress = (this.journeyElapsedTime - segment.startTime) / segment.duration;
+                    } else {
+                        this.segmentProgress = 0;
+                    }
+                    console.log(`Segment ${i}: segmentProgress=${this.segmentProgress.toFixed(3)}`);
+                    break;
+                }
+            }
+        }
+        
+        // Reset frame timing to prevent animation from jumping
+        this.lastAnimationTime = 0;
+    }
+
     // Update which segment we're currently in and progress within that segment
     updateSegmentProgress(globalProgress) {
         if (!this.segmentTimings || !this.segmentTimings.segments) return;
@@ -1600,15 +1633,11 @@ export class MapRenderer {
             
             // Add terrain source only if it doesn't exist
             if (!this.map.getSource('terrain-dem')) {
-                this.map.addSource('terrain-dem', {
-                    type: 'raster-dem',
-                    tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
-                    tileSize: 256,
-                    encoding: 'terrarium',
-                    maxzoom: 15
-                });
+                // Default to OpenTopography (more accurate data)
+                this.currentTerrainSource = this.currentTerrainSource || 'opentopo';
+                this.addTerrainSource(this.currentTerrainSource);
                 
-                console.log('Added minimal terrain source');
+                console.log('Added minimal terrain source:', this.currentTerrainSource);
             }
             
             // Apply terrain with very conservative settings
@@ -1621,9 +1650,6 @@ export class MapRenderer {
                     
                     console.log('Applied minimal terrain elevation');
                     
-                    // Don't add terrain control automatically - it might interfere
-                    // User can adjust elevation with the terrain source selector
-                    
                 } catch (terrainError) {
                     console.warn('Could not apply terrain elevation:', terrainError);
                 }
@@ -1631,6 +1657,87 @@ export class MapRenderer {
             
         } catch (error) {
             console.warn('Could not setup minimal terrain source:', error);
+        }
+    }
+
+    // Add terrain source based on provider
+    addTerrainSource(provider) {
+        const sources = {
+            'mapzen': {
+                type: 'raster-dem',
+                tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
+                tileSize: 256,
+                encoding: 'terrarium',
+                maxzoom: 15
+            },
+            'opentopo': {
+                type: 'raster-dem',
+                tiles: ['https://cloud.sdsc.edu/v1/AUTH_opentopography/Raster/SRTM_GL1/{z}/{x}/{y}.png'],
+                tileSize: 256,
+                encoding: 'mapbox',
+                maxzoom: 14
+            }
+        };
+
+        const sourceConfig = sources[provider] || sources['opentopo'];
+        
+        this.map.addSource('terrain-dem', sourceConfig);
+        console.log(`Added ${provider} terrain source`);
+    }
+
+    // Set terrain data source (Mapzen or OpenTopography)
+    setTerrainSource(provider) {
+        if (!this.map || !this.is3DMode) {
+            // Store the preference for when 3D is enabled
+            this.currentTerrainSource = provider;
+            console.log(`Terrain source preference set to: ${provider}`);
+            return;
+        }
+
+        try {
+            console.log(`Switching terrain source to: ${provider}`);
+            
+            // Store current state
+            const wasAnimating = this.isAnimating;
+            const currentProgress = this.animationProgress;
+            
+            // Remove current terrain
+            if (this.map.getSource('terrain-dem')) {
+                this.map.setTerrain(null);
+                this.map.removeSource('terrain-dem');
+            }
+            
+            // Add new terrain source
+            this.addTerrainSource(provider);
+            this.currentTerrainSource = provider;
+            
+            // Re-apply terrain with small delay
+            setTimeout(() => {
+                try {
+                    this.map.setTerrain({
+                        source: 'terrain-dem',
+                        exaggeration: 0.8
+                    });
+                    
+                    console.log(`Successfully switched to ${provider} terrain`);
+                    
+                    // Restore animation state if needed
+                    if (wasAnimating && currentProgress !== undefined) {
+                        setTimeout(() => {
+                            this.setAnimationProgress(currentProgress);
+                            if (wasAnimating) {
+                                this.startAnimation();
+                            }
+                        }, 200);
+                    }
+                    
+                } catch (terrainError) {
+                    console.warn(`Could not apply ${provider} terrain:`, terrainError);
+                }
+            }, 300);
+            
+        } catch (error) {
+            console.error(`Error switching terrain source to ${provider}:`, error);
         }
     }
 
@@ -1889,45 +1996,279 @@ export class MapRenderer {
         
         try {
             const sources = this.map.style.sourceCaches;
+            let totalTiles = 0;
+            let loadedTiles = 0;
+            let loadingTiles = 0;
+            
             for (const sourceId in sources) {
                 const source = sources[sourceId];
                 if (source && source._tiles) {
                     for (const tileId in source._tiles) {
                         const tile = source._tiles[tileId];
+                        totalTiles++;
+                        
                         if (tile.state === 'loading' || tile.state === 'reloading') {
-                            return false;
+                            loadingTiles++;
+                        } else if (tile.state === 'loaded') {
+                            loadedTiles++;
                         }
                     }
                 }
             }
-            return true;
+            
+            // Enhanced logging for debugging
+            if (loadingTiles > 0) {
+                console.log(`Tiles status: ${loadedTiles}/${totalTiles} loaded, ${loadingTiles} loading`);
+            }
+            
+            // Consider tiles loaded if less than 5% are still loading
+            const loadingPercentage = totalTiles > 0 ? (loadingTiles / totalTiles) : 0;
+            return loadingPercentage < 0.05;
+            
         } catch (error) {
             console.warn('Error checking tile loading status:', error);
             return true; // Assume loaded if we can't check
         }
     }
-
-    // Memory cleanup for better performance
-    cleanupForPerformance() {
+    
+    // Get comprehensive tile loading status for video export
+    getTileLoadingStatus() {
+        if (!this.map || !this.map.style) {
+            return { isComplete: true, totalTiles: 0, loadedTiles: 0, loadingTiles: 0 };
+        }
+        
         try {
-            // Clear any cached resources
-            if (this.map && this.map.style && this.map.style.sourceCaches) {
+            const sources = this.map.style.sourceCaches;
+            let totalTiles = 0;
+            let loadedTiles = 0;
+            let loadingTiles = 0;
+            let errorTiles = 0;
+            
+            for (const sourceId in sources) {
+                const source = sources[sourceId];
+                if (source && source._tiles) {
+                    for (const tileId in source._tiles) {
+                        const tile = source._tiles[tileId];
+                        totalTiles++;
+                        
+                        switch (tile.state) {
+                            case 'loading':
+                            case 'reloading':
+                                loadingTiles++;
+                                break;
+                            case 'loaded':
+                                loadedTiles++;
+                                break;
+                            case 'errored':
+                                errorTiles++;
+                                break;
+                        }
+                    }
+                }
+            }
+            
+            const isComplete = loadingTiles === 0;
+            const progress = totalTiles > 0 ? (loadedTiles / totalTiles) * 100 : 100;
+            
+            return {
+                isComplete,
+                totalTiles,
+                loadedTiles,
+                loadingTiles,
+                errorTiles,
+                progress: Math.round(progress)
+            };
+            
+        } catch (error) {
+            console.warn('Error getting tile loading status:', error);
+            return { isComplete: true, totalTiles: 0, loadedTiles: 0, loadingTiles: 0, errorTiles: 0, progress: 100 };
+        }
+    }
+    
+    // Force load tiles in a specific viewport area
+    async forceTileLoading(bounds, zoomLevel = null) {
+        if (!this.map) return;
+        
+        try {
+            const currentZoom = this.map.getZoom();
+            const targetZoom = zoomLevel || currentZoom;
+            
+            // Set zoom if different
+            if (Math.abs(targetZoom - currentZoom) > 0.1) {
+                this.map.setZoom(targetZoom);
+            }
+            
+            // Fit to bounds to trigger tile loading
+            this.map.fitBounds(bounds, {
+                padding: 0,
+                duration: 0,
+                maxZoom: targetZoom
+            });
+            
+            // Force repaint and wait
+            this.map.triggerRepaint();
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Check if sources need refresh
+            if (this.map.style && this.map.style.sourceCaches) {
                 Object.values(this.map.style.sourceCaches).forEach(sourceCache => {
-                    if (sourceCache._cache && sourceCache._cache.reset) {
-                        sourceCache._cache.reset();
+                    if (sourceCache.reload) {
+                        sourceCache.reload();
                     }
                 });
             }
             
-            // Force garbage collection if available
-            if (window.gc) {
-                window.gc();
-            }
-            
-            console.log('Performed memory cleanup for better performance');
+            console.log(`Forced tile loading for bounds:`, bounds, `at zoom ${targetZoom}`);
             
         } catch (error) {
-            console.warn('Error during memory cleanup:', error);
+            console.warn('Error forcing tile loading:', error);
         }
+    }
+    
+    // Preload tiles aggressively for video export
+    async aggressiveTilePreload(route, progressCallback = null) {
+        if (!this.map || !route || route.length === 0) return;
+        
+        console.log('Starting aggressive tile preload for video export');
+        
+        try {
+            // Calculate route bounds
+            const bounds = this.calculateRouteBounds(route);
+            const currentZoom = this.map.getZoom();
+            
+            // Preload at multiple zoom levels for comprehensive coverage
+            const zoomLevels = [];
+            for (let z = Math.max(currentZoom - 2, 8); z <= Math.min(currentZoom + 2, 18); z++) {
+                zoomLevels.push(z);
+            }
+            
+            let completedOperations = 0;
+            const totalOperations = zoomLevels.length * 3; // 3 operations per zoom level
+            
+            for (const zoom of zoomLevels) {
+                console.log(`Aggressive preload at zoom ${zoom}`);
+                
+                // 1. Load main route area
+                await this.forceTileLoading(bounds, zoom);
+                completedOperations++;
+                if (progressCallback) progressCallback((completedOperations / totalOperations) * 100);
+                
+                // 2. Load expanded area around route
+                const expandedBounds = this.expandBounds(bounds, 0.01); // ~1km buffer
+                await this.forceTileLoading(expandedBounds, zoom);
+                completedOperations++;
+                if (progressCallback) progressCallback((completedOperations / totalOperations) * 100);
+                
+                // 3. Sample key points along route
+                await this.preloadRouteKeyPoints(route, zoom);
+                completedOperations++;
+                if (progressCallback) progressCallback((completedOperations / totalOperations) * 100);
+                
+                // Small delay between zoom levels
+                await new Promise(resolve => setTimeout(resolve, 150));
+            }
+            
+            // Return to original zoom and position
+            this.map.setZoom(currentZoom);
+            if (route.length > 0) {
+                this.map.setCenter([route[0].lon || route[0][0], route[0].lat || route[0][1]]);
+            }
+            
+            console.log('Aggressive tile preload completed');
+            
+        } catch (error) {
+            console.error('Error during aggressive tile preload:', error);
+        }
+    }
+    
+    // Calculate bounds for a route
+    calculateRouteBounds(route) {
+        if (!route || route.length === 0) return null;
+        
+        let minLat = Infinity, maxLat = -Infinity;
+        let minLon = Infinity, maxLon = -Infinity;
+        
+        route.forEach(point => {
+            const lat = point.lat || point[1];
+            const lon = point.lon || point[0];
+            
+            if (lat < minLat) minLat = lat;
+            if (lat > maxLat) maxLat = lat;
+            if (lon < minLon) minLon = lon;
+            if (lon > maxLon) maxLon = lon;
+        });
+        
+        return [[minLon, minLat], [maxLon, maxLat]];
+    }
+    
+    // Expand bounds by a margin
+    expandBounds(bounds, margin) {
+        if (!bounds) return null;
+        
+        const [[minLon, minLat], [maxLon, maxLat]] = bounds;
+        return [
+            [minLon - margin, minLat - margin],
+            [maxLon + margin, maxLat + margin]
+        ];
+    }
+    
+    // Preload tiles for key points along route
+    async preloadRouteKeyPoints(route, zoom) {
+        if (!route || route.length === 0) return;
+        
+        // Sample key points (every 10th point, but at least 5 points total)
+        const sampleRate = Math.max(1, Math.floor(route.length / Math.max(5, route.length / 10)));
+        
+        for (let i = 0; i < route.length; i += sampleRate) {
+            const point = route[i];
+            const lat = point.lat || point[1];
+            const lon = point.lon || point[0];
+            
+            this.map.setCenter([lon, lat]);
+            this.map.triggerRepaint();
+            
+            // Quick wait for this point
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+    }
+    
+    // Enhanced method to wait for tiles with better progress feedback
+    async waitForTilesWithProgress(timeoutMs = 10000, progressCallback = null) {
+        return new Promise((resolve) => {
+            const startTime = Date.now();
+            let lastLogTime = startTime;
+            
+            const checkTiles = () => {
+                const status = this.getTileLoadingStatus();
+                const currentTime = Date.now();
+                
+                // Log progress every 2 seconds
+                if (currentTime - lastLogTime > 2000) {
+                    console.log(`Tile loading: ${status.progress}% (${status.loadedTiles}/${status.totalTiles})`);
+                    lastLogTime = currentTime;
+                }
+                
+                // Update progress callback
+                if (progressCallback) {
+                    progressCallback(status.progress);
+                }
+                
+                // Check completion
+                if (status.isComplete || currentTime - startTime > timeoutMs) {
+                    if (currentTime - startTime > timeoutMs) {
+                        console.warn(`Tile loading timeout after ${timeoutMs}ms. Status:`, status);
+                    } else {
+                        console.log('All tiles loaded successfully');
+                    }
+                    resolve(status);
+                    return;
+                }
+                
+                // Continue checking
+                setTimeout(checkTiles, 100);
+            };
+            
+            checkTiles();
+        });
     }
 } 

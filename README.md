@@ -7,7 +7,6 @@ TrailReplay is a powerful, open-source web application that transforms your GPX 
 ### 📁 **Multi-File Journey Builder**
 - **Multiple GPX Upload**: Upload and combine multiple GPX files into a single journey
 - **Drag & Drop Interface**: Intuitive file handling with visual feedback
-- **Smart Journey Assembly**: Automatically combine tracks in chronological order
 - **Transportation Segments**: Add custom transportation between tracks (car, boat, plane, train, walking)
 - **Custom Timing**: Override automatic timing calculations with your own durations
 - **Auto-Preview**: Real-time visualization updates as you build your journey
@@ -21,7 +20,7 @@ TrailReplay is a powerful, open-source web application that transforms your GPX 
 - **Real-Time Statistics**: Live distance, elevation, and timing data during playback
 
 ### 📹 **Professional Video Export**
-- **High-Quality WebM Export**: 30 FPS video recording at 2.5 Mbps bitrate
+- **WebM Export**: 30 FPS video recording at 2.5 Mbps bitrate
 - **Clean Interface**: UI elements automatically hidden during recording
 - **Browser-Native Recording**: Uses MediaRecorder API for optimal performance
 - **Optimized for Sharing**: Perfect format for social media and presentations
@@ -218,39 +217,28 @@ trail-replay/
 
 ## 🔮 Roadmap & Future Features
 
-### Near Term (v2.0)
+### v1.0
 - [ ] **Enhanced Video Export**: MP4 format with ffmpeg.wasm
+- [ ] **Photo Integration**: Sync photos with GPS locations
 - [ ] **GPX Editor**: In-app editing of track points and metadata
-- [ ] **Route Planning**: Draw routes directly on the map
-- [ ] **Elevation Profiles**: 2D elevation charts alongside animations
-- [ ] **Social Sharing**: Direct sharing to social media platforms
 
-### Medium Term (v2.5)
-- [ ] **Real-Time Collaboration**: Share and collaborate on journeys
+### v1.5
+- [ ] **Route Planning**: Draw routes directly on the map
+- [ ] **Social Sharing**: Direct sharing to social media platforms
+- [ ] **Strava Integration**: Sync with Strava
+
+### Medium Term (v1.5)
+- [ ] **Have an account with projects**: Save your journeys to your account
 - [ ] **Advanced Analytics**: Heart rate, pace, and power data visualization
 - [ ] **Weather Integration**: Historical weather data overlay
-- [ ] **Photo Integration**: Sync photos with GPS locations
-- [ ] **Mobile App**: Native iOS and Android applications
 
-### Long Term (v3.0)
+### Long Term (v2.0)
 - [ ] **Cloud Sync**: Optional cloud storage for journeys
 - [ ] **Community Features**: Share and discover public journeys
 - [ ] **Advanced 3D**: Terrain textures and environmental effects
 - [ ] **VR/AR Support**: Virtual and augmented reality viewing
 - [ ] **API Platform**: REST API for third-party integrations
 
-## 🏆 Awards & Recognition
-
-- **Open Source Excellence**: Featured in awesome-gis collections
-- **Developer Choice**: Top-rated by the mapping community
-- **Innovation Award**: Recognition for privacy-first approach
-
-## 📞 Support & Community
-
-- **🐛 Issues**: [GitHub Issues](https://github.com/yourusername/trail-replay/issues)
-- **💬 Discussions**: [GitHub Discussions](https://github.com/yourusername/trail-replay/discussions)
-- **📧 Contact**: [email@trailreplay.com](mailto:email@trailreplay.com)
-- **🐦 Twitter**: [@TrailReplay](https://twitter.com/TrailReplay)
 
 ## 📝 License
 
@@ -277,8 +265,8 @@ TrailReplay supports English and Spanish. The language is auto-detected from you
 
 ## Support the Project
 
-If you enjoy using TrailReplay and want to support its development, you can now [☕ Buy me a coffee](https://www.buymeacoffee.com/alexalmansa)!
+If you enjoy using TrailReplay and want to support its development, you can now [☕ Buy me a coffee](https://ko-fi.com/alexalmansa)!
 
-<a href="https://www.buymeacoffee.com/alexalmansa" target="_blank" rel="noopener noreferrer"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+<a href="https://ko-fi.com/alexalmansa" target="_blank" rel="noopener noreferrer"><img src="https://storage.ko-fi.com/cdn/kofi6.png?v=6" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
 
 Thank you for your support! 

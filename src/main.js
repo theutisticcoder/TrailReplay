@@ -80,6 +80,22 @@ class TrailReplayApp {
                 this.updateLiveStats();
             }
         }, 200);
+        
+        // Generate elevation profile
+        this.generateElevationProfile();
+        // If live stats toggle is on, show overlay and update
+        const showLiveStatsToggle = document.getElementById('showLiveStats');
+        if (showLiveStatsToggle && showLiveStatsToggle.checked) {
+            this.toggleLiveStats(true);
+            this.updateLiveStats();
+        }
+        
+        // Asynchronously preload tiles for smoother animation (non-blocking)
+        setTimeout(() => {
+            this.basicTilePreloading().catch(error => {
+                console.warn('Basic tile preloading failed:', error);
+            });
+        }, 500); // Small delay to not interfere with initial render
     }
 
     async initializeMapRenderer() {
@@ -182,69 +198,58 @@ class TrailReplayApp {
         const gpxOnlyStatsToggle = document.getElementById('gpxOnlyStats');
         gpxOnlyStatsToggle.addEventListener('change', (e) => {
             this.gpxOnlyStats = e.target.checked;
-            this.updateStatsDisplay();
+            this.updateStatsDisplay(); // Refresh stats display
             
-            // Show feedback message
-            if (e.target.checked) {
-                this.showMessage(t('messages.gpxOnlyStatsEnabled'), 'info');
-            } else {
-                this.showMessage(t('messages.gpxOnlyStatsDisabled'), 'info');
+            // Update live stats if enabled
+            if (document.getElementById('showLiveStats').checked) {
+                this.updateLiveStats();
             }
+            
+            // Show user feedback about what this toggle does
+            const message = e.target.checked ? 
+                t('messages.gpxOnlyStatsEnabled') : 
+                t('messages.gpxOnlyStatsDisabled');
+            console.log(message);
         });
 
+        // Camera info icon functionality
+        this.setupCameraInfoIcon();
+
+        // 3D terrain toggle
         const terrain3dToggle = document.getElementById('terrain3d');
         terrain3dToggle.addEventListener('change', (e) => {
             if (this.mapRenderer) {
-                const terrainSourceGroup = document.getElementById('terrainSourceGroup');
-                
                 if (e.target.checked) {
-                    // Check if terrain is supported
-                    if (this.mapRenderer.isTerrainSupported && this.mapRenderer.isTerrainSupported()) {
-                        this.mapRenderer.enable3DTerrain();
-                        terrainSourceGroup.style.display = 'block'; // Show terrain source selector
-                        this.showMessage(t('messages.terrain3dEnabled'), 'success');
-                    } else {
-                        this.showMessage(t('messages.terrain3dNotSupported'), 'error');
-                        e.target.checked = false;
-                    }
+                    this.mapRenderer.enable3DTerrain();
                 } else {
                     this.mapRenderer.disable3DTerrain();
-                    terrainSourceGroup.style.display = 'none'; // Hide terrain source selector
-                    this.showMessage(t('messages.terrain3dDisabled'), 'info');
+                }
+                
+                // Show/hide terrain source selection
+                const terrainSourceGroup = document.getElementById('terrainSourceGroup');
+                if (terrainSourceGroup) {
+                    terrainSourceGroup.style.display = e.target.checked ? 'block' : 'none';
                 }
             }
         });
 
         // Terrain source selection
         const terrainSourceSelect = document.getElementById('terrainSource');
-        if (terrainSourceSelect) {
-            terrainSourceSelect.addEventListener('change', (e) => {
-                if (this.mapRenderer && this.mapRenderer.is3DMode) {
-                    const sourceType = e.target.value;
-                    console.log('Switching terrain source to:', sourceType);
-                    
-                    // For now, just change the exaggeration instead of switching sources
-                    // This is more reliable and less likely to break navigation
-                    switch (sourceType) {
-                        case 'opentopo':
-                            this.mapRenderer.setTerrainExaggeration && this.mapRenderer.setTerrainExaggeration(0.6);
-                            this.showMessage(t('messages.elevationDataOpenTopo'), 'info');
-                            break;
-                        case 'mapzen':
-                        default:
-                            this.mapRenderer.setTerrainExaggeration && this.mapRenderer.setTerrainExaggeration(0.8);
-                            this.showMessage(t('messages.elevationDataMapzen'), 'info');
-                            break;
-                    }
-                }
-            });
-        }
-
-        // Map control buttons
-        // document.getElementById('centerTrailBtn').addEventListener('click', () => {
-        //     if (this.mapRenderer) this.mapRenderer.centerOnTrail();
-        // });
-
+        terrainSourceSelect.addEventListener('change', (e) => {
+            if (this.mapRenderer) {
+                this.mapRenderer.setTerrainSource(e.target.value);
+                
+                // Show feedback message
+                const sourceNames = {
+                    'mapzen': 'Mapzen Terrarium',
+                    'opentopo': 'OpenTopography SRTM'
+                };
+                this.showMessage(t('messages.elevationDataChanged', {
+                    source: sourceNames[e.target.value] || e.target.value
+                }), 'info');
+            }
+        });
+        
         // Modal controls
         this.setupModalControls();
 
@@ -258,6 +263,47 @@ class TrailReplayApp {
             this.gpxOnlyStats = e.target.checked;
             this.updateStatsDisplay();
         });
+    }
+
+    setupCameraInfoIcon() {
+        // Set up camera info button event listeners for mobile click behavior
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('#cameraInfoButton')) {
+                const button = e.target.closest('#cameraInfoButton');
+                
+                // For mobile devices (touch), toggle the tooltip
+                if (window.matchMedia('(hover: none)').matches || window.matchMedia('(pointer: coarse)').matches) {
+                    button.classList.toggle('active');
+                    
+                    // Close other open tooltips
+                    document.querySelectorAll('.camera-info-button.active').forEach(otherButton => {
+                        if (otherButton !== button) {
+                            otherButton.classList.remove('active');
+                        }
+                    });
+                }
+                
+                e.stopPropagation();
+            }
+        });
+        
+        // Close camera tooltip when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.camera-info-section')) {
+                document.querySelectorAll('.camera-info-button.active').forEach(button => {
+                    button.classList.remove('active');
+                });
+            }
+        });
+        
+        // Prevent tooltip from closing when clicking inside it
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.camera-info-tooltip')) {
+                e.stopPropagation();
+            }
+        });
+        
+        console.log('Camera info button event listeners set up');
     }
 
     setupModalControls() {
@@ -754,11 +800,38 @@ class TrailReplayApp {
             this.isPlaying = false;
             console.log('Playback paused at progress:', this.mapRenderer.getAnimationProgress().toFixed(3));
         } else {
+            // Preserve current position before starting
+            const currentProgress = this.mapRenderer.getAnimationProgress();
+            console.log('Starting playback from progress:', currentProgress.toFixed(3));
+            
+            // For journeys, ensure time and position are synchronized before starting
+            if (this.currentTrackData.isJourney && this.currentTrackData.segmentTiming) {
+                // Convert current linear progress to segment time
+                const expectedSegmentTime = this.convertLinearProgressToSegmentTime(currentProgress);
+                
+                // If MapRenderer has a different journeyElapsedTime, synchronize it
+                if (this.mapRenderer.journeyElapsedTime !== undefined && expectedSegmentTime !== null) {
+                    const timeDiff = Math.abs(this.mapRenderer.journeyElapsedTime - expectedSegmentTime);
+                    if (timeDiff > 1) { // 1 second tolerance
+                        console.log(`🔄 Synchronizing journey time before playback: ${this.mapRenderer.journeyElapsedTime.toFixed(1)}s → ${expectedSegmentTime.toFixed(1)}s`);
+                        if (this.mapRenderer.setJourneyElapsedTime) {
+                            this.mapRenderer.setJourneyElapsedTime(expectedSegmentTime);
+                        }
+                    }
+                }
+            }
+            
+            // Ensure position is properly set before starting animation
+            this.mapRenderer.setAnimationProgress(currentProgress);
+            this.mapRenderer.updateCurrentPosition();
+            
+            // Start animation from the preserved position
             this.mapRenderer.startAnimation();
             playText.textContent = t('controls.pause');
             this.isPlaying = true;
             this.startProgressUpdate();
-            console.log('Playback started from progress:', this.mapRenderer.getAnimationProgress().toFixed(3));
+            
+            console.log('Playback started successfully from progress:', this.mapRenderer.getAnimationProgress().toFixed(3));
         }
     }
 
@@ -827,6 +900,16 @@ class TrailReplayApp {
                 // Also ensure the total time reflects the current segment timing
                 if (this.currentTrackData.segmentTiming && this.currentTrackData.segmentTiming.totalDuration) {
                     document.getElementById('totalTime').textContent = this.formatTimeInSeconds(this.currentTrackData.segmentTiming.totalDuration);
+                }
+                
+                // Verify the synchronization between time and position for journeys
+                const expectedProgress = this.convertSegmentTimeToLinearProgress(this.mapRenderer.journeyElapsedTime);
+                const actualProgress = this.mapRenderer.getAnimationProgress();
+                const progressDiff = Math.abs(expectedProgress - actualProgress);
+                
+                // If there's a significant mismatch, log it for debugging
+                if (progressDiff > 0.01) { // 1% tolerance
+                    console.log(`⚠️  Time/Position sync mismatch: time=${this.mapRenderer.journeyElapsedTime.toFixed(1)}s → expected progress=${expectedProgress.toFixed(3)}, actual progress=${actualProgress.toFixed(3)}, diff=${progressDiff.toFixed(3)}`);
                 }
             } else {
                 // Fallback: show progress through the selected animation duration in seconds
@@ -1266,6 +1349,10 @@ class TrailReplayApp {
             return;
         }
 
+        // Show pre-recording confirmation dialog
+        const shouldContinue = await this.showVideoExportConfirmation();
+        if (!shouldContinue) return;
+
         let recordedChunks = [];
         let mediaRecorder;
         let stream;
@@ -1278,16 +1365,16 @@ class TrailReplayApp {
             modal.className = 'video-export-progress';
             modal.id = 'videoExportProgress';
             modal.innerHTML = `
-                <h3>🎥 Exporting Video</h3>
+                <h3>🎥 ${t('messages.exportVideoPrepare')}</h3>
                 <div class="video-export-progress-bar">
                     <div class="video-export-progress-fill" id="exportProgressFill"></div>
                 </div>
-                <div class="video-export-status" id="exportStatus">Preparing for export...</div>
+                <div class="video-export-status" id="exportStatus">${t('messages.exportVideoPrepare')}</div>
                 <div class="video-export-tips">
-                    <strong>💡 Tips for best results:</strong><br>
-                    • Keep this browser tab active<br>
-                    • Close other heavy applications<br>
-                    • Let the process complete without interruption
+                    <strong>💡 ${t('tutorial.videoExportTipsTitle')}</strong><br>
+                    • ${t('messages.exportVideoKeepTabActive')}<br>
+                    • ${t('messages.exportVideoCloseOtherApps')}<br>
+                    • ${t('messages.exportVideoLetComplete')}
                 </div>
             `;
             document.body.appendChild(modal);
@@ -1353,12 +1440,24 @@ class TrailReplayApp {
             }
             showUI();
             disablePerformanceMode();
+            
+            // Restore original animation speed
+            if (this.originalAnimationSpeed !== undefined && this.mapRenderer.setAnimationSpeed) {
+                this.mapRenderer.setAnimationSpeed(this.originalAnimationSpeed);
+                this.originalAnimationSpeed = undefined;
+            }
+            
+            // Restore live stats state
+            if (this.originalLiveStatsState !== undefined) {
+                this.toggleLiveStats(this.originalLiveStatsState);
+                this.originalLiveStatsState = undefined;
+            }
         };
 
         try {
             // Show enhanced progress modal
             progressModal = createProgressModal();
-            updateProgress(0, 'Preparing for export...');
+            updateProgress(0, t('messages.exportVideoPrepare'));
             
             // Step 1: Reset animation and hide UI
             this.resetAnimation();
@@ -1376,13 +1475,26 @@ class TrailReplayApp {
                 updateProgress(20 + (progress * 30), `Loading tiles... ${progress.toFixed(0)}%`);
             });
             
-            // Step 4: Wait for tiles to load
-            updateProgress(50, 'Waiting for all tiles to load...');
-            await this.waitForMapTilesToLoadWithTimeout(5000);
+            // Step 3.5: Aggressive MapRenderer tile preloading for video smoothness
+            updateProgress(50, 'Aggressive tile preloading for video...');
+            if (this.mapRenderer.aggressiveTilePreload) {
+                const routeCoordinates = this.currentTrackData.coordinates || this.currentTrackData.trackPoints;
+                await this.mapRenderer.aggressiveTilePreload(routeCoordinates, (progress) => {
+                    updateProgress(50 + (progress * 0.15), `Optimizing tiles... ${progress.toFixed(0)}%`);
+                });
+            }
+            
+            // Step 4: Wait for tiles to load with enhanced progress feedback
+            updateProgress(65, 'Waiting for all tiles to load...');
+            if (this.mapRenderer.waitForTilesWithProgress) {
+                await this.mapRenderer.waitForTilesWithProgress(8000, (progress) => {
+                    updateProgress(65 + (progress * 0.10), `Finalizing tiles... ${progress.toFixed(0)}%`);
+                });
+            } else {
+                await this.waitForMapTilesToLoadWithTimeout(8000);
+            }
             
             // Step 5: Final preparations
-            updateProgress(60, 'Optimizing for recording...');
-            await this.prepareForRecording();
             updateProgress(70, 'Starting video capture...');
 
             // Get stream from canvas
@@ -1505,117 +1617,256 @@ class TrailReplayApp {
         const currentZoom = Math.floor(map.getZoom());
         const routeDistance = this.currentTrackData.stats.totalDistance;
         
-        // Adjust zoom range based on route distance
+        // More aggressive zoom range for better coverage
         let maxZoom, minZoom;
         if (routeDistance < 5) {
-            maxZoom = Math.min(currentZoom + 2, 17);
+            maxZoom = Math.min(currentZoom + 3, 18); // Higher zoom for detail
             minZoom = Math.max(currentZoom - 1, 10);
         } else if (routeDistance > 50) {
-            maxZoom = Math.min(currentZoom + 1, 15);
+            maxZoom = Math.min(currentZoom + 2, 16);
             minZoom = Math.max(currentZoom - 2, 8);
         } else {
-            maxZoom = Math.min(currentZoom + 1, 16);
+            maxZoom = Math.min(currentZoom + 2, 17);
             minZoom = Math.max(currentZoom - 1, 9);
         }
         
-        // Fit to bounds with appropriate padding
-        const padding = Math.min(100, Math.max(20, routeDistance * 2));
-        map.fitBounds([
-            [bounds.west, bounds.south],
-            [bounds.east, bounds.north]
-        ], {
-            padding: padding,
-            duration: 0,
-            maxZoom: maxZoom
-        });
-        
-        map.triggerRepaint();
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        // Strategic point sampling based on route characteristics
+        // Enhanced strategic point sampling with better coverage
         const trackPoints = this.currentTrackData.trackPoints;
-        const samplePoints = this.calculateStrategicSamplePoints(trackPoints, routeDistance);
+        const samplePoints = this.calculateEnhancedStrategicSamplePoints(trackPoints, routeDistance);
         
-        console.log(`Preloading tiles for ${samplePoints.length} strategic points`);
+        console.log(`Preloading tiles for ${samplePoints.length} strategic points across ${maxZoom - minZoom + 1} zoom levels`);
         
-        // Visit each sample point with adaptive timing
-        for (let i = 0; i < samplePoints.length; i++) {
-            const point = samplePoints[i];
+        let totalOperations = samplePoints.length * (maxZoom - minZoom + 1);
+        let completedOperations = 0;
+        
+        // Multi-zoom level preloading for comprehensive coverage
+        for (let zoom = minZoom; zoom <= maxZoom; zoom++) {
+            console.log(`Preloading zoom level ${zoom}/${maxZoom}`);
             
-            // Pan to point
-            map.setCenter([point.lon, point.lat]);
+            // Set zoom level
+            map.setZoom(zoom);
             map.triggerRepaint();
+            await new Promise(resolve => setTimeout(resolve, 200));
             
-            // Adaptive delay based on point importance
-            const delay = point.critical ? 100 : 50;
-            await new Promise(resolve => setTimeout(resolve, delay));
-            
-            // Update progress
-            if (i % 5 === 0) {
-                const progress = ((i / samplePoints.length) * 100).toFixed(0);
-                console.log(`Tile preloading progress: ${progress}%`);
+            // Visit strategic points at this zoom level
+            for (let i = 0; i < samplePoints.length; i++) {
+                const point = samplePoints[i];
+                
+                // Pan to point
+                map.setCenter([point.lon, point.lat]);
+                map.triggerRepaint();
+                
+                // Adaptive delay based on point importance and zoom level
+                const baseDelay = point.critical ? 120 : 80;
+                const zoomMultiplier = (zoom - minZoom + 1) / (maxZoom - minZoom + 1);
+                const delay = Math.floor(baseDelay * (0.7 + 0.6 * zoomMultiplier));
+                
+                await new Promise(resolve => setTimeout(resolve, delay));
+                
+                // Update progress more frequently
+                completedOperations++;
+                if (completedOperations % 3 === 0 || point.critical) {
+                    const progress = (completedOperations / totalOperations) * 100;
+                    if (progressCallback) {
+                        progressCallback(progress);
+                    }
+                    console.log(`Tile preloading progress: ${progress.toFixed(1)}% (zoom ${zoom}, point ${i + 1}/${samplePoints.length})`);
+                }
             }
         }
         
-        // Return to starting position
+        // Additional coverage pass for route corridor
+        await this.preloadRouteCorridorTiles(trackPoints, currentZoom, progressCallback);
+        
+        // Return to optimal starting position and zoom
+        map.setZoom(currentZoom);
         if (trackPoints.length > 0) {
             map.setCenter([trackPoints[0].lon, trackPoints[0].lat]);
             map.triggerRepaint();
         }
         
-        console.log('Enhanced tile preloading completed');
+        // Final comprehensive wait for all tiles to settle
+        console.log('Waiting for all preloaded tiles to settle...');
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+        console.log('Enhanced tile preloading completed with comprehensive coverage');
+    }
+    
+    // Preload tiles along the route corridor for smoother animation
+    async preloadRouteCorridorTiles(trackPoints, baseZoom, progressCallback) {
+        if (!this.mapRenderer || trackPoints.length < 10) return;
+        
+        const map = this.mapRenderer.map;
+        console.log('Preloading route corridor tiles for smooth animation');
+        
+        // Create a buffer corridor around the route
+        const corridorPoints = this.generateRouteCorridorPoints(trackPoints);
+        
+        // Set to animation zoom level
+        map.setZoom(baseZoom);
+        
+        // Quick pass through corridor points
+        for (let i = 0; i < corridorPoints.length; i++) {
+            const point = corridorPoints[i];
+            map.setCenter([point.lon, point.lat]);
+            map.triggerRepaint();
+            
+            // Faster timing for corridor preloading
+            await new Promise(resolve => setTimeout(resolve, 60));
+            
+            if (i % 8 === 0 && progressCallback) {
+                const progress = 85 + ((i / corridorPoints.length) * 10); // 85-95% range
+                progressCallback(progress);
+            }
+        }
+        
+        console.log('Route corridor tile preloading completed');
+    }
+    
+    // Generate points along a corridor around the route
+    generateRouteCorridorPoints(trackPoints) {
+        const corridorPoints = [];
+        const corridorWidth = 0.002; // Degrees offset (roughly 200m)
+        
+        for (let i = 0; i < trackPoints.length; i += Math.max(1, Math.floor(trackPoints.length / 25))) {
+            const point = trackPoints[i];
+            
+            // Add the main route point
+            corridorPoints.push(point);
+            
+            // Add offset points to create a corridor
+            if (i < trackPoints.length - 1) {
+                const nextPoint = trackPoints[i + 1];
+                const bearing = this.calculateBearing(point, nextPoint);
+                
+                // Add perpendicular offset points
+                const leftOffset = this.offsetPoint(point, bearing + 90, corridorWidth);
+                const rightOffset = this.offsetPoint(point, bearing - 90, corridorWidth);
+                
+                corridorPoints.push(leftOffset);
+                corridorPoints.push(rightOffset);
+            }
+        }
+        
+        return corridorPoints;
+    }
+    
+    // Calculate bearing between two points
+    calculateBearing(point1, point2) {
+        const dLon = (point2.lon - point1.lon) * Math.PI / 180;
+        const lat1 = point1.lat * Math.PI / 180;
+        const lat2 = point2.lat * Math.PI / 180;
+        
+        const y = Math.sin(dLon) * Math.cos(lat2);
+        const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+        
+        const bearing = Math.atan2(y, x) * 180 / Math.PI;
+        return (bearing + 360) % 360; // Normalize to 0-360
+    }
+    
+    // Offset a point by distance in a given bearing
+    offsetPoint(point, bearing, distance) {
+        const lat1 = point.lat * Math.PI / 180;
+        const lon1 = point.lon * Math.PI / 180;
+        const bearingRad = bearing * Math.PI / 180;
+        
+        const lat2 = lat1 + (distance * Math.cos(bearingRad));
+        const lon2 = lon1 + (distance * Math.sin(bearingRad) / Math.cos(lat1));
+        
+        return {
+            lat: lat2 * 180 / Math.PI,
+            lon: lon2 * 180 / Math.PI
+        };
     }
 
-    // Calculate strategic sample points for efficient tile loading
-    calculateStrategicSamplePoints(trackPoints, routeDistance) {
+    // Enhanced strategic sample points with better coverage patterns
+    calculateEnhancedStrategicSamplePoints(trackPoints, routeDistance) {
         const samplePoints = [];
         
-        // Always include start and end
+        // Always include start and end as critical points
         samplePoints.push({ ...trackPoints[0], critical: true });
         if (trackPoints.length > 1) {
             samplePoints.push({ ...trackPoints[trackPoints.length - 1], critical: true });
         }
         
-        // Adaptive sampling based on route length
-        let sampleRate;
+        // More aggressive sampling based on route characteristics
+        let primarySampleRate, secondarySampleRate;
         if (routeDistance < 5) {
-            sampleRate = Math.max(1, Math.floor(trackPoints.length / 15)); // More samples for short routes
+            primarySampleRate = Math.max(1, Math.floor(trackPoints.length / 25)); // Much higher density
+            secondarySampleRate = Math.max(1, Math.floor(trackPoints.length / 40));
         } else if (routeDistance > 50) {
-            sampleRate = Math.max(1, Math.floor(trackPoints.length / 8)); // Fewer samples for long routes
+            primarySampleRate = Math.max(1, Math.floor(trackPoints.length / 12));
+            secondarySampleRate = Math.max(1, Math.floor(trackPoints.length / 20));
         } else {
-            sampleRate = Math.max(1, Math.floor(trackPoints.length / 12)); // Medium sampling
+            primarySampleRate = Math.max(1, Math.floor(trackPoints.length / 18));
+            secondarySampleRate = Math.max(1, Math.floor(trackPoints.length / 30));
         }
         
-        // Sample points along the route
-        for (let i = sampleRate; i < trackPoints.length - sampleRate; i += sampleRate) {
+        // Primary sampling - main route coverage
+        for (let i = primarySampleRate; i < trackPoints.length - primarySampleRate; i += primarySampleRate) {
             samplePoints.push({ ...trackPoints[i], critical: false });
         }
         
-        // Add elevation change points (peaks and valleys)
-        if (trackPoints.length > 10) {
-            const elevationPoints = this.findElevationChangePoints(trackPoints);
-            elevationPoints.forEach(point => {
-                samplePoints.push({ ...point, critical: true });
-            });
+        // Secondary sampling - fill gaps for smoother animation
+        for (let i = secondarySampleRate; i < trackPoints.length - secondarySampleRate; i += secondarySampleRate) {
+            samplePoints.push({ ...trackPoints[i], critical: false });
         }
         
-        // Remove duplicates and sort by index
-        const uniquePoints = [];
-        const seenIndices = new Set();
-        
-        samplePoints.forEach(point => {
-            const index = trackPoints.findIndex(tp => tp.lon === point.lon && tp.lat === point.lat);
-            if (!seenIndices.has(index)) {
-                seenIndices.add(index);
-                uniquePoints.push(point);
-            }
+        // Add direction change points (turns and curves)
+        const directionChangePoints = this.findDirectionChangePoints(trackPoints);
+        directionChangePoints.forEach(point => {
+            samplePoints.push({ ...point, critical: true });
         });
         
+        // Add elevation change points (peaks and valleys) - enhanced version
+        const elevationPoints = this.findEnhancedElevationChangePoints(trackPoints);
+        elevationPoints.forEach(point => {
+            samplePoints.push({ ...point, critical: true });
+        });
+        
+        // Add intermediate points for very long segments
+        const segmentPoints = this.addIntermediateSegmentPoints(trackPoints);
+        segmentPoints.forEach(point => {
+            samplePoints.push({ ...point, critical: false });
+        });
+        
+        // Remove duplicates and sort by route progression
+        const uniquePoints = this.deduplicateAndSortPoints(samplePoints, trackPoints);
+        
+        console.log(`Generated ${uniquePoints.length} strategic sample points for enhanced tile preloading`);
         return uniquePoints;
     }
-
-    // Find significant elevation change points
-    findElevationChangePoints(trackPoints) {
+    
+    // Find points where the route changes direction significantly
+    findDirectionChangePoints(trackPoints) {
+        const directionPoints = [];
+        const minAngleChange = 30; // Minimum angle change in degrees
+        
+        if (trackPoints.length < 5) return directionPoints;
+        
+        for (let i = 2; i < trackPoints.length - 2; i++) {
+            const prevPoint = trackPoints[i - 2];
+            const currentPoint = trackPoints[i];
+            const nextPoint = trackPoints[i + 2];
+            
+            const bearing1 = this.calculateBearing(prevPoint, currentPoint);
+            const bearing2 = this.calculateBearing(currentPoint, nextPoint);
+            
+            let angleDiff = Math.abs(bearing2 - bearing1);
+            if (angleDiff > 180) {
+                angleDiff = 360 - angleDiff;
+            }
+            
+            if (angleDiff > minAngleChange) {
+                directionPoints.push(trackPoints[i]);
+            }
+        }
+        
+        return directionPoints;
+    }
+    
+    // Enhanced elevation change detection
+    findEnhancedElevationChangePoints(trackPoints) {
         const elevationPoints = [];
         const elevations = trackPoints.map(p => p.elevation || 0);
         
@@ -1625,24 +1876,104 @@ class TrailReplayApp {
         const maxElevation = Math.max(...elevations);
         const elevationRange = maxElevation - minElevation;
         
-        // Only add elevation points if there's significant variation
-        if (elevationRange < 50) return elevationPoints;
+        // Lower threshold for more sensitivity
+        if (elevationRange < 25) return elevationPoints;
         
-        // Find peaks and valleys
+        const significantChange = elevationRange * 0.1; // 10% of total range
+        
+        // Find peaks, valleys, and significant elevation changes
         for (let i = 5; i < trackPoints.length - 5; i++) {
             const current = elevations[i];
-            const before = elevations.slice(i - 5, i);
-            const after = elevations.slice(i + 1, i + 6);
+            const window = 5;
+            const before = elevations.slice(i - window, i);
+            const after = elevations.slice(i + 1, i + window + 1);
+            
+            const avgBefore = before.reduce((a, b) => a + b, 0) / before.length;
+            const avgAfter = after.reduce((a, b) => a + b, 0) / after.length;
             
             const isLocalMax = before.every(e => e <= current) && after.every(e => e <= current);
             const isLocalMin = before.every(e => e >= current) && after.every(e => e >= current);
+            const isSignificantChange = Math.abs(current - avgBefore) > significantChange || 
+                                       Math.abs(current - avgAfter) > significantChange;
             
-            if (isLocalMax || isLocalMin) {
+            if (isLocalMax || isLocalMin || isSignificantChange) {
                 elevationPoints.push(trackPoints[i]);
             }
         }
         
         return elevationPoints;
+    }
+    
+    // Add intermediate points for long segments to ensure coverage
+    addIntermediateSegmentPoints(trackPoints) {
+        const intermediatePoints = [];
+        const maxSegmentLength = 0.01; // degrees (roughly 1km)
+        
+        for (let i = 0; i < trackPoints.length - 1; i++) {
+            const point1 = trackPoints[i];
+            const point2 = trackPoints[i + 1];
+            
+            const distance = Math.sqrt(
+                Math.pow(point2.lat - point1.lat, 2) + 
+                Math.pow(point2.lon - point1.lon, 2)
+            );
+            
+            if (distance > maxSegmentLength) {
+                // Add intermediate points
+                const numIntermediate = Math.ceil(distance / maxSegmentLength) - 1;
+                for (let j = 1; j <= numIntermediate; j++) {
+                    const ratio = j / (numIntermediate + 1);
+                    const intermediatePoint = {
+                        lat: point1.lat + (point2.lat - point1.lat) * ratio,
+                        lon: point1.lon + (point2.lon - point1.lon) * ratio,
+                        elevation: point1.elevation + (point2.elevation - point1.elevation) * ratio
+                    };
+                    intermediatePoints.push(intermediatePoint);
+                }
+            }
+        }
+        
+        return intermediatePoints;
+    }
+    
+    // Deduplicate and sort points by route progression
+    deduplicateAndSortPoints(samplePoints, trackPoints) {
+        const uniquePoints = [];
+        const tolerance = 0.0001; // Coordinate tolerance for duplicates
+        
+        // Create a map of original track points for sorting
+        const trackPointMap = new Map();
+        trackPoints.forEach((point, index) => {
+            const key = `${point.lat.toFixed(6)},${point.lon.toFixed(6)}`;
+            trackPointMap.set(key, index);
+        });
+        
+        // Deduplicate sample points
+        const seenKeys = new Set();
+        samplePoints.forEach(point => {
+            const key = `${point.lat.toFixed(6)},${point.lon.toFixed(6)}`;
+            if (!seenKeys.has(key)) {
+                seenKeys.add(key);
+                uniquePoints.push({
+                    ...point,
+                    originalIndex: trackPointMap.get(key) || -1
+                });
+            }
+        });
+        
+        // Sort by original route progression
+        uniquePoints.sort((a, b) => {
+            if (a.originalIndex !== -1 && b.originalIndex !== -1) {
+                return a.originalIndex - b.originalIndex;
+            }
+            // Fallback to distance from start for interpolated points
+            const start = trackPoints[0];
+            const distA = Math.sqrt(Math.pow(a.lat - start.lat, 2) + Math.pow(a.lon - start.lon, 2));
+            const distB = Math.sqrt(Math.pow(b.lat - start.lat, 2) + Math.pow(b.lon - start.lon, 2));
+            return distA - distB;
+        });
+        
+        return uniquePoints;
     }
 
     // Enhanced tile loading wait with timeout
@@ -1728,10 +2059,15 @@ class TrailReplayApp {
 
     // Prepare system for optimal recording performance
     async prepareForRecording() {
+        console.log('Preparing system for optimal video recording performance...');
+        
         // Memory cleanup
         if (window.gc) {
             window.gc(); // Force garbage collection if available
         }
+        
+        // Clear any unnecessary caches
+        this.clearElevationProfileCache();
         
         // Disable auto-refresh features during recording
         this.recordingMode = true;
@@ -1739,12 +2075,44 @@ class TrailReplayApp {
         // Optimize map for recording
         if (this.mapRenderer) {
             this.mapRenderer.optimizeForRecording();
+            
+            // Set performance mode to reduce map update frequency
+            this.mapRenderer.setPerformanceMode(true);
+            
+            // Preload additional tiles at current position with smaller area
+            const currentZoom = this.mapRenderer.map.getZoom();
+            const routeCoordinates = this.currentTrackData.coordinates || this.currentTrackData.trackPoints;
+            
+            if (routeCoordinates && routeCoordinates.length > 0) {
+                // Quick corridor preload at recording zoom level
+                const corridorPoints = this.generateRouteCorridorPoints(routeCoordinates.slice(0, Math.min(50, routeCoordinates.length)));
+                for (let i = 0; i < corridorPoints.length; i += 3) { // Every 3rd point for speed
+                    const point = corridorPoints[i];
+                    this.mapRenderer.map.setCenter([point.lon, point.lat]);
+                    this.mapRenderer.map.triggerRepaint();
+                    await new Promise(resolve => setTimeout(resolve, 20)); // Very quick
+                }
+                
+                // Return to start position
+                this.mapRenderer.map.setCenter([routeCoordinates[0].lon || routeCoordinates[0][0], 
+                                               routeCoordinates[0].lat || routeCoordinates[0][1]]);
+            }
         }
         
-        // Final stability wait
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Reduce animation frame rate slightly for smoother recording
+        if (this.mapRenderer.setAnimationSpeed) {
+            this.originalAnimationSpeed = this.mapRenderer.animationSpeed || 1;
+            this.mapRenderer.setAnimationSpeed(0.9); // Slightly slower for stability
+        }
         
-        console.log('System prepared for optimal recording performance');
+        // Disable live stats updates during recording
+        this.originalLiveStatsState = !document.getElementById('liveStatsOverlay').classList.contains('hidden');
+        this.toggleLiveStats(false);
+        
+        // Final stability wait
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        console.log('System optimally prepared for video recording');
     }
 
     addLanguageSwitcher() {
@@ -1926,6 +2294,19 @@ class TrailReplayApp {
             // Normal seeking - set the animation progress
             this.mapRenderer.setAnimationProgress(progress);
             
+            // CRITICAL: For journeys, also synchronize the segment timing
+            if (this.currentTrackData.isJourney && this.currentTrackData.segmentTiming) {
+                // Convert linear progress to segment timing
+                const segmentTime = this.convertLinearProgressToSegmentTime(progress);
+                if (this.mapRenderer.setJourneyElapsedTime && segmentTime !== null) {
+                    this.mapRenderer.setJourneyElapsedTime(segmentTime);
+                    console.log(`Journey seeking: linear progress ${progress.toFixed(3)} → segment time ${segmentTime.toFixed(1)}s`);
+                }
+            }
+            
+            // CRITICAL: Update the current position to match the new progress
+            this.mapRenderer.updateCurrentPosition();
+            
             // Update progress display immediately (this will update the elevation profile)
             this.updateProgressDisplay();
             
@@ -1991,9 +2372,12 @@ class TrailReplayApp {
             // Resume playback if it was playing before dragging
             if (wasPlaying && !this.isPlaying) {
                 console.log('Resuming playback from seeked position');
+                // Use a longer delay to ensure seek is fully complete
                 setTimeout(() => {
-                    this.togglePlayback();
-                }, 100); // Small delay to ensure seek is complete
+                    if (!this.isPlaying) { // Double-check we're still not playing
+                        this.togglePlayback();
+                    }
+                }, 150);
             }
             
             e.preventDefault();
@@ -2041,9 +2425,12 @@ class TrailReplayApp {
             // Resume playback if it was playing before dragging
             if (wasPlaying && !this.isPlaying) {
                 console.log('Resuming playback from seeked position (touch)');
+                // Use a longer delay to ensure seek is fully complete
                 setTimeout(() => {
-                    this.togglePlayback();
-                }, 100); // Small delay to ensure seek is complete
+                    if (!this.isPlaying) { // Double-check we're still not playing
+                        this.togglePlayback();
+                    }
+                }, 150);
             }
             
             e.preventDefault();
@@ -2081,6 +2468,30 @@ class TrailReplayApp {
         progressBar.addEventListener('mouseleave', () => {
             if (!isDragging) {
                 progressBar.style.transform = 'scaleY(1)';
+            }
+        });
+        
+        // Add keyboard shortcut for debugging synchronization (Ctrl+Shift+D)
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+                e.preventDefault();
+                if (this.currentTrackData && this.currentTrackData.isJourney) {
+                    console.log('🔧 Manual synchronization validation triggered...');
+                    this.validateJourneySynchronization();
+                } else {
+                    console.log('❌ No journey loaded - synchronization validation requires a multi-track journey');
+                }
+            }
+            
+            // Add keyboard shortcut for forcing synchronization (Ctrl+Shift+F)
+            if (e.ctrlKey && e.shiftKey && e.key === 'F') {
+                e.preventDefault();
+                if (this.currentTrackData && this.currentTrackData.isJourney) {
+                    console.log('🔧 Manual synchronization fix triggered...');
+                    this.forceSynchronization();
+                } else {
+                    console.log('❌ No journey loaded - synchronization fix requires a multi-track journey');
+                }
             }
         });
     }
@@ -2131,8 +2542,18 @@ class TrailReplayApp {
                     this.togglePlayback();
                 }
                 
-                // Seek to the position
+                // Seek to the position using enhanced synchronization
                 this.mapRenderer.setAnimationProgress(progress);
+                
+                // For journeys, also synchronize the segment timing
+                if (this.currentTrackData.isJourney && this.currentTrackData.segmentTiming) {
+                    const segmentTime = this.convertLinearProgressToSegmentTime(progress);
+                    if (this.mapRenderer.setJourneyElapsedTime && segmentTime !== null) {
+                        this.mapRenderer.setJourneyElapsedTime(segmentTime);
+                        console.log(`Timeline seeking: linear progress ${progress.toFixed(3)} → segment time ${segmentTime.toFixed(1)}s`);
+                    }
+                }
+                
                 this.mapRenderer.updateCurrentPosition();
                 this.updateProgressDisplay();
                 this.updateTimelineProgressIndicator(progress);
@@ -2659,6 +3080,16 @@ class TrailReplayApp {
             </div>
             <div class="timing-note">
                 <small>${t('messages.timingNote')}</small>
+                <div class="camera-info-section">
+                    <button class="camera-info-button" id="cameraInfoButton">
+                        <span class="camera-info-text">📹 ${t('cameraInfo.title')}</span>
+                        <div class="camera-info-tooltip" id="cameraInfoTooltip">
+                            <div class="camera-info-content">
+                                ${this.getCameraControlsContent()}
+                            </div>
+                        </div>
+                    </button>
+                </div>
             </div>
         `;
         timingPanel.style.display = 'block';
@@ -2949,6 +3380,301 @@ class TrailReplayApp {
             element.classList.remove('updating');
         }, 200);
     }
+
+    // Convert linear progress (0-1) to segment timing for journeys
+    convertLinearProgressToSegmentTime(linearProgress) {
+        if (!this.currentTrackData || !this.currentTrackData.isJourney || !this.currentTrackData.segmentTiming) {
+            return null;
+        }
+
+        const segments = this.currentTrackData.segmentTiming.segments;
+        if (!segments || segments.length === 0) {
+            return linearProgress * (this.currentTrackData.segmentTiming.totalDuration || this.totalAnimationTime);
+        }
+
+        // Find which segment this linear progress falls into
+        for (let i = 0; i < segments.length; i++) {
+            const segment = segments[i];
+            
+            // Check if the linear progress falls within this segment's coordinate range
+            if (linearProgress >= segment.progressStartRatio && linearProgress <= segment.progressEndRatio) {
+                // Calculate the relative position within this segment
+                const segmentProgressRange = segment.progressEndRatio - segment.progressStartRatio;
+                let relativeProgressInSegment = 0;
+                
+                if (segmentProgressRange > 0) {
+                    relativeProgressInSegment = (linearProgress - segment.progressStartRatio) / segmentProgressRange;
+                }
+                
+                // Convert to time within this segment
+                const timeInSegment = relativeProgressInSegment * segment.duration;
+                const totalTime = segment.startTime + timeInSegment;
+                
+                console.log(`Linear progress ${linearProgress.toFixed(3)} maps to segment ${i}, time: ${totalTime.toFixed(1)}s`);
+                return totalTime;
+            }
+        }
+
+        // Fallback: if not found in any segment, use proportional mapping
+        const fallbackTime = linearProgress * this.currentTrackData.segmentTiming.totalDuration;
+        console.log(`Linear progress ${linearProgress.toFixed(3)} fallback to proportional time: ${fallbackTime.toFixed(1)}s`);
+        return fallbackTime;
+    }
+
+    // Convert segment time to linear progress for journeys (reverse mapping)
+    convertSegmentTimeToLinearProgress(segmentTime) {
+        if (!this.currentTrackData || !this.currentTrackData.isJourney || !this.currentTrackData.segmentTiming) {
+            return null;
+        }
+
+        const segments = this.currentTrackData.segmentTiming.segments;
+        if (!segments || segments.length === 0) {
+            return segmentTime / (this.currentTrackData.segmentTiming.totalDuration || this.totalAnimationTime);
+        }
+
+        // Find which segment this time falls into
+        for (let i = 0; i < segments.length; i++) {
+            const segment = segments[i];
+            
+            if (segmentTime >= segment.startTime && segmentTime <= segment.endTime) {
+                // Calculate relative position within this segment's time
+                const relativeTimeInSegment = segmentTime - segment.startTime;
+                const relativeProgressInSegment = segment.duration > 0 ? relativeTimeInSegment / segment.duration : 0;
+                
+                // Convert to linear progress
+                const segmentProgressRange = segment.progressEndRatio - segment.progressStartRatio;
+                const linearProgress = segment.progressStartRatio + (relativeProgressInSegment * segmentProgressRange);
+                
+                console.log(`Segment time ${segmentTime.toFixed(1)}s maps to linear progress ${linearProgress.toFixed(3)}`);
+                return Math.max(0, Math.min(1, linearProgress));
+            }
+        }
+
+        // Fallback: if not found in any segment, use proportional mapping
+        const fallbackProgress = segmentTime / this.currentTrackData.segmentTiming.totalDuration;
+        console.log(`Segment time ${segmentTime.toFixed(1)}s fallback to proportional progress: ${fallbackProgress.toFixed(3)}`);
+        return Math.max(0, Math.min(1, fallbackProgress));
+    }
+
+    // Debug method to validate and log current synchronization state
+    validateJourneySynchronization() {
+        if (!this.currentTrackData || !this.currentTrackData.isJourney || !this.mapRenderer) {
+            console.log('❌ Not a journey or no map renderer - synchronization validation skipped');
+            return false;
+        }
+
+        const progress = this.mapRenderer.getAnimationProgress();
+        const journeyTime = this.mapRenderer.journeyElapsedTime;
+        
+        // Convert progress to expected time
+        const expectedTime = this.convertLinearProgressToSegmentTime(progress);
+        
+        // Convert time to expected progress  
+        const expectedProgress = this.convertSegmentTimeToLinearProgress(journeyTime);
+        
+        const timeDiff = Math.abs(expectedTime - journeyTime);
+        const progressDiff = Math.abs(expectedProgress - progress);
+        
+        console.log('🔍 Journey Synchronization Status:');
+        console.log(`   Current Progress: ${progress.toFixed(3)}`);
+        console.log(`   Current Journey Time: ${journeyTime?.toFixed(1)}s`);
+        console.log(`   Expected Time from Progress: ${expectedTime?.toFixed(1)}s (diff: ${timeDiff?.toFixed(1)}s)`);
+        console.log(`   Expected Progress from Time: ${expectedProgress?.toFixed(3)} (diff: ${progressDiff?.toFixed(3)})`);
+        
+        const isTimeSynced = timeDiff < 2; // 2 second tolerance
+        const isProgressSynced = progressDiff < 0.02; // 2% tolerance
+        const isFullySynced = isTimeSynced && isProgressSynced;
+        
+        console.log(`   Time Sync: ${isTimeSynced ? '✅' : '❌'}, Progress Sync: ${isProgressSynced ? '✅' : '❌'}, Overall: ${isFullySynced ? '✅' : '❌'}`);
+        
+        if (!isFullySynced) {
+            console.log('⚠️  Synchronization issues detected - this may cause position/time mismatches');
+            
+            // Suggest fixes
+            if (!isTimeSynced) {
+                console.log(`   💡 Consider calling: app.mapRenderer.setJourneyElapsedTime(${expectedTime?.toFixed(1)})`);
+            }
+            if (!isProgressSynced) {
+                console.log(`   💡 Consider calling: app.mapRenderer.setAnimationProgress(${expectedProgress?.toFixed(3)})`);
+            }
+        }
+        
+        return isFullySynced;
+    }
+
+    // Force synchronization between position and time for journeys
+    forceSynchronization() {
+        if (!this.currentTrackData || !this.currentTrackData.isJourney || !this.mapRenderer) {
+            console.log('❌ Cannot force synchronization - not a journey or no map renderer');
+            return false;
+        }
+
+        const progress = this.mapRenderer.getAnimationProgress();
+        const expectedTime = this.convertLinearProgressToSegmentTime(progress);
+        
+        console.log(`🔧 Forcing synchronization: progress=${progress.toFixed(3)} → time=${expectedTime?.toFixed(1)}s`);
+        
+        if (expectedTime !== null && this.mapRenderer.setJourneyElapsedTime) {
+            this.mapRenderer.setJourneyElapsedTime(expectedTime);
+            this.updateProgressDisplay();
+            this.updateTimelineProgressIndicator(progress);
+            console.log('✅ Synchronization forced successfully');
+            return true;
+        } else {
+            console.log('❌ Failed to force synchronization');
+            return false;
+        }
+    }
+
+    // Simple tile preloading for regular animation (not video export)
+    async basicTilePreloading() {
+        if (!this.mapRenderer || !this.currentTrackData) return;
+        
+        const map = this.mapRenderer.map;
+        const bounds = this.currentTrackData.bounds;
+        
+        if (!bounds) return;
+        
+        console.log('Starting basic tile preloading for smooth animation');
+        
+        try {
+            const currentZoom = Math.floor(map.getZoom());
+            const trackPoints = this.currentTrackData.trackPoints;
+            
+            // Sample fewer points for basic preloading (every 20th point)
+            const sampleRate = Math.max(1, Math.floor(trackPoints.length / 20));
+            const samplePoints = [];
+            
+            for (let i = 0; i < trackPoints.length; i += sampleRate) {
+                samplePoints.push(trackPoints[i]);
+            }
+            
+            // Quick pass through sample points at current zoom
+            for (let i = 0; i < samplePoints.length; i++) {
+                const point = samplePoints[i];
+                map.setCenter([point.lon, point.lat]);
+                map.triggerRepaint();
+                
+                // Very quick timing for basic preloading
+                await new Promise(resolve => setTimeout(resolve, 30));
+                
+                // Don't block UI for too long
+                if (i % 10 === 0) {
+                    await new Promise(resolve => requestAnimationFrame(resolve));
+                }
+            }
+            
+            // Return to start
+            if (trackPoints.length > 0) {
+                map.setCenter([trackPoints[0].lon, trackPoints[0].lat]);
+                map.triggerRepaint();
+            }
+            
+            console.log('Basic tile preloading completed');
+            
+        } catch (error) {
+            console.warn('Error during basic tile preloading:', error);
+        }
+    }
+
+    getCameraControlsContent() {
+        // Detect if the user is on a mobile/touch device
+        const isMobile = window.matchMedia('(hover: none)').matches || 
+                        window.matchMedia('(pointer: coarse)').matches ||
+                        /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        if (isMobile) {
+            // Show only mobile instructions
+            return `
+                <div class="camera-controls-section">
+                    <h5>${t('cameraInfo.mobile.title')}</h5>
+                    <p>${t('cameraInfo.mobile.pan')}</p>
+                    <p>${t('cameraInfo.mobile.zoom')}</p>
+                    <p>${t('cameraInfo.mobile.rotate')}</p>
+                    <p>${t('cameraInfo.mobile.tilt')}</p>
+                </div>
+            `;
+        } else {
+            // Show only desktop instructions
+            return `
+                <div class="camera-controls-section">
+                    <h5>${t('cameraInfo.desktop.title')}</h5>
+                    <p>${t('cameraInfo.desktop.pan')}</p>
+                    <p>${t('cameraInfo.desktop.zoom')}</p>
+                    <p>${t('cameraInfo.desktop.rotate')}</p>
+                    <p>${t('cameraInfo.desktop.tilt')}</p>
+                </div>
+            `;
+        }
+    }
+
+    // Show video export confirmation dialog
+    async showVideoExportConfirmation() {
+        return new Promise((resolve) => {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.id = 'videoExportConfirmation';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>📹 ${t('messages.exportVideoTitle')}</h3>
+                        <button class="modal-close" id="confirmationClose">✕</button>
+                    </div>
+                    <div class="modal-body">
+                        <p><strong>${t('messages.exportVideoWhatHappens')}</strong></p>
+                        <ul style="margin: 1rem 0; padding-left: 1.5rem; line-height: 1.6;">
+                            <li>${t('messages.exportVideoStep1')}</li>
+                            <li>${t('messages.exportVideoStep2')}</li>
+                            <li>${t('messages.exportVideoStep3')}</li>
+                            <li>${t('messages.exportVideoStep4')}</li>
+                        </ul>
+                        <div style="background: var(--trail-orange-15); padding: 1rem; border-radius: 6px; margin: 1rem 0;">
+                            <strong>⚠️ ${t('messages.exportVideoImportant')}</strong><br>
+                            ${t('messages.exportVideoStayActive')}
+                        </div>
+                        <p><strong>${t('messages.exportVideoQuality')}</strong> ${t('messages.exportVideoQualityDesc')}</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="control-btn" id="confirmationCancel">${t('buttons.cancel')}</button>
+                        <button class="control-btn primary" id="confirmationStart">${t('messages.exportVideoStart')}</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            const closeBtn = document.getElementById('confirmationClose');
+            const cancelBtn = document.getElementById('confirmationCancel');
+            const startBtn = document.getElementById('confirmationStart');
+            
+            const cleanup = () => {
+                modal.remove();
+            };
+            
+            closeBtn.addEventListener('click', () => {
+                cleanup();
+                resolve(false);
+            });
+            
+            cancelBtn.addEventListener('click', () => {
+                cleanup();
+                resolve(false);
+            });
+            
+            startBtn.addEventListener('click', () => {
+                cleanup();
+                resolve(true);
+            });
+            
+            // Close on outside click
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    cleanup();
+                    resolve(false);
+                }
+            });
+        });
+    }
 }
 
 // Initialize the app when DOM is loaded
@@ -2960,19 +3686,5 @@ document.addEventListener('DOMContentLoaded', () => {
     const footer = document.querySelector('footer .container');
     const githubBtn = footer?.querySelector('.github-link');
     // Remove previous Buy Me a Coffee button if present
-    const oldCoffeeBtn = document.getElementById('buyMeCoffeeBtn');
-    if (oldCoffeeBtn) oldCoffeeBtn.remove();
-    if (footer && githubBtn && !document.getElementById('buyMeCoffeeBtn')) {
-        const coffeeBtn = document.createElement('a');
-        coffeeBtn.id = 'buyMeCoffeeBtn';
-        coffeeBtn.href = 'https://ko-fi.com/alexalmansa';
-        coffeeBtn.target = '_blank';
-        coffeeBtn.rel = 'noopener noreferrer';
-        coffeeBtn.className = 'buy-me-coffee-btn';
-        coffeeBtn.textContent = t('messages.buyMeCoffee');
-        coffeeBtn.style = 'display:inline-flex;align-items:center;gap:0.5rem;margin-left:1rem;padding:0.5rem 1rem;background:#ffdd00;color:#222;font-weight:700;border-radius:6px;text-decoration:none;font-size:1rem;box-shadow:0 2px 8px rgba(0,0,0,0.08);transition:background 0.2s;vertical-align:middle;';
-        coffeeBtn.onmouseover = () => coffeeBtn.style.background = '#ffe66d';
-        coffeeBtn.onmouseout = () => coffeeBtn.style.background = '#ffdd00';
-        githubBtn.parentNode.insertBefore(coffeeBtn, githubBtn.nextSibling);
-    }
+
 }); 

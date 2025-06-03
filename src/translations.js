@@ -136,7 +136,8 @@ export const translations = {
             chrome: "<strong>Chrome 80+:</strong> Full feature support including video export",
             firefox: "<strong>Firefox 75+:</strong> Full feature support",
             safari: "<strong>Safari 14+:</strong> Basic features (video export may be limited)",
-            edge: "<strong>Edge 80+:</strong> Full feature support"
+            edge: "<strong>Edge 80+:</strong> Full feature support",
+            elevationDataChanged: "Switched to {source} elevation data"
         },
         
         upload: {
@@ -167,6 +168,25 @@ export const translations = {
             showStats: "Show Live Stats",
             gpxOnlyStats: "Exclude Transfer Distances",
             language: "Language"
+        },
+        
+        cameraInfo: {
+            title: "Map Camera Controls",
+            buttonText: "ℹ️ Camera Controls",
+            desktop: {
+                title: "💻 Desktop Controls",
+                pan: "Pan: Click and drag to move the map",
+                zoom: "Zoom: Use mouse wheel or +/- keys",
+                rotate: "Rotate: Right-click and drag, or Shift + click and drag",
+                tilt: "Tilt: Ctrl + click and drag (3D mode)"
+            },
+            mobile: {
+                title: "📱 Mobile Controls", 
+                pan: "Pan: Touch and drag with one finger",
+                zoom: "Zoom: Pinch with two fingers to zoom in/out",
+                rotate: "Rotate: Touch and drag with two fingers",
+                tilt: "Tilt: Touch with two fingers and move up/down (3D mode)"
+            }
         },
         
         iconSelection: {
@@ -217,6 +237,23 @@ export const translations = {
             exportVideoPrepare: "Preparing video export. Please wait...",
             exportVideoRecording: "Recording animation... Please wait until complete.",
             exportError: "Error during video export",
+            
+            // Video export confirmation dialog
+            exportVideoTitle: "Export Trail Animation Video",
+            exportVideoWhatHappens: "Here's what will happen during the export:",
+            exportVideoStep1: "The page interface will be temporarily hidden for a clean recording",
+            exportVideoStep2: "Your trail animation will automatically play from start to finish",
+            exportVideoStep3: "The animation will be recorded as a high-quality video file",
+            exportVideoStep4: "When complete, the video will automatically download",
+            exportVideoImportant: "Important:",
+            exportVideoStayActive: "Keep this browser tab active during recording for best results. The process typically takes 30-90 seconds.",
+            exportVideoQuality: "Video Quality:",
+            exportVideoQualityDesc: "30 FPS WebM format, optimized for web sharing",
+            exportVideoStart: "🎬 Start Recording",
+            exportVideoKeepTabActive: "Keep this browser tab active",
+            exportVideoCloseOtherApps: "Close other heavy applications",
+            exportVideoLetComplete: "Let the process complete without interruption",
+            
             multipleTracksLoaded: "Multiple tracks loaded! Scroll down to the Journey Builder to arrange them and add transportation between tracks.",
             errorProcessingFiles: "Error processing files:",
             processingFiles: "Processing files...",
@@ -228,6 +265,7 @@ export const translations = {
             terrain3dDisabled: "3D terrain disabled",
             elevationDataOpenTopo: "Using OpenTopography elevation data (subtle)",
             elevationDataMapzen: "Using Mapzen elevation data (default)",
+            elevationDataChanged: "Switched to {source} elevation data",
             
             // File processing messages
             notGpxFile: "is not a GPX file",
@@ -267,7 +305,6 @@ export const translations = {
             timingTracks: "Tracks:",
             timingTransportation: "Transportation:",
             timingNote: "💡 Adjust individual segment times in the Journey Builder above",
-            buyMeCoffee: "☕ Buy me a coffee",
             gpxOnlyStatsEnabled: "Transfer distances excluded from stats",
             gpxOnlyStatsDisabled: "All distances included in stats"
         },
@@ -296,7 +333,8 @@ export const translations = {
             copyright: "TrailReplay - Open Source Trail Storytelling",
             builtWith: "Built with ❤️ for the outdoor community",
             techStack: "Built with MapLibre GL JS + Three.js + Elevation Data",
-            github: "View on GitHub"
+            github: "View on GitHub",
+            coffee: "☕  Buy me a coffee"
         },
         
         // Modal buttons
@@ -469,7 +507,8 @@ export const translations = {
             chrome: "<strong>Chrome 80+:</strong> Soporte completo de funciones incluyendo exportación de video",
             firefox: "<strong>Firefox 75+:</strong> Soporte completo de funciones",
             safari: "<strong>Safari 14+:</strong> Funciones básicas (la exportación de video puede ser limitada)",
-            edge: "<strong>Edge 80+:</strong> Soporte completo de funciones"
+            edge: "<strong>Edge 80+:</strong> Soporte completo de funciones",
+            elevationDataChanged: "Cambiado a datos de elevación {source}"
         },
         
         upload: {
@@ -500,6 +539,25 @@ export const translations = {
             showStats: "Mostrar Estadísticas en Vivo",
             gpxOnlyStats: "No contar distancias en transfers",
             language: "Idioma"
+        },
+        
+        cameraInfo: {
+            title: "Controles de Cámara del Mapa",
+            buttonText: "ℹ️ Controles de Cámara",
+            desktop: {
+                title: "💻 Controles de Escritorio",
+                pan: "Desplazar: Clic y arrastrar para mover el mapa",
+                zoom: "Zoom: Rueda del ratón o teclas +/-",
+                rotate: "Rotar: Clic derecho y arrastrar, o Mayús + clic y arrastrar",
+                tilt: "Inclinar: Ctrl + clic y arrastrar (modo 3D)"
+            },
+            mobile: {
+                title: "📱 Controles Móviles",
+                pan: "Desplazar: Tocar y arrastrar con un dedo",
+                zoom: "Zoom: Pellizcar con dos dedos para acercar/alejar",
+                rotate: "Rotar: Tocar y arrastrar con dos dedos",
+                tilt: "Inclinar: Tocar con dos dedos y mover arriba/abajo (modo 3D)"
+            }
         },
         
         iconSelection: {
@@ -550,9 +608,26 @@ export const translations = {
             exportVideoPrepare: "Preparando la exportación del video. Por favor espera...",
             exportVideoRecording: "Grabando animación... Por favor espera hasta que termine.",
             exportError: "Error durante la exportación del video",
-            multipleTracksLoaded: "Múltiples rutas cargadas! Desplázate hacia el Constructor de Viajes para organizarlas y añadir transporte entre rutas.",
-            errorProcessingFiles: "Error procesando archivos:",
-            processingFiles: "Procesando archivos...",
+            
+            // Video export confirmation dialog
+            exportVideoTitle: "Exportar Video de Animación de Ruta",
+            exportVideoWhatHappens: "Esto es lo que pasará durante la exportación:",
+            exportVideoStep1: "La interfaz de la página se ocultará temporalmente para una grabación limpia",
+            exportVideoStep2: "Tu animación de ruta se reproducirá automáticamente de principio a fin",
+            exportVideoStep3: "La animación se grabará como un archivo de video de alta calidad",
+            exportVideoStep4: "Cuando termine, el video se descargará automáticamente",
+            exportVideoImportant: "Importante:",
+            exportVideoStayActive: "Mantén esta pestaña del navegador activa durante la grabación para mejores resultados. El proceso típicamente toma 30-90 segundos.",
+            exportVideoQuality: "Calidad del Video:",
+            exportVideoQualityDesc: "Formato WebM de 30 FPS, optimizado para compartir en web",
+            exportVideoStart: "🎬 Comenzar Grabación",
+            exportVideoKeepTabActive: "Mantén esta pestaña del navegador activa",
+            exportVideoCloseOtherApps: "Cierra otras aplicaciones pesadas",
+            exportVideoLetComplete: "Deja que el proceso termine sin interrupciones",
+            
+            multipleTracksLoaded: "Multiple tracks loaded! Scroll down to the Journey Builder to arrange them and add transportation between tracks.",
+            errorProcessingFiles: "Error processing files:",
+            processingFiles: "Processing files...",
             
             // 3D Terrain messages
             terrain3dEnabledDefault: "¡Terreno 3D activado por defecto! El mapa tiene una ligera inclinación 3D con datos de elevación.",
@@ -561,6 +636,7 @@ export const translations = {
             terrain3dDisabled: "Terreno 3D desactivado",
             elevationDataOpenTopo: "Usando datos de elevación OpenTopography (sutil)",
             elevationDataMapzen: "Usando datos de elevación Mapzen (por defecto)",
+            elevationDataChanged: "Cambiado a datos de elevación {source}",
             
             // File processing messages
             notGpxFile: "no es un archivo GPX",
@@ -600,7 +676,6 @@ export const translations = {
             timingTracks: "Rutas:",
             timingTransportation: "Transporte:",
             timingNote: "💡 Ajusta los tiempos de los segmentos individuales en el Constructor de Viajes arriba",
-            buyMeCoffee: "☕ Invítame a un café",
             gpxOnlyStatsEnabled: "Distancias de transfers excluidas de estadísticas",
             gpxOnlyStatsDisabled: "Todas las distancias incluidas en estadísticas"
         },
@@ -629,7 +704,8 @@ export const translations = {
             copyright: "TrailReplay - Narrativa de Senderos de Código Abierto",
             builtWith: "Construido con ❤️ para la comunidad outdoor",
             techStack: "Construido con MapLibre GL JS + Three.js + Datos de Elevación",
-            github: "Ver en GitHub"
+            github: "Ver en GitHub",
+            coffee: "☕ Invítame a un café"
         },
         
         // Modal buttons

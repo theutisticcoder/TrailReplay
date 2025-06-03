@@ -83,18 +83,6 @@ export class JourneyBuilder {
         if (this._addTrackMsgTimeout) {
             clearTimeout(this._addTrackMsgTimeout);
         }
-        // Debounce message: only show after a short delay, and only show the latest one
-        this._addTrackMsgTimeout = setTimeout(() => {
-            // Only show the message if no new addTrack has been called in the last 350ms
-            if (this._addTrackMsgTimeout) {
-                this._addTrackMsgTimeout = null;
-                if (this.tracks.length === 1) {
-                    this.showMessage(t('messages.trackAddedAutoPreview'), 'info');
-                } else {
-                    this.showMessage(t('messages.trackAddedUpdating'), 'info');
-                }
-            }
-        }, 350);
     }
 
     // Remove a track

@@ -7,12 +7,17 @@
 
 /* Brand Colors */
 :root {
+    --canvas: #F8F6F0;
     --evergreen: #1B2A20;
-    --canvas: #FAF7F1;
-    --trail-orange: #C1652F;
-    --lake-teal: #7FB8AD;
     --evergreen-40: rgba(27, 42, 32, 0.4);
+    --trail-orange: #C1652F;
     --trail-orange-15: rgba(193, 101, 47, 0.15);
+    --trail-orange-40: rgba(193, 101, 47, 0.4);
+    
+    /* Typography and theming */
+    --font-family-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-family-display: 'Canela', Georgia, serif;
+    --font-family-mono: 'JetBrains Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
 }
 
 body {
@@ -21,12 +26,34 @@ body {
     color: var(--evergreen);
     background: var(--canvas);
     min-height: 100vh;
+    max-height: 100vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+#app {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
 }
 
 .container {
-    max-width: 1280px;
+    max-width: none;
     margin: 0 auto;
-    padding: 0 6vw;
+    padding: 0 clamp(1rem, 2vw, 2rem);
+}
+
+@media (min-width: 1400px) {
+    .container {
+        padding: 0 clamp(1.5rem, 3vw, 3rem);
+    }
+}
+
+@media (min-width: 1800px) {
+    .container {
+        padding: 0 clamp(2rem, 4vw, 4rem);
+    }
 }
 
 /* Typography */
@@ -61,7 +88,7 @@ body {
 /* Header */
 .header {
     background: var(--canvas);
-    padding: 2rem 0;
+    padding: 1.5rem 0;
     text-align: center;
     border-bottom: 2px solid var(--evergreen);
 }
@@ -70,24 +97,24 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
 }
 
 .logo-placeholder {
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 120px;
+    min-height: 80px;
     width: auto;
-    max-width: 500px;
+    max-width: 400px;
 }
 
 .logo-image {
     display: block;
-    height: 220px;
+    height: 140px;
     width: auto;
     min-width: 120px;
-    max-width: 500px;
+    max-width: 400px;
 }
 
 .logo-placeholder svg {
@@ -122,7 +149,7 @@ body {
 .subtitle {
     color: var(--evergreen);
     font-size: 1.125rem;
-    opacity: 0.8;
+    opacity: 1;
 }
 
 /* Language Switcher */
@@ -157,24 +184,26 @@ body {
 
 /* Main Content */
 .main {
-    padding: 3rem 0;
-    min-height: calc(100vh - 200px);
+    padding: 2rem 0;
+    min-height: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 /* Upload Section */
 .upload-section {
-    margin-bottom: 3rem;
+    margin-bottom: 2rem;
 }
 
 .upload-card {
     background: var(--canvas);
     border-radius: 6px;
-    padding: 5rem 3rem;
+    padding: 3rem 2rem;
     text-align: center;
     border: 2px dashed var(--evergreen-40);
     transition: all 200ms ease-out;
-    max-width: 600px;
-    margin: 0 auto;
 }
 
 .upload-card:hover {
@@ -207,7 +236,7 @@ body {
 
 .upload-card p {
     color: var(--evergreen);
-    opacity: 0.8;
+    opacity: 1;
     margin-bottom: 2rem;
     font-size: 1.1rem;
 }
@@ -314,7 +343,7 @@ body {
 
 .color-preset:hover {
     transform: scale(1.1);
-    background: var(--trail-orange-15);
+    background: #f4e6d7;
 }
 
 /* Icon Selector */
@@ -1207,7 +1236,7 @@ body.video-export-active .map-watermark {
 
 .stat-label {
     color: var(--evergreen);
-    opacity: 0.8;
+    opacity: 1;
     font-size: 0.9rem;
     font-weight: 600;
 }
@@ -1218,18 +1247,27 @@ body.video-export-active .map-watermark {
     color: var(--canvas);
     text-align: center;
     padding: 2rem 0;
-    margin-top: 3rem;
+    margin-top: 2rem;
 }
 
 .tech-stack {
     margin-top: 0.75rem;
     font-size: 0.9rem;
-    opacity: 0.8;
+    opacity: 1;
     font-family: 'JetBrains Mono', monospace;
 }
 
-/* GitHub Link */
-.github-link {
+/* GitHub Link and Footer Links */
+.footer-links {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+}
+
+.footer-link {
     color: var(--canvas);
     text-decoration: none;
     display: inline-flex;
@@ -1239,12 +1277,31 @@ body.video-export-active .map-watermark {
     padding: 0.5rem 1rem;
     border-radius: 6px;
     transition: all 200ms ease-out;
-    margin-top: 1rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.github-link:hover {
+.footer-link:hover {
     background: rgba(255, 255, 255, 0.2);
     transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.footer-link svg {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+}
+
+/* Specific styling for different link types */
+.github-link:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.coffee-link:hover {
+    background: #FFDD44;
+    color: var(--evergreen);
 }
 
 /* Journey Builder Styles */
@@ -1604,7 +1661,6 @@ body.route-drawing-active .transportation-options {
     background: var(--canvas);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     margin: 0;
-    max-width: 600px;
     width: calc(100% - 2rem);
 }
 
@@ -1661,7 +1717,6 @@ body.route-drawing-active .transportation-options {
     border-radius: 6px;
     padding: 1.5rem;
     border: 2px solid var(--evergreen);
-    max-width: 500px;
     width: 90%;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
@@ -2458,7 +2513,6 @@ body.high-quality-recording .map canvas {
     border-radius: 6px;
     padding: 1.5rem;
     border: 2px solid var(--evergreen);
-    max-width: 500px;
     width: 90%;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
@@ -2662,4 +2716,329 @@ body.high-quality-recording .map canvas {
     .live-stat-value {
         font-size: 0.8rem;
     }
-} 
+}
+
+/* Mobile responsive adjustments for home screen */
+@media (max-width: 768px) {
+    .header {
+        padding: 1rem 0;
+    }
+    
+    .logo-image {
+        height: 100px;
+    }
+    
+    .logo-placeholder {
+        min-height: 60px;
+    }
+    
+    .main {
+        padding: 1.5rem 0;
+    }
+    
+    .upload-card {
+        padding: 2rem 1.5rem;
+    }
+    
+    .upload-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+    
+    .footer {
+        padding: 1.5rem 0;
+        margin-top: 1.5rem;
+    }
+    
+    .footer-links {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .footer-link {
+        width: 100%;
+        max-width: 250px;
+        justify-content: center;
+    }
+}
+
+@media (max-height: 700px) {
+    .header {
+        padding: 0.75rem 0;
+    }
+    
+    .logo-image {
+        height: 80px;
+    }
+    
+    .main {
+        padding: 1rem 0;
+    }
+    
+    .upload-card {
+        padding: 1.5rem 1rem;
+    }
+    
+    .upload-icon {
+        font-size: 2.5rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .footer {
+        padding: 1rem 0;
+        margin-top: 0.5rem;
+    }
+}
+
+@media (max-height: 600px) {
+    .header {
+        padding: 0.5rem 0;
+    }
+    
+    .logo-image {
+        height: 60px;
+    }
+    
+    .logo-placeholder {
+        min-height: 40px;
+    }
+    
+    .main {
+        padding: 0.75rem 0;
+    }
+    
+    .upload-card {
+        padding: 1rem 0.75rem;
+    }
+    
+    .upload-card h2 {
+        font-size: 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .upload-card p {
+        margin-bottom: 1rem;
+        font-size: 1rem;
+    }
+    
+    .upload-icon {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .footer {
+        padding: 0.75rem 0;
+        margin-top: 0.25rem;
+    }
+}
+
+/* Camera Info Icon */
+.camera-info-icon {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    z-index: 1000;
+    cursor: pointer;
+}
+
+.info-icon {
+    width: 32px;
+    height: 32px;
+    background: var(--canvas);
+    border: 2px solid var(--evergreen);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: var(--evergreen);
+    transition: all 200ms ease-out;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.info-icon:hover {
+    background: #f4e6d7;
+    border-color: var(--trail-orange);
+    transform: scale(1.1);
+}
+
+.camera-info-tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    margin-bottom: 8px;
+    background: var(--canvas);
+    border: 2px solid var(--evergreen);
+    border-radius: 8px;
+    padding: 1rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+    z-index: 99999;
+    width: 280px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(8px);
+    transition: all 200ms ease-out;
+    pointer-events: none;
+}
+
+.camera-info-tooltip::before {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 20px;
+    border: 8px solid transparent;
+    border-top-color: var(--evergreen);
+}
+
+.camera-info-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 22px;
+    border: 6px solid transparent;
+    border-top-color: var(--canvas);
+}
+
+/* Desktop hover behavior - stay open when hovering over tooltip */
+@media (hover: hover) and (pointer: fine) {
+    .camera-info-button:hover .camera-info-tooltip,
+    .camera-info-tooltip:hover {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+        pointer-events: auto;
+        z-index: 99999;
+    }
+}
+
+/* Mobile/touch behavior */
+@media (hover: none) or (pointer: coarse) {
+    .camera-info-button.active .camera-info-tooltip {
+        position: fixed;
+        bottom: auto;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 90vw;
+        max-width: 400px;
+        z-index: 99999;
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+    }
+    
+    .camera-info-button.active .camera-info-tooltip::before,
+    .camera-info-button.active .camera-info-tooltip::after {
+        display: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .camera-info-tooltip {
+        width: 240px;
+    }
+    
+    .camera-info-tooltip::before {
+        left: 15px;
+    }
+    
+    .camera-info-tooltip::after {
+        left: 17px;
+    }
+}
+
+/* New Clean Camera Info Styles */
+.camera-info-section {
+    margin-top: 0.75rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--evergreen);
+}
+
+.camera-info-button {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    position: relative;
+    display: inline-block;
+}
+
+.camera-info-text {
+    color: var(--evergreen);
+    opacity: 1;
+    font-size: 0.85rem;
+    transition: opacity 200ms ease-out;
+    display: inline-block;
+}
+
+.camera-info-button:hover .camera-info-text {
+    opacity: 1;
+}
+
+/* Ensure sections grow with container */
+@media (min-width: 1400px) {
+    .visualization-section,
+    .journey-planning-section,
+    .upload-section,
+    .stats-section,
+    .icon-timeline-section,
+    .annotations-section {
+        max-width: 100%;
+    }
+    
+    .journey-timing-panel {
+        max-width: 100%;
+    }
+}
+
+/* Additional responsive container width tweaks */
+html .container {
+    max-width: none !important;
+}
+
+.camera-info-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 22px;
+    border: 6px solid transparent;
+    border-top-color: var(--canvas);
+}
+
+.camera-info-content {
+    position: relative;
+    z-index: 100002;
+}
+
+.camera-controls-section {
+    margin-bottom: 0.75rem;
+    padding: 0.75rem;
+    background: #f4e6d7;
+    border-radius: 6px;
+    border: 1px solid var(--trail-orange);
+}
+
+.camera-controls-section:last-child {
+    margin-bottom: 0;
+}
+
+.camera-controls-section h5 {
+    margin: 0 0 0.5rem 0;
+    color: var(--trail-orange);
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.camera-controls-section p {
+    margin: 0 0 0.25rem 0;
+    color: var(--evergreen);
+    font-size: 0.8rem;
+    line-height: 1.4;
+    opacity: 1;
+}
+
+.camera-controls-section p:last-child {
+    margin-bottom: 0;
+}
+  
