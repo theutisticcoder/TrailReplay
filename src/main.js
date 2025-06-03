@@ -641,6 +641,8 @@ class TrailReplayApp {
         document.getElementById('statsSection').classList.add('fade-in');
         // Initialize live stats
         this.resetLiveStats();
+        // Generate elevation profile
+        this.generateElevationProfile();
         // If live stats toggle is on, show overlay and update
         const showLiveStatsToggle = document.getElementById('showLiveStats');
         if (showLiveStatsToggle && showLiveStatsToggle.checked) {
@@ -693,8 +695,10 @@ class TrailReplayApp {
         const playBtn = document.getElementById('playBtn');
         playBtn.querySelector('span').textContent = t('controls.play');
         
-        // Reset progress bar
-        document.getElementById('progressFill').style.width = '0%';
+        // Reset elevation profile progress
+        this.updateElevationProgress(0);
+        
+        // Reset current time display
         document.getElementById('currentTime').textContent = '00:00';
         
         // Reset live stats
@@ -729,7 +733,8 @@ class TrailReplayApp {
         const progress = this.mapRenderer.getAnimationProgress();
         const progressPercent = progress * 100;
         
-        document.getElementById('progressFill').style.width = `${progressPercent}%`;
+        // Update the elevation profile progress
+        this.updateElevationProgress(progress);
         
         // For journeys with segment timing, show elapsed time based on actual journey time
         if (this.currentTrackData && this.currentTrackData.isJourney && this.mapRenderer.journeyElapsedTime !== undefined) {
@@ -754,6 +759,121 @@ class TrailReplayApp {
         
     }
 
+    // Generate elevation profile SVG path
+    generateElevationProfile() {
+        if (!this.currentTrackData || !this.currentTrackData.trackPoints) {
+            console.log('No track data available for elevation profile');
+            return;
+        }
+
+        const trackPoints = this.currentTrackData.trackPoints;
+        const svgWidth = 800; // SVG viewBox width
+        const svgHeight = 60; // SVG viewBox height
+        const padding = 5; // Padding from edges
+
+        // Extract elevation data
+        const elevations = trackPoints.map(point => point.elevation || 0);
+        const minElevation = Math.min(...elevations);
+        const maxElevation = Math.max(...elevations);
+        const elevationRange = maxElevation - minElevation;
+
+        // If no elevation variation, create a flat line
+        if (elevationRange === 0) {
+            const flatY = svgHeight / 2;
+            const pathData = `M0,${flatY} L${svgWidth},${flatY} L${svgWidth},${svgHeight} L0,${svgHeight} Z`;
+            
+            document.getElementById('elevationPath').setAttribute('d', pathData);
+            console.log('Generated flat elevation profile (no elevation variation)');
+            return;
+        }
+
+        // Generate path points
+        const pathPoints = [];
+        for (let i = 0; i < trackPoints.length; i++) {
+            const x = (i / (trackPoints.length - 1)) * svgWidth;
+            const normalizedElevation = (elevations[i] - minElevation) / elevationRange;
+            const y = svgHeight - (normalizedElevation * (svgHeight - padding * 2)) - padding;
+            pathPoints.push(`${x.toFixed(2)},${y.toFixed(2)}`);
+        }
+
+        // Create SVG path - filled area under the curve
+        const pathData = `M0,${svgHeight} L${pathPoints.join(' L')} L${svgWidth},${svgHeight} Z`;
+        
+        // Update the elevation path
+        document.getElementById('elevationPath').setAttribute('d', pathData);
+        
+        // Store elevation data for progress updates
+        this.elevationProfile = {
+            points: pathPoints,
+            minElevation,
+            maxElevation,
+            elevationRange,
+            svgWidth,
+            svgHeight,
+            padding
+        };
+
+        console.log(`Generated elevation profile: ${elevations.length} points, range: ${elevationRange.toFixed(1)}m`);
+    }
+
+    // Update elevation progress indicator
+    updateElevationProgress(progress) {
+        if (!this.elevationProfile) {
+            // Fallback to flat progress bar behavior
+            const progressFill = document.getElementById('progressFill');
+            if (progressFill) {
+                progressFill.style.width = `${progress * 100}%`;
+            }
+            return;
+        }
+
+        const { points, svgWidth, svgHeight } = this.elevationProfile;
+        const progressIndex = Math.floor(progress * (points.length - 1));
+        const currentPointIndex = Math.min(progressIndex, points.length - 1);
+
+        // Get current position along the elevation profile
+        let currentX = 0;
+        let currentY = svgHeight / 2; // Default middle
+
+        if (points.length > 0) {
+            if (currentPointIndex < points.length) {
+                const [x, y] = points[currentPointIndex].split(',').map(Number);
+                currentX = x;
+                currentY = y;
+
+                // Interpolate between points if we're between indices
+                const fraction = (progress * (points.length - 1)) - currentPointIndex;
+                if (fraction > 0 && currentPointIndex < points.length - 1) {
+                    const [nextX, nextY] = points[currentPointIndex + 1].split(',').map(Number);
+                    currentX = x + (nextX - x) * fraction;
+                    currentY = y + (nextY - y) * fraction;
+                }
+            }
+        }
+
+        // Update progress indicator position
+        const progressIndicator = document.getElementById('progressIndicator');
+        if (progressIndicator) {
+            progressIndicator.setAttribute('cx', currentX.toFixed(2));
+            progressIndicator.setAttribute('cy', currentY.toFixed(2));
+        }
+
+        // Update progress path (filled area up to current position)
+        const progressPath = document.getElementById('progressPath');
+        if (progressPath && points.length > 0) {
+            const progressPoints = points.slice(0, currentPointIndex + 1);
+            if (progressPoints.length > 0) {
+                // Add the current interpolated point
+                progressPoints.push(`${currentX.toFixed(2)},${currentY.toFixed(2)}`);
+                
+                // Create filled area from bottom to elevation profile
+                const progressPathData = `M0,${svgHeight} L${progressPoints.join(' L')} L${currentX},${svgHeight} Z`;
+                progressPath.setAttribute('d', progressPathData);
+            }
+        }
+    }
+
+    // Update progress bar markers for elevation profile
     updateProgressBarMarkers() {
         if (!this.mapRenderer) return;
 
@@ -764,8 +884,13 @@ class TrailReplayApp {
         this.mapRenderer.getIconChanges().forEach(change => {
             const marker = document.createElement('div');
             marker.className = 'icon-change-marker';
-            marker.style.left = `${change.progress * 100}%`;
+            
+            // Position marker based on elevation profile if available
+            const markerPosition = this.getElevationMarkerPosition(change.progress);
+            marker.style.left = `${markerPosition.x}%`;
+            marker.style.top = `${markerPosition.y}px`;
             marker.title = `Icon change to ${change.icon}`;
+            
             iconChangeMarkers.appendChild(marker);
         });
 
@@ -776,10 +901,38 @@ class TrailReplayApp {
         this.mapRenderer.getAnnotations().forEach(annotation => {
             const marker = document.createElement('div');
             marker.className = 'annotation-marker';
-            marker.style.left = `${annotation.progress * 100}%`;
+            
+            // Position marker based on elevation profile if available
+            const markerPosition = this.getElevationMarkerPosition(annotation.progress);
+            marker.style.left = `${markerPosition.x}%`;
+            marker.style.top = `${markerPosition.y}px`;
             marker.title = annotation.title;
+            
             annotationMarkers.appendChild(marker);
         });
+    }
+
+    // Get marker position on elevation profile
+    getElevationMarkerPosition(progress) {
+        if (!this.elevationProfile) {
+            // Fallback for flat progress bar
+            return { x: progress * 100, y: -8 };
+        }
+
+        const { points } = this.elevationProfile;
+        const progressIndex = Math.floor(progress * (points.length - 1));
+        const currentPointIndex = Math.min(progressIndex, points.length - 1);
+
+        let markerX = progress * 100; // Default to linear progress
+        let markerY = -8; // Default top position
+
+        if (points.length > 0 && currentPointIndex < points.length) {
+            const [x, y] = points[currentPointIndex].split(',').map(Number);
+            markerX = (x / this.elevationProfile.svgWidth) * 100;
+            markerY = y - 8; // Position above the elevation curve
+        }
+
+        return { x: markerX, y: markerY };
     }
 
     // Annotation functionality
@@ -1380,7 +1533,7 @@ class TrailReplayApp {
             // Normal seeking - set the animation progress
             this.mapRenderer.setAnimationProgress(progress);
             
-            // Update progress display immediately
+            // Update progress display immediately (this will update the elevation profile)
             this.updateProgressDisplay();
             
             // Update timeline progress indicator if available
@@ -1523,11 +1676,11 @@ class TrailReplayApp {
             }
         });
         
-        // Add visual feedback for interaction
+        // Add visual feedback for interaction - adapted for elevation profile
         progressBar.style.cursor = 'pointer';
         progressBar.addEventListener('mouseenter', () => {
             if (!isDragging) {
-                progressBar.style.transform = 'scaleY(1.2)';
+                progressBar.style.transform = 'scaleY(1.1)';
                 progressBar.style.transition = 'transform 0.2s ease';
             }
         });
@@ -1901,6 +2054,9 @@ class TrailReplayApp {
             this.showVisualizationSection();
             this.updateStats(trackData.stats);
             
+            // Generate elevation profile for the journey
+            this.generateElevationProfile();
+            
             // Use the new synchronization method to ensure all displays match
             this.synchronizeAllTimingDisplays(segmentTiming);
             
@@ -1926,9 +2082,15 @@ class TrailReplayApp {
             timelineContainer.id = 'journeyTimelineContainer';
             timelineContainer.className = 'journey-timeline-container';
             
-            // Insert after the map container
-            const mapContainer = document.querySelector('.map-container');
-            mapContainer.parentNode.insertBefore(timelineContainer, mapContainer.nextSibling);
+            // Insert after the progress controls container (not the map container)
+            const progressControlsContainer = document.querySelector('.progress-controls-container');
+            if (progressControlsContainer) {
+                progressControlsContainer.parentNode.insertBefore(timelineContainer, progressControlsContainer.nextSibling);
+            } else {
+                // Fallback: insert after the map container if progress controls not found
+                const mapContainer = document.querySelector('.map-container');
+                mapContainer.parentNode.insertBefore(timelineContainer, mapContainer.nextSibling);
+            }
         }
         
         // Render the timeline using journey builder

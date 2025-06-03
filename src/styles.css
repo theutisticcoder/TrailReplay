@@ -627,8 +627,8 @@ body.video-export-active .map-watermark {
     display: none;
 }
 
-/* Progress Bar */
-.progress-container {
+/* Elevation Profile Container (inside map) */
+.elevation-profile-container {
     position: absolute;
     bottom: 0.75rem;
     left: 0.75rem;
@@ -636,14 +636,112 @@ body.video-export-active .map-watermark {
     background: rgba(27, 42, 32, 0.9);
     border-radius: 6px;
     padding: 0.75rem;
-    color: var(--canvas);
     backdrop-filter: blur(10px);
+    border: 2px solid var(--evergreen);
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
-    border: 2px solid var(--evergreen);
+    gap: 0.5rem;
 }
 
+.elevation-progress-bar {
+    position: relative;
+    height: 60px;
+    border-radius: 6px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 200ms ease-out;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.elevation-progress-bar:hover {
+    transform: scaleY(1.05);
+}
+
+.elevation-profile-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+/* Progress Controls Container (outside map) */
+.progress-controls-container {
+    background: var(--canvas);
+    border-radius: 6px;
+    padding: 1rem;
+    margin-top: 1rem;
+    border: 2px solid var(--evergreen);
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+.progress-header {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    width: 100%;
+    gap: 2rem;
+}
+
+.progress-controls {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.progress-control-btn {
+    background: var(--trail-orange);
+    color: var(--canvas);
+    border: 2px solid var(--trail-orange);
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 200ms ease-out;
+    font-family: inherit;
+    min-width: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 1;
+    visibility: visible;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.progress-control-btn:hover {
+    background: var(--evergreen);
+    color: var(--canvas);
+    border-color: var(--evergreen);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.progress-control-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.progress-control-btn:disabled {
+    background: var(--evergreen-40);
+    color: var(--canvas);
+    border-color: var(--evergreen-40);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Progress Info positioned to the right */
+.progress-info {
+    color: var(--evergreen);
+    font-size: 1rem;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+    margin-left: auto;
+}
+
+/* Progress Bar Markers - Legacy support removed */
 .progress-bar {
     background: var(--evergreen-40);
     height: 6px;
@@ -689,44 +787,6 @@ body.video-export-active .map-watermark {
     left: 0;
     transform: translateY(-50%);
     z-index: 1;
-}
-
-.progress-info {
-    color: var(--canvas);
-    font-size: 0.9rem;
-    font-weight: 600;
-    font-family: 'JetBrains Mono', monospace;
-}
-
-/* Progress Bar Markers */
-.icon-change-markers,
-.annotation-markers {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-}
-
-.icon-change-marker,
-.annotation-marker {
-    position: absolute;
-    top: -2px;
-    width: 3px;
-    height: 10px;
-    border-radius: 2px;
-    transform: translateX(-50%);
-}
-
-.icon-change-marker {
-    background: var(--trail-orange);
-    box-shadow: 0 0 4px rgba(193, 101, 47, 0.6);
-}
-
-.annotation-marker {
-    background: var(--lake-teal);
-    box-shadow: 0 0 4px rgba(127, 184, 173, 0.6);
 }
 
 /* Active Annotation Display */
@@ -1699,33 +1759,37 @@ body.route-drawing-active .transportation-options {
     transform: none;
 }
 
-/* Live Stats Overlay */
+/* Live Stats Overlay - compact single line */
 .live-stats-overlay {
-    position: absolute;
-    top: 1rem;
-    left: 1rem;
-    background: rgba(27, 42, 32, 0.9);
-    border-radius: 6px;
-    padding: 1rem;
+    position: relative;
+    bottom: auto;
+    left: auto;
+    right: auto;
+    transform: none;
+    background: none;
+    border-radius: 0;
+    padding: 0;
     color: var(--canvas);
-    backdrop-filter: blur(10px);
-    border: 2px solid var(--evergreen);
+    backdrop-filter: none;
+    border: none;
     display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    min-width: 150px;
-    z-index: 1100;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    z-index: auto;
+    white-space: nowrap;
+    margin-bottom: 0.5rem;
 }
 
 .live-stat {
     display: flex;
-    justify-content: space-between;
     align-items: center;
     gap: 0.5rem;
 }
 
 .live-stat-label {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     opacity: 0.8;
 }
 
@@ -2308,74 +2372,110 @@ body.video-export-active .map-container {
     transform: none;
 }
 
-/* Live Stats Overlay */
-.live-stats-overlay {
+/* Elevation Profile Styling */
+#elevationPath {
+    transition: all 0.3s ease;
+}
+
+#progressPath {
+    transition: d 0.1s ease;
+}
+
+#progressIndicator {
+    transition: cx 0.1s ease, cy 0.1s ease;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+/* Elevation Markers */
+.elevation-markers {
     position: absolute;
-    top: 1rem;
-    left: 1rem;
-    background: rgba(27, 42, 32, 0.9);
-    border-radius: 6px;
-    padding: 1rem;
-    color: var(--canvas);
-    backdrop-filter: blur(10px);
-    border: 2px solid var(--evergreen);
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    min-width: 150px;
-    z-index: 1100;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
 }
 
-.live-stat {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 0.5rem;
+.icon-change-marker,
+.annotation-marker {
+    position: absolute;
+    top: -8px;
+    width: 3px;
+    height: 76px;
+    border-radius: 2px;
+    transform: translateX(-50%);
+    pointer-events: none;
 }
 
-.live-stat-label {
-    font-size: 0.9rem;
-    opacity: 0.8;
-}
-
-.live-stat-value {
-    font-family: 'JetBrains Mono', monospace;
-    font-weight: 600;
-    font-size: 0.9rem;
-}
-
-/* Progress Container Updates */
-.progress-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.75rem;
-}
-
-.progress-controls {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.progress-control-btn {
-    background: transparent;
-    color: var(--canvas);
-    border: 2px solid var(--canvas);
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: all 200ms ease-out;
-    font-family: inherit;
-}
-
-.progress-control-btn.primary {
+.icon-change-marker {
     background: var(--trail-orange);
-    border-color: var(--trail-orange);
+    box-shadow: 0 0 6px rgba(193, 101, 47, 0.8);
+    z-index: 10;
 }
 
-.progress-control-btn:hover {
-    background: var(--canvas);
-    color: var(--evergreen);
-    transform: translateY(-1px);
+.annotation-marker {
+    background: var(--lake-teal);
+    box-shadow: 0 0 6px rgba(127, 184, 173, 0.8);
+    z-index: 9;
+}
+
+/* Responsive Design for New Layout */
+@media (max-width: 768px) {
+    .progress-controls-container {
+        padding: 0.75rem;
+        margin-top: 0.75rem;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+    
+    .progress-header {
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: flex-start;
+        width: 100%;
+    }
+    
+    .progress-controls {
+        width: 100%;
+        justify-content: flex-start;
+    }
+    
+    .progress-control-btn {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.85rem;
+        min-width: 60px;
+    }
+    
+    .progress-info {
+        font-size: 0.9rem;
+        margin-left: 0;
+        width: 100%;
+        text-align: left;
+    }
+    
+    .elevation-profile-container {
+        left: 0.5rem;
+        right: 0.5rem;
+        bottom: 0.5rem;
+        padding: 0.5rem;
+        gap: 0.4rem;
+    }
+    
+    .elevation-progress-bar {
+        height: 50px;
+    }
+    
+    .live-stats-overlay {
+        gap: 1rem;
+        margin-bottom: 0.4rem;
+    }
+    
+    .live-stat-label {
+        font-size: 0.7rem;
+    }
+    
+    .live-stat-value {
+        font-size: 0.8rem;
+    }
 } 
