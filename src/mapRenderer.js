@@ -1686,8 +1686,8 @@ export class MapRenderer {
         
         this.map.addSource('terrain-dem', sourceConfig);
         console.log(`Added ${provider} terrain source`);
-    }
-
+            }
+            
     // Set terrain data source (Mapzen or OpenTopography)
     setTerrainSource(provider) {
         if (!this.map || !this.is3DMode) {
@@ -2290,7 +2290,7 @@ export class MapRenderer {
         
         const currentPoint = this.gpxParser.getInterpolatedPoint(this.animationProgress);
         return currentPoint ? currentPoint.distance : 0;
-    }
+        }
     
     getCurrentElevation() {
         if (!this.gpxParser || !this.trackData) return 0;
@@ -2304,12 +2304,12 @@ export class MapRenderer {
         
         const currentPoint = this.gpxParser.getInterpolatedPoint(this.animationProgress);
         return currentPoint ? currentPoint.speed : 0;
-    }
-    
+                }
+                
     getCurrentProgress() {
         return this.animationProgress;
-    }
-    
+                }
+                
     getElevationData() {
         if (!this.trackData || !this.trackData.trackPoints) return [];
         
@@ -2335,7 +2335,7 @@ export class MapRenderer {
     startDirectOverlayRendering() {
         if (this.overlayRenderingId) {
             cancelAnimationFrame(this.overlayRenderingId);
-        }
+                    }
         
         const renderOverlays = () => {
             if (!this.overlayRenderingEnabled) {

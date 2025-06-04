@@ -1522,7 +1522,7 @@ class TrailReplayApp {
             // Stop continuous rendering
             this.stopContinuousRendering();
             
-            // Clean up overlay rendering if it was enabled
+            // Disable overlay rendering on map canvas
             if (this.mapRenderer && this.mapRenderer.enableOverlayRendering) {
                 this.mapRenderer.enableOverlayRendering(false);
             }
@@ -1708,7 +1708,7 @@ class TrailReplayApp {
                             audio: false
                         });
                         
-                        // Crop to the visualization section (map + overlays)
+                        // Crop to the video capture container (map + overlays only, no controls)
                         const [track] = stream.getVideoTracks();
                         
                         // Additional check: ensure the track has cropTo method
@@ -1716,13 +1716,17 @@ class TrailReplayApp {
                             throw new Error('Video track does not support cropTo method');
                         }
                         
-                        const mapContainer = document.getElementById('visualizationSection');
-                        const target = await CropTarget.fromElement(mapContainer);
+                        const videoCaptureContainer = document.getElementById('videoCaptureContainer');
+                        if (!videoCaptureContainer) {
+                            throw new Error('Video capture container not found');
+                        }
+                        
+                        const target = await CropTarget.fromElement(videoCaptureContainer);
                         await track.cropTo(target);
                         
                         usingCropTarget = true;
-                        console.log('✅ CropTarget region capture enabled - recording HTML overlays');
-                        updateProgress(75, 'CropTarget region capture ready...');
+                        console.log('✅ CropTarget region capture enabled - recording map + HTML overlays');
+                        updateProgress(75, 'CropTarget region capture ready - will record map + overlays...');
                         
                     } catch (error) {
                         console.warn('CropTarget failed, using reliable canvas overlay rendering:', error);
@@ -1735,34 +1739,12 @@ class TrailReplayApp {
                     }
                 }
                 
-                // If CropTarget failed or is not supported, still use screen capture for HTML overlays
+                // Use canvas overlay rendering if CropTarget failed or is not supported
                 if (!usingCropTarget) {
-                    try {
-                        console.log('CropTarget not available - using full screen capture for HTML overlays');
-                        
-                        // Use getDisplayMedia without CropTarget - captures the whole tab including HTML overlays
-                        stream = await navigator.mediaDevices.getDisplayMedia({
-                            video: {
-                                displaySurface: 'browser',
-                                preferCurrentTab: true,
-                                width: { ideal: 1920 },
-                                height: { ideal: 1080 },
-                                frameRate: { ideal: 30, max: 60 }
-                            },
-                            audio: false
-                        });
-                        
-                        console.log('✅ Screen capture enabled - will record HTML overlays (user may need to crop)');
-                        updateProgress(75, 'Screen capture ready with HTML overlays...');
-                        
-                    } catch (screenCaptureError) {
-                        console.warn('Screen capture also failed, falling back to canvas-only recording:', screenCaptureError);
-                        
-                        // Final fallback: canvas-only recording (no HTML overlays)
-                        stream = mapElement.captureStream(30);
-                        console.log('Using canvas-only recording (no HTML overlays)');
-                        updateProgress(75, 'Canvas-only recording ready...');
-                    }
+                    console.log('Using reliable canvas overlay rendering - will render overlays on map canvas');
+                    this.mapRenderer.enableOverlayRendering(true);
+                    stream = mapElement.captureStream(30);
+                    updateProgress(75, 'Canvas overlay rendering ready - will render overlays on map...');
                 }
             } else {
                 // For clean capture, use the map canvas directly
@@ -4145,7 +4127,7 @@ class TrailReplayApp {
                                 • All HTML overlays as they appear on screen<br>
                                 • Hardware-accelerated capture for best quality<br><br>
                                 
-                                <strong>💡 Modern browsers (Chrome 115+):</strong> Uses CropTarget API for perfect HTML overlay capture. Older browsers fall back to canvas rendering.
+                                <strong>💡 Modern browsers (Chrome 115+):</strong> Uses CropTarget API for perfect HTML overlay capture (MP4 format). Older browsers fall back to canvas rendering (WebM format).
                             </div>
                         ` : `
                             <div style="background: var(--evergreen-15); padding: 1rem; border-radius: 6px; margin: 1rem 0;">
