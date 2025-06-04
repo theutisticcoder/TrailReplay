@@ -42,6 +42,7 @@ body {
     max-width: none;
     margin: 0 auto;
     padding: 0 clamp(1rem, 2vw, 2rem);
+    min-width: 800px; /* Always accommodate camera info tooltip width */
 }
 
 @media (min-width: 1400px) {
@@ -272,6 +273,10 @@ body {
     padding: 2rem;
     border: 2px solid var(--evergreen);
     margin-bottom: 3rem;
+    width: 100%;
+    min-width: 800px; /* Always accommodate camera info tooltip width */
+    max-width: none;
+    box-sizing: border-box;
 }
 
 .controls-panel {
@@ -575,6 +580,14 @@ input:checked + .toggle-slider:before {
     border-radius: 6px;
 }
 
+/* Remove border when export section is inside journey timing panel to avoid double borders */
+.journey-timing-panel .export-section {
+    border: none;
+    margin-top: 0;
+    padding: 0;
+    background: transparent;
+}
+
 .export-header {
     display: flex;
     justify-content: space-between;
@@ -712,6 +725,8 @@ input:checked + .toggle-slider:before {
     border-radius: 6px;
     overflow: hidden;
     border: 2px solid var(--evergreen);
+    width: 100%;
+    box-sizing: border-box;
 }
 
 /* Video Capture Container - wraps map + overlays for CropTarget API */
@@ -726,22 +741,22 @@ input:checked + .toggle-slider:before {
 
 /* Highlight the capture area when exporting with overlays */
 .video-capture-container.recording-highlight {
-    box-shadow: 
-        0 0 0 3px var(--trail-orange),
-        0 0 15px rgba(193, 101, 47, 0.6);
+    /* Extend outside parent container to replace its border */
+    margin: -2px;
+    border: 3px solid var(--trail-orange);
+    border-radius: 6px;
+    box-shadow: 0 0 15px rgba(193, 101, 47, 0.6);
     animation: captureAreaPulse 2s ease-in-out infinite;
 }
 
 @keyframes captureAreaPulse {
     0%, 100% { 
-        box-shadow: 
-            0 0 0 3px var(--trail-orange),
-            0 0 15px rgba(193, 101, 47, 0.6);
+        border-color: var(--trail-orange);
+        box-shadow: 0 0 15px rgba(193, 101, 47, 0.6);
     }
     50% { 
-        box-shadow: 
-            0 0 0 3px var(--trail-orange),
-            0 0 25px rgba(193, 101, 47, 0.8);
+        border-color: #e8742f;
+        box-shadow: 0 0 25px rgba(193, 101, 47, 0.8);
     }
 }
 
@@ -1752,6 +1767,9 @@ input:checked + .toggle-slider:before {
     border: 2px solid var(--evergreen);
     margin-bottom: 2rem;
     animation: fadeIn 0.5s ease;
+    min-width: 800px; /* Always accommodate camera info tooltip width */
+    max-width: none;
+    box-sizing: border-box;
 }
 
 .timing-panel-header {
