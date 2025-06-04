@@ -136,8 +136,7 @@ class TrailReplayApp {
         document.getElementById('resetBtn').addEventListener('click', () => this.resetAnimation());
         document.getElementById('addIconChangeBtn').addEventListener('click', () => this.toggleIconChangeMode());
         document.getElementById('addAnnotationBtn').addEventListener('click', () => this.toggleAnnotationMode());
-        document.getElementById('exportCleanBtn').addEventListener('click', () => this.exportVideo(false));
-        document.getElementById('exportWithOverlaysBtn').addEventListener('click', () => this.exportVideo(true));
+        // Export listeners will be set up when journey timing panel is created
 
         // Icon controls
         document.getElementById('changeIconBtn').addEventListener('click', () => this.showIconSelectionModal());
@@ -801,6 +800,9 @@ class TrailReplayApp {
             playText.textContent = t('controls.play');
             this.isPlaying = false;
             console.log('Playback paused at progress:', this.mapRenderer.getAnimationProgress().toFixed(3));
+            
+            // Clean up manual recording mode when paused (user might be done recording)
+            this.cleanupManualRecordingMode();
         } else {
             // Preserve current position before starting
             const currentProgress = this.mapRenderer.getAnimationProgress();
@@ -854,6 +856,9 @@ class TrailReplayApp {
         
         // Reset live stats
         this.resetLiveStats();
+        
+        // Clean up manual recording mode
+        this.cleanupManualRecordingMode();
     }
 
     resetLiveStats() {
@@ -874,15 +879,38 @@ class TrailReplayApp {
                 this.isPlaying = false;
                 const playBtn = document.getElementById('playBtn');
                 playBtn.querySelector('span').textContent = t('controls.play');
+                
+                // Clean up manual recording mode when animation completes
+                this.cleanupManualRecordingMode();
             }
         };
         
         updateProgress();
     }
 
+    cleanupManualRecordingMode() {
+        // Only clean up if we're actually in manual recording mode
+        if (this.recordingMode && this.overlayRecordingMode) {
+            console.log('Cleaning up manual recording mode');
+            
+            // Reset recording flags
+            this.recordingMode = false;
+            this.overlayRecordingMode = false;
+            
+            // Remove the recording highlight
+            const videoCaptureContainer = document.getElementById('videoCaptureContainer');
+            if (videoCaptureContainer) {
+                videoCaptureContainer.classList.remove('recording-highlight');
+            }
+            
+            // Note: We don't disable live stats here as user might want to keep them visible
+            console.log('Manual recording mode cleanup complete');
+        }
+    }
+
     updateProgressDisplay() {
-        // Skip expensive operations during recording
-        if (this.recordingMode) {
+        // Skip expensive operations during clean recording, but allow updates during overlay recording (manual mode)
+        if (this.recordingMode && !this.overlayRecordingMode) {
             return;
         }
         
@@ -1332,15 +1360,188 @@ class TrailReplayApp {
         this.updateProgressBarMarkers();
     }
 
-    async exportVideo(includeOverlays = false) {
-        console.log('🎬 VIDEO EXPORT STARTED - includeOverlays:', includeOverlays);
+    toggleExportHelp() {
+        const exportHelp = document.getElementById('exportHelp');
+        const toggle = document.getElementById('exportHelpToggle');
+        
+        if (exportHelp.style.display === 'none') {
+            exportHelp.style.display = 'block';
+            toggle.innerHTML = `<span data-i18n="controls.exportHelpHide">${t('controls.exportHelpHide')}</span>`;
+        } else {
+            exportHelp.style.display = 'none';
+            toggle.innerHTML = `<span data-i18n="controls.exportHelp">${t('controls.exportHelp')}</span>`;
+        }
+    }
+
+    async startManualRecordingMode() {
+        // Show single combined instructions modal
+        const shouldStart = await this.showManualRecordingInstructions();
+        if (!shouldStart) return;
+
+        // Show progress for preloading like in normal export
+        let progressModal = null;
+        
+        const createProgressModal = () => {
+            const modal = document.createElement('div');
+            modal.className = 'modal enhanced-progress-modal';
+            modal.innerHTML = `
+                <div class="modal-content enhanced-progress-content">
+                    <h3 style="margin-bottom: 1rem; color: var(--evergreen);">
+                        🎥 Preparando Manual Mode con Estadísticas
+                    </h3>
+                    <div class="progress-container">
+                        <div class="progress-bar" id="manualProgressBar">
+                            <div class="progress-fill" style="width: 0%"></div>
+                        </div>
+                        <div class="progress-text" id="manualProgressText">Preparing map tiles...</div>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            return modal;
+        };
+
+        const updateProgress = (percent, status) => {
+            const progressBar = document.getElementById('manualProgressBar');
+            const progressText = document.getElementById('manualProgressText');
+            if (progressBar && progressText) {
+                progressBar.querySelector('.progress-fill').style.width = percent + '%';
+                progressText.textContent = status;
+            }
+        };
+
+        try {
+            progressModal = createProgressModal();
+            
+            // Highlight the capture area
+            const videoCaptureContainer = document.getElementById('videoCaptureContainer');
+            if (videoCaptureContainer) {
+                videoCaptureContainer.classList.add('recording-highlight');
+            }
+
+            // Do the same tile preloading as the normal export
+            updateProgress(10, 'Preparing for recording...');
+            await this.prepareForRecording();
+            
+            updateProgress(50, 'Preloading map tiles...');
+            await this.enhancedTilePreloading((progress) => {
+                updateProgress(50 + (progress * 0.4), `Preloading tiles... ${Math.round(progress)}%`);
+            });
+            
+            updateProgress(100, 'Ready for manual recording!');
+            
+            // Remove progress modal
+            if (progressModal) {
+                progressModal.remove();
+                progressModal = null;
+            }
+            
+            // Set recording mode flags for manual recording (enables overlay stats)
+            this.recordingMode = true;
+            this.overlayRecordingMode = true; // This ensures stats continue to update
+            
+            // Enable live stats display
+            this.toggleLiveStats(true);
+            
+            // Start the animation for manual recording with all overlays visible
+            this.resetAnimation();
+            setTimeout(() => {
+                this.togglePlayback(); // Start playback
+            }, 500);
+            
+        } catch (error) {
+            console.error('Error preparing manual recording:', error);
+            if (progressModal) {
+                progressModal.remove();
+            }
+            this.showMessage('Error preparing manual recording: ' + error.message, 'error');
+        }
+    }
+
+    async showManualRecordingInstructions() {
+        return new Promise((resolve) => {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.zIndex = '10000';
+            
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width: 600px;">
+                    <div class="modal-header">
+                        <h3>${t('controls.manualRecordingTitle')}</h3>
+                        <button class="modal-close" id="manualRecordingClose">✕</button>
+                    </div>
+                    <div class="modal-body">
+                        <div style="background: var(--trail-orange-15); padding: 1rem; border-radius: 6px; margin-bottom: 1rem; border-left: 4px solid var(--trail-orange);">
+                            <strong>${t('controls.manualRecordingInstructions')}</strong><br><br>
+                            
+                            <strong>${t('controls.manualRecordingWindows')}</strong><br>
+                            ${t('controls.manualRecordingWindowsKeys')}<br><br>
+                            
+                            <strong>${t('controls.manualRecordingMac')}</strong><br>
+                            ${t('controls.manualRecordingMacKeys')}<br><br>
+                            
+                            <strong>${t('controls.manualRecordingHighlight')}</strong><br>
+                            ${t('controls.manualRecordingHighlightDesc')}
+                        </div>
+                        
+                        <p><strong>${t('controls.manualRecordingWhatHappens')}</strong></p>
+                        <ul style="margin: 1rem 0; padding-left: 1.5rem; line-height: 1.6;">
+                            <li>${t('controls.manualRecordingStep1')}</li>
+                            <li>${t('controls.manualRecordingStep2')}</li>
+                            <li>${t('controls.manualRecordingStep3')}</li>
+                            <li>${t('controls.manualRecordingStep4')}</li>
+                        </ul>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="control-btn" id="manualRecordingCancel">${t('controls.manualRecordingCancel')}</button>
+                        <button class="control-btn primary" id="manualRecordingStart">${t('controls.manualRecordingStart')}</button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            const closeBtn = document.getElementById('manualRecordingClose');
+            const cancelBtn = document.getElementById('manualRecordingCancel');
+            const startBtn = document.getElementById('manualRecordingStart');
+            
+            const cleanup = () => {
+                modal.remove();
+            };
+            
+            closeBtn.addEventListener('click', () => {
+                cleanup();
+                resolve(false);
+            });
+            
+            cancelBtn.addEventListener('click', () => {
+                cleanup();
+                resolve(false);
+            });
+            
+            startBtn.addEventListener('click', () => {
+                cleanup();
+                resolve(true);
+            });
+            
+            // Close on outside click
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    cleanup();
+                    resolve(false);
+                }
+            });
+        });
+    }
+
+    async exportVideo(mode = 'auto-webm') {
         // Enhanced validation with better debugging
         console.log('Export video validation:');
         console.log('- mapRenderer exists:', !!this.mapRenderer);
         console.log('- currentTrackData exists:', !!this.currentTrackData);
         console.log('- journeyData exists:', !!this.journeyData);
         console.log('- journeyBuilder exists:', !!this.journeyBuilder);
-        console.log('- includeOverlays:', includeOverlays);
+        console.log('- export mode:', mode);
         
         // Check for any valid track data source
         const hasTrackData = this.currentTrackData || 
@@ -1370,17 +1571,18 @@ class TrailReplayApp {
             return;
         }
 
+        // Determine export settings based on mode
+        const includeOverlays = true; // Both remaining auto modes use overlays
+        const useCropTarget = mode === 'auto-crop';
+        
         // Show pre-recording confirmation dialog with export type info
-        const shouldContinue = await this.showVideoExportConfirmation(includeOverlays);
+        const shouldContinue = await this.showVideoExportConfirmation(mode);
         if (!shouldContinue) return;
 
         let progressModal = null;
         let mediaRecorder = null;
-        let recordedChunks = [];
         let stream = null;
         let userCameraSettings = null; // Declare this early so cleanup can access it
-        let compositeCanvas = null; // For composite canvas rendering approach
-        let usingCropTarget = false; // Track which capture method is being used
 
         // Elements to hide during recording 
         let elementsToHideSelectors = [
@@ -1446,7 +1648,6 @@ class TrailReplayApp {
                     });
                 });
             } else {
-                console.log('🎯 OVERLAY UI HIDING - Setting up overlay recording UI state');
                 // For overlay recording, hide most UI but keep stats and elevation visible
                 const elementsToHideForOverlay = [
             '.header',
@@ -1471,30 +1672,14 @@ class TrailReplayApp {
                 // Ensure live stats and elevation profile are visible for overlay recording
                 const liveStatsOverlay = document.getElementById('liveStatsOverlay');
                 const elevationContainer = document.querySelector('.elevation-profile-container');
-                const showLiveStatsToggle = document.getElementById('showLiveStats');
-                
-                // Force enable live stats if not already enabled
-                if (showLiveStatsToggle && !showLiveStatsToggle.checked) {
-                    showLiveStatsToggle.checked = true;
-                    // Trigger the live stats toggle to ensure they're shown
-                    this.toggleLiveStats(true);
-                }
                 
                 if (liveStatsOverlay) {
-                    liveStatsOverlay.style.display = 'block';
-                    liveStatsOverlay.style.visibility = 'visible';
-                    liveStatsOverlay.style.opacity = '1';
+                    liveStatsOverlay.style.display = '';
                     liveStatsOverlay.classList.remove('hidden');
-                    liveStatsOverlay.classList.add('recording-overlay');
-                    console.log('Live stats overlay forced visible for recording');
                 }
                 
                 if (elevationContainer) {
-                    elevationContainer.style.display = 'block';
-                    elevationContainer.style.visibility = 'visible';
-                    elevationContainer.style.opacity = '1';
-                    elevationContainer.classList.add('recording-overlay');
-                    console.log('Elevation container forced visible for recording');
+                    elevationContainer.style.display = '';
                 }
                 
                 console.log('UI hidden for overlay recording - keeping stats and elevation visible');
@@ -1516,12 +1701,6 @@ class TrailReplayApp {
                 elements.forEach(element => {
                     element.style.display = '';
                 });
-            });
-            
-            // Clean up recording overlay classes
-            document.querySelectorAll('.recording-overlay').forEach(element => {
-                element.classList.remove('recording-overlay');
-                element.style.opacity = '';
             });
             
             // Restore the progress modal visibility
@@ -1547,6 +1726,11 @@ class TrailReplayApp {
             
             // Stop continuous rendering
             this.stopContinuousRendering();
+            
+            // Disable overlay rendering on map canvas
+            if (this.mapRenderer && this.mapRenderer.enableOverlayRendering) {
+                this.mapRenderer.enableOverlayRendering(false);
+            }
             
             // Restore user's camera settings after video export
             if (userCameraSettings) {
@@ -1612,6 +1796,10 @@ class TrailReplayApp {
                 console.log('Video export: Fixed camera view - preserving exact position');
             }
             
+            hideUI();
+            await new Promise(resolve => setTimeout(resolve, 300));
+            updateProgress(10, 'UI hidden, preserving user camera settings...');
+
             // Step 2: Enable performance mode and optimize for recording
             enablePerformanceMode();
             this.mapRenderer.optimizeForRecording();
@@ -1642,10 +1830,8 @@ class TrailReplayApp {
                 await this.waitForMapTilesToLoadWithTimeout(8000);
             }
             
-            // Step 5: Hide UI and ensure overlays are visible BEFORE setting up capture
-            hideUI();
-            await new Promise(resolve => setTimeout(resolve, 500)); // Longer delay to ensure overlays are rendered
-            updateProgress(70, 'UI prepared for capture...');
+            // Step 5: Final preparations
+            updateProgress(70, 'Starting video capture...');
 
             // Debug: Check canvas state
             console.log('Canvas debugging info:');
@@ -1702,68 +1888,67 @@ class TrailReplayApp {
             await forceMapRender();
             
             if (includeOverlays) {
-                // For overlay capture, use Region Capture API (hardware-accelerated, native quality)
+                // For overlay capture, use CropTarget API for region capture
                 updateProgress(72, 'Setting up region capture for overlays...');
-                console.log('🎯 OVERLAY RECORDING MODE - Using Region Capture API');
                 
-                try {
-                    const videoCaptureContainer = document.getElementById('videoCaptureContainer');
-                    if (!videoCaptureContainer) {
-                        throw new Error('Video capture container not found');
-                    }
+                if (useCropTarget) {
+                    // Check CropTarget support following the recipe
+                    const supportsRegionCapture = 
+                        'CropTarget' in window &&
+                        'cropTo' in VideoTrack.prototype;   // Chrome 115+, Edge 115+
                     
-                    const dpr = window.devicePixelRatio || 1;
-                    console.log('Device pixel ratio:', dpr);
-                    
-                    // 1️⃣ Ask to record this tab
-                    stream = await navigator.mediaDevices.getDisplayMedia({
-                        video: { 
-                            displaySurface: 'browser', 
-                            preferCurrentTab: true,
-                            frameRate: 30
-                        },
-                        audio: false
-                    });
-                    
-                    // 2️⃣ Crop to just the map + overlays container (if supported)
-                    const [track] = stream.getVideoTracks();
-                    if ('CropTarget' in window && track.cropTo) {
-                        const target = await CropTarget.fromElement(videoCaptureContainer);
-                        await track.cropTo(target);
-                        console.log('✅ CropTarget applied - recording map + overlays region only');
-                        usingCropTarget = true;
+                    if (!supportsRegionCapture) {
+                        console.warn('Element cropping not supported; falling back to canvas overlay rendering.');
+                        this.mapRenderer.enableOverlayRendering(true);
+                        stream = mapElement.captureStream(30);
+                        updateProgress(75, 'Canvas overlay rendering ready - will render overlays on map...');
                     } else {
-                        console.warn('🟡 CropTarget not supported - recording full tab (still works!)');
-                        usingCropTarget = false;
+                        try {
+                            console.log('Using CropTarget API for HTML overlay capture...');
+                            
+                            // 1️⃣ Ask Chrome to capture "this" tab (user sees a prompt)
+                            stream = await navigator.mediaDevices.getDisplayMedia({
+                                video: { 
+                                    displaySurface: 'browser', 
+                                    preferCurrentTab: true,
+                                    width: { ideal: 1920 },
+                                    height: { ideal: 1080 },
+                                    frameRate: { ideal: 30, max: 60 }
+                                },
+                                audio: false
+                            });
+                            
+                            // 2️⃣ Tell the single video track to crop to videoCaptureContainer
+                            const [track] = stream.getVideoTracks();
+                            if (track.cropTo) {
+                                const elem = document.getElementById('videoCaptureContainer');
+                                if (!elem) {
+                                    throw new Error('Video capture container not found');
+                                }
+                                const target = await CropTarget.fromElement(elem);
+                                await track.cropTo(target);    // 🚀 region capture!
+                                console.log('✅ CropTarget region capture enabled');
+                                updateProgress(75, 'CropTarget region capture ready...');
+                            } else {
+                                throw new Error('Track does not support cropTo');
+                            }
+                            
+                        } catch (error) {
+                            console.warn('CropTarget failed, falling back to canvas overlay rendering:', error);
+                            if (stream) {
+                                stream.getTracks().forEach(track => track.stop());
+                            }
+                            this.mapRenderer.enableOverlayRendering(true);
+                            stream = mapElement.captureStream(30);
+                            updateProgress(75, 'Canvas overlay rendering ready - will render overlays on map...');
+                        }
                     }
-                    
-                    // 3️⃣ Bump resolution to physical pixels for crisp video
-                    const { width, height } = videoCaptureContainer.getBoundingClientRect();
-                    await track.applyConstraints({
-                        width: Math.floor(width * dpr),
-                        height: Math.floor(height * dpr),
-                        frameRate: 30
-                    });
-                    
-                    console.log(`✅ Video resolution: ${Math.floor(width * dpr)}x${Math.floor(height * dpr)} (${dpr}x DPR)`);
-                    updateProgress(75, `Region capture ready at native resolution...`);
-                    
-                } catch (error) {
-                    console.error('❌ Region Capture failed:', error);
-                    
-                    // Provide helpful error message
-                    let errorMessage = 'Screen capture failed. ';
-                    if (error.name === 'NotAllowedError') {
-                        errorMessage += 'Please allow screen recording permission and select this browser tab.';
-                    } else if (error.name === 'NotFoundError') {
-                        errorMessage += 'No screen capture source was selected.';
-                    } else {
-                        errorMessage += 'Try using Chrome 115+ for best results, or use "Clean Video" mode.';
-                    }
-                    
-                    this.showMessage(errorMessage, 'error');
-                    cleanup();
-                    return;
+                } else {
+                    // Auto-webm mode: use canvas overlay rendering
+                    console.log('Using canvas overlay rendering for WebM mode');
+                    this.mapRenderer.enableOverlayRendering(true);
+                    stream = mapElement.captureStream(30);
+                    updateProgress(75, 'Canvas overlay rendering ready - will render overlays on map...');
                 }
             } else {
                 // For clean capture, use the map canvas directly
@@ -1818,26 +2003,44 @@ class TrailReplayApp {
                 throw new Error('No video track in stream');
             }
 
-            // Try different MediaRecorder options in order of preference (MP4 first for newer browsers)
-            let options = {};
-            let fileExtension = 'webm';
-            const preferredOptions = [
-                { mimeType: 'video/mp4', bitsPerSecond: 6000000 }, // Chrome 126+, Safari 17+ (6 Mbps for crisp text)
-                { mimeType: 'video/webm; codecs=vp9', bitsPerSecond: 6000000 },
-                { mimeType: 'video/webm; codecs=vp8', bitsPerSecond: 5000000 },
-                { mimeType: 'video/webm', bitsPerSecond: 5000000 },
-                { bitsPerSecond: 4000000 }, // No specific mime type
-                {} // Minimal options as fallback
-            ];
+                        // 3️⃣ Set up MediaRecorder with proper format detection based on export mode
+            let mime;
             
-            for (const option of preferredOptions) {
-                if (!option.mimeType || MediaRecorder.isTypeSupported(option.mimeType)) {
-                    options = option;
-                    fileExtension = option.mimeType?.includes('mp4') ? 'mp4' : 'webm';
-                    console.log('Selected MediaRecorder options:', options);
-                    break;
+            if (mode === 'auto-crop') {
+                // MP4 mode - prefer MP4, fallback to WebM
+                if (MediaRecorder.isTypeSupported('video/mp4')) {
+                    mime = 'video/mp4';                         // Chrome 126+, Safari 17+
+                } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
+                    mime = 'video/webm;codecs=vp9';             // Chrome WebM VP9
+                } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) {
+                    mime = 'video/webm;codecs=vp8';             // Firefox WebM VP8
+                } else {
+                    mime = 'video/webm';                        // Basic WebM fallback
+                }
+            } else {
+                // WebM mode - prefer WebM, fallback to MP4
+                if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
+                    mime = 'video/webm;codecs=vp9';             // Chrome WebM VP9
+                } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) {
+                    mime = 'video/webm;codecs=vp8';             // Firefox WebM VP8
+                } else if (MediaRecorder.isTypeSupported('video/webm')) {
+                    mime = 'video/webm';                        // Basic WebM
+                } else if (MediaRecorder.isTypeSupported('video/mp4')) {
+                    mime = 'video/mp4';                         // MP4 fallback
+                } else {
+                    mime = 'video/webm';                        // Last resort
                 }
             }
+                         
+            const options = { 
+                mimeType: mime,
+                bitsPerSecond: 4000000  // 4 Mbps for good quality
+            };
+            
+            const fileExtension = mime.includes('mp4') ? 'mp4' : 'webm';
+            
+            console.log('Selected MediaRecorder format:', mime);
+            console.log('File extension will be:', fileExtension);
             
             console.log('MediaRecorder options:', options);
             console.log('MediaRecorder supported types check:');
@@ -1845,58 +2048,49 @@ class TrailReplayApp {
             console.log('- video/webm;codecs=vp9: ', MediaRecorder.isTypeSupported('video/webm;codecs=vp9'));
             console.log('- video/webm;codecs=vp8: ', MediaRecorder.isTypeSupported('video/webm;codecs=vp8'));
 
+            // 4️⃣ Record the stream (following the recipe pattern)
             mediaRecorder = new MediaRecorder(stream, options);
             console.log('MediaRecorder created with state:', mediaRecorder.state);
 
-            mediaRecorder.ondataavailable = (event) => {
-                console.log('MediaRecorder data available:', event.data.size, 'bytes');
-                if (event.data.size > 0) {
-                    recordedChunks.push(event.data);
-                    console.log('Total chunks so far:', recordedChunks.length);
-                } else {
-                    console.warn('Received data chunk with 0 bytes');
-                }
+            const chunks = [];
+            mediaRecorder.ondataavailable = e => {
+                console.log('MediaRecorder data available:', e.data.size, 'bytes');
+                chunks.push(e.data);
             };
-
+            
             mediaRecorder.onstop = () => {
-                console.log('MediaRecorder stopped. Total chunks:', recordedChunks.length);
-                console.log('Chunk sizes:', recordedChunks.map(chunk => chunk.size));
+                console.log('MediaRecorder stopped. Total chunks:', chunks.length);
                 
                 updateProgress(95, 'Processing video file...');
                 
-                if (recordedChunks.length === 0) {
+                if (chunks.length === 0) {
                     console.error('No data chunks recorded!');
-                    this.showMessage('No video data was recorded. The canvas may be empty or there may be a browser compatibility issue.', 'error');
+                    this.showMessage('No video data was recorded. Please try again.', 'error');
                     cleanup();
                     return;
                 }
                 
-                const blob = new Blob(recordedChunks, {
-                    type: recordedChunks[0]?.type || 'video/webm'
-                });
+                // Create blob following the recipe
+                const blob = new Blob(chunks, { type: mime });
                 
                 console.log('Final video blob size:', blob.size, 'bytes');
                 console.log('Final video blob type:', blob.type);
                 
                 if (blob.size === 0) {
                     console.error('Generated video blob has 0 bytes!');
-                    this.showMessage('Generated video is empty. Please try again or use a different browser.', 'error');
+                    this.showMessage('Generated video is empty. Please try again.', 'error');
                     cleanup();
                     return;
                 }
                 
+                // Download following the recipe pattern
                 const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = `trail-replay-animation.${fileExtension}`;
-                document.body.appendChild(a);
+                const a = Object.assign(document.createElement('a'), { 
+                    href: url, 
+                    download: `trail-replay-animation.${fileExtension}` 
+                });
                 a.click();
-                // Clean up URL after a delay to ensure download starts
-                setTimeout(() => {
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-                }, 1000);
+                setTimeout(() => URL.revokeObjectURL(url), 10000);
                 
                 updateProgress(100, 'Video export complete!');
                 setTimeout(() => {
@@ -1907,9 +2101,11 @@ class TrailReplayApp {
 
             mediaRecorder.onerror = (event) => {
                 console.error('MediaRecorder error:', event.error);
-                this.showMessage(`${t('messages.exportError')}: ${event.error.name}`, 'error');
+                this.showMessage(`Export error: ${event.error.name}`, 'error');
                 cleanup();
-                stream.getTracks().forEach(track => track.stop());
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                }
             };
 
             // Start recording
@@ -1919,10 +2115,11 @@ class TrailReplayApp {
             // Test that we can capture from the stream before starting MediaRecorder
             try {
                 // Force a frame to be available in the stream
-                if (includeOverlays) {
-                    // For region capture, just ensure the page is ready
-                    await new Promise(resolve => setTimeout(resolve, 200));
-                    console.log('Region capture stream ready');
+                if (includeOverlays && compositeCanvas) {
+                    // For composite, we need to render at least one frame
+                    const ctx = compositeCanvas.getContext('2d');
+                    ctx.drawImage(mapElement, 0, 0);
+                    console.log('Forced initial composite frame');
                 } else {
                     // For direct canvas capture, trigger a repaint
                     this.mapRenderer.map.triggerRepaint();
@@ -3594,6 +3791,108 @@ class TrailReplayApp {
             </div>
         `;
         timingPanel.style.display = 'block';
+        
+        // Create or update separate export panel
+        this.createExportPanel();
+    }
+
+    createExportPanel() {
+        // Check if export panel already exists
+        let exportPanel = document.getElementById('exportPanel');
+        if (!exportPanel) {
+            // Create new export panel
+            exportPanel = document.createElement('div');
+            exportPanel.id = 'exportPanel';
+            exportPanel.className = 'journey-timing-panel'; // Use same styling as timing panel
+            
+            // Insert after the timing panel
+            const timingPanel = document.getElementById('journeyTimingPanel');
+            if (timingPanel && timingPanel.parentNode) {
+                timingPanel.parentNode.insertBefore(exportPanel, timingPanel.nextSibling);
+            } else {
+                // Fallback: insert after controls panel
+                const controlsPanel = document.querySelector('.controls-panel');
+                if (controlsPanel && controlsPanel.parentNode) {
+                    controlsPanel.parentNode.insertBefore(exportPanel, controlsPanel.nextSibling);
+                }
+            }
+        }
+        
+        // Set content for export panel
+        exportPanel.innerHTML = `
+            <div class="export-section">
+                <div class="export-header">
+                    <h4>📹 ${t('controls.videoExport')}</h4>
+                    <button class="export-help-toggle" id="exportHelpToggle">
+                        <span>${t('controls.exportHelp')}</span>
+                    </button>
+                </div>
+                
+                <!-- Collapsible help section -->
+                <div class="export-help" id="exportHelp" style="display: none;">
+                    <div class="export-option-info">
+                        <div class="export-option">
+                            <strong>${t('controls.exportAutoTitle')}</strong>
+                            <p>${t('controls.exportAutoDesc')}</p>
+                        </div>
+                        <div class="export-option">
+                            <strong>${t('controls.exportCropTitle')}</strong>
+                            <p>${t('controls.exportCropDesc')}</p>
+                        </div>
+                        <div class="export-option">
+                            <strong>${t('controls.exportManualTitle')}</strong>
+                            <p>${t('controls.exportManualDesc')}</p>
+                            <div class="manual-instructions">
+                                <p><strong>${t('controls.manualWindows')}</strong> <kbd>Win</kbd> + <kbd>G</kbd> → Game Bar → Record</p>
+                                <p><strong>${t('controls.manualMac')}</strong> <kbd>⌘</kbd> + <kbd>⇧</kbd> + <kbd>5</kbd> → Record Selected Portion</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Export Buttons -->
+                <div class="export-buttons">
+                    <button id="exportAutoWebmBtn" class="export-btn">
+                        <span>${t('controls.exportAutoWebm')}</span>
+                    </button>
+                    <button id="exportAutoCropBtn" class="export-btn">
+                        <span>${t('controls.exportAutoCrop')}</span>
+                    </button>
+                    <button id="exportManualBtn" class="export-btn export-manual">
+                        <span>${t('controls.exportManual')}</span>
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        exportPanel.style.display = 'block';
+        
+        // Set up event listeners for the export section
+        this.setupExportEventListeners();
+    }
+
+    setupExportEventListeners() {
+        // Check if elements exist before adding listeners
+        const exportHelpToggle = document.getElementById('exportHelpToggle');
+        const exportAutoWebmBtn = document.getElementById('exportAutoWebmBtn');
+        const exportAutoCropBtn = document.getElementById('exportAutoCropBtn');
+        const exportManualBtn = document.getElementById('exportManualBtn');
+
+        if (exportHelpToggle) {
+            exportHelpToggle.addEventListener('click', this.toggleExportHelp.bind(this));
+        }
+        
+        if (exportAutoWebmBtn) {
+            exportAutoWebmBtn.addEventListener('click', () => this.exportVideo('auto-webm'));
+        }
+        
+        if (exportAutoCropBtn) {
+            exportAutoCropBtn.addEventListener('click', () => this.exportVideo('auto-crop'));
+        }
+        
+        if (exportManualBtn) {
+            exportManualBtn.addEventListener('click', () => this.startManualRecordingMode());
+        }
     }
 
     // Add automatic icon changes based on journey segments
@@ -4110,14 +4409,25 @@ class TrailReplayApp {
     }
 
     // Show video export confirmation dialog
-    async showVideoExportConfirmation(includeOverlays = false) {
+    async showVideoExportConfirmation(mode = 'clean') {
         return new Promise((resolve) => {
             const modal = document.createElement('div');
             modal.className = 'modal';
             modal.id = 'videoExportConfirmation';
             
-            const exportTypeTitle = includeOverlays ? 'Video with Live Stats & Elevation' : 'Clean Video Export';
-            const exportTypeIcon = includeOverlays ? '📊' : '🎬';
+            const exportTypeTitles = {
+                'auto-webm': 'Auto Recording (WebM)',
+                'auto-crop': 'Auto Recording (MP4)',
+                'manual': 'Manual Mode con Estadísticas'
+            };
+            const exportTypeIcons = {
+                'auto-webm': '🔧',
+                'auto-crop': '🚀',
+                'manual': '🎥'
+            };
+            
+            const exportTypeTitle = exportTypeTitles[mode] || 'Video Export';
+            const exportTypeIcon = exportTypeIcons[mode] || '🎬';
             
             modal.innerHTML = `
                 <div class="modal-content">
@@ -4134,31 +4444,15 @@ class TrailReplayApp {
                             <li>${t('messages.exportVideoStep4')}</li>
                             <li>${t('messages.exportVideoStep5')}</li>
                         </ul>
-                        ${includeOverlays ? `
-                            <div style="background: var(--ocean-blue-15); padding: 1rem; border-radius: 6px; margin: 1rem 0;">
-                                <strong>📊 Video with HTML Overlays (Region Capture):</strong><br>
-                                This mode captures the map area with live HTML overlays using modern browser technology.<br><br>
-                                
-                                <strong>✅ Features included:</strong><br>
-                                • Live distance, elevation, and speed statistics<br>
-                                • Interactive elevation profile with current position<br>
-                                • All HTML overlays as they appear on screen<br>
-                                • Hardware-accelerated capture for best quality<br><br>
-                                
-                                <strong>💡 Modern browsers (Chrome 115+):</strong> Uses CropTarget API for perfect HTML overlay capture (MP4 format). Older browsers fall back to canvas rendering (WebM format).
-                            </div>
-                        ` : `
-                            <div style="background: var(--evergreen-15); padding: 1rem; border-radius: 6px; margin: 1rem 0;">
-                                <strong>🎬 Clean Video Export:</strong><br>
-                                Pure map animation without any overlays or statistics. Perfect for presentations or when you want to add your own annotations later.<br><br>
-                                
-                                <strong>✅ Features:</strong><br>
-                                • Clean map visualization only<br>
-                                • Professional, distraction-free output<br>
-                                • Smaller file size<br>
-                                • Map-only capture with your current zoom and camera settings
-                            </div>
-                        `}
+                        <div style="background: var(--trail-orange-15); padding: 1rem; border-radius: 6px; margin: 1rem 0;">
+                            <strong>${exportTypeIcon} ${exportTypeTitle}</strong><br><br>
+                            ${mode === 'auto-webm' ?
+                                'Automatic recording with overlays rendered on canvas. Works on all browsers (WebM format).' :
+                                mode === 'auto-crop' ?
+                                'Modern browser recording using CropTarget API for perfect overlay capture (MP4 format, Chrome 115+).' :
+                                'Best quality with all statistics and overlays. The map will be preloaded and highlighted for manual screen recording.'
+                            }
+                        </div>
                         <div style="background: var(--trail-orange-15); padding: 1rem; border-radius: 6px; margin: 1rem 0;">
                             <strong>⚠️ ${t('messages.exportVideoImportant')}</strong><br>
                             ${t('messages.exportVideoStayActive')}
@@ -4174,11 +4468,21 @@ class TrailReplayApp {
             
             document.body.appendChild(modal);
             
+            // Highlight the capture area for manual mode
+            const videoCaptureContainer = document.getElementById('videoCaptureContainer');
+            if (mode === 'manual' && videoCaptureContainer) {
+                videoCaptureContainer.classList.add('recording-highlight');
+            }
+            
             const closeBtn = document.getElementById('confirmationClose');
             const cancelBtn = document.getElementById('confirmationCancel');
             const startBtn = document.getElementById('confirmationStart');
             
             const cleanup = () => {
+                // Remove highlight when closing modal
+                if (videoCaptureContainer) {
+                    videoCaptureContainer.classList.remove('recording-highlight');
+                }
                 modal.remove();
             };
             
@@ -4207,8 +4511,278 @@ class TrailReplayApp {
         });
     }
 
-    // Legacy composite canvas functions removed - now using native Region Capture API
-    // All overlay rendering is now handled by the browser's compositor automatically
+    // Canvas overlay rendering for video export - captures actual HTML elements
+    startOverlayRendering(compositeCanvas, mapCanvas) {
+        const ctx = compositeCanvas.getContext('2d');
+        
+        const renderFrame = async () => {
+            if (!this.recordingMode) return; // Stop when recording ends
+            
+            try {
+                // Clear the composite canvas
+                ctx.clearRect(0, 0, compositeCanvas.width, compositeCanvas.height);
+                
+                // Draw the map canvas first
+                ctx.drawImage(mapCanvas, 0, 0);
+                
+                // Capture and render actual HTML overlays
+                await this.renderActualHTMLOverlays(ctx, compositeCanvas.width, compositeCanvas.height);
+                
+            } catch (error) {
+                console.warn('Error in overlay rendering frame:', error);
+                // Fallback to just drawing the map
+                ctx.clearRect(0, 0, compositeCanvas.width, compositeCanvas.height);
+                ctx.drawImage(mapCanvas, 0, 0);
+            }
+            
+            // Continue rendering
+            if (this.recordingMode) {
+                requestAnimationFrame(renderFrame);
+            }
+        };
+        
+        requestAnimationFrame(renderFrame);
+    }
+    
+    // Render actual HTML elements onto the canvas
+    async renderActualHTMLOverlays(ctx, canvasWidth, canvasHeight) {
+        // Get the map container to determine positioning
+        const mapContainer = document.getElementById('map');
+        const mapRect = mapContainer.getBoundingClientRect();
+        
+        // Live stats overlay
+        const liveStatsOverlay = document.getElementById('liveStatsOverlay');
+        if (liveStatsOverlay && !liveStatsOverlay.classList.contains('hidden')) {
+            await this.renderHTMLElementToCanvas(ctx, liveStatsOverlay, mapRect);
+        }
+        
+        // Elevation profile container
+        const elevationContainer = document.querySelector('.elevation-profile-container');
+        if (elevationContainer && elevationContainer.style.display !== 'none') {
+            await this.renderHTMLElementToCanvas(ctx, elevationContainer, mapRect);
+        }
+    }
+    
+    // Convert HTML element to canvas using DOM rendering
+    async renderHTMLElementToCanvas(ctx, element, mapRect) {
+        try {
+            const rect = element.getBoundingClientRect();
+            
+            // Calculate position relative to map
+            const x = rect.left - mapRect.left;
+            const y = rect.top - mapRect.top;
+            
+            // Create a temporary canvas to render the element
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = rect.width;
+            tempCanvas.height = rect.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            // Capture the element's styling and content
+            await this.renderElementStyling(tempCtx, element, rect.width, rect.height);
+            
+            // Draw the temp canvas onto the main canvas
+            ctx.drawImage(tempCanvas, x, y);
+            
+        } catch (error) {
+            console.warn('Error rendering HTML element to canvas:', error);
+        }
+    }
+    
+    // Render element styling and content to canvas
+    async renderElementStyling(ctx, element, width, height) {
+        const computedStyle = window.getComputedStyle(element);
+        
+        // Fill background
+        const bgColor = computedStyle.backgroundColor;
+        if (bgColor && bgColor !== 'rgba(0, 0, 0, 0)' && bgColor !== 'transparent') {
+            ctx.fillStyle = bgColor;
+            ctx.fillRect(0, 0, width, height);
+        }
+        
+        // Draw border if present
+        const borderWidth = parseFloat(computedStyle.borderWidth) || 0;
+        if (borderWidth > 0) {
+            ctx.strokeStyle = computedStyle.borderColor || '#000';
+            ctx.lineWidth = borderWidth;
+            ctx.strokeRect(borderWidth / 2, borderWidth / 2, width - borderWidth, height - borderWidth);
+        }
+        
+        // Render text content
+        const color = computedStyle.color || '#000';
+        const fontSize = computedStyle.fontSize || '14px';
+        const fontFamily = computedStyle.fontFamily || 'Arial';
+        const fontWeight = computedStyle.fontWeight || 'normal';
+        
+        ctx.fillStyle = color;
+        ctx.font = `${fontWeight} ${fontSize} ${fontFamily}`;
+        
+        // Get text content and render it
+        const textContent = this.extractTextContent(element);
+        if (textContent.length > 0) {
+            const padding = 10;
+            let y = padding + parseFloat(fontSize);
+            
+            textContent.forEach(text => {
+                ctx.fillText(text, padding, y);
+                y += parseFloat(fontSize) * 1.2; // Line height
+            });
+        }
+    }
+    
+    // Extract text content from element with proper formatting
+    extractTextContent(element) {
+        const texts = [];
+        
+        if (element.id === 'liveStatsOverlay') {
+            // For live stats, extract the current values
+            const distanceElement = element.querySelector('#liveDistance') || element.querySelector('.live-stat-value');
+            const elevationElement = element.querySelector('#liveElevation') || element.querySelectorAll('.live-stat-value')[1];
+            
+            if (distanceElement) {
+                texts.push(`Distance: ${distanceElement.textContent}`);
+            }
+            if (elevationElement) {
+                texts.push(`Elevation: ${elevationElement.textContent}`);
+            }
+        } else {
+            // For other elements, extract all text
+            const walker = document.createTreeWalker(
+                element,
+                NodeFilter.SHOW_TEXT,
+                null,
+                false
+            );
+            
+            let node;
+            while (node = walker.nextNode()) {
+                const text = node.textContent.trim();
+                if (text) {
+                    texts.push(text);
+                }
+            }
+        }
+        
+        return texts;
+    }
+    
+    renderLiveStatsOverlay(ctx, width, height) {
+        if (!this.currentTrackData || !this.mapRenderer) return;
+        
+        const currentDistance = this.mapRenderer.getCurrentDistance() || 0;
+        const currentElevation = this.mapRenderer.getCurrentElevation() || 0;
+        const currentSpeed = this.mapRenderer.getCurrentSpeed() || 0;
+        
+        // Style the stats overlay
+        ctx.save();
+        
+        // Background
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+        ctx.strokeStyle = '#C1652F';
+        ctx.lineWidth = 2;
+        
+        const padding = 16;
+        const x = 20;
+        const y = 20;
+        const boxWidth = 280;
+        const boxHeight = 80;
+        
+        // Draw background with border
+        ctx.fillRect(x, y, boxWidth, boxHeight);
+        ctx.strokeRect(x, y, boxWidth, boxHeight);
+        
+        // Text styling
+        ctx.fillStyle = '#1B2A20';
+        ctx.font = 'bold 14px Inter, sans-serif';
+        
+        // Draw stats text
+        const lineHeight = 20;
+        let textY = y + 25;
+        
+        ctx.fillText(`Distance: ${(currentDistance / 1000).toFixed(2)} km`, x + padding, textY);
+        textY += lineHeight;
+        ctx.fillText(`Elevation: ${Math.round(currentElevation)} m`, x + padding, textY);
+        textY += lineHeight;
+        ctx.fillText(`Speed: ${currentSpeed.toFixed(1)} km/h`, x + padding, textY);
+        
+        ctx.restore();
+    }
+    
+    renderElevationProfileOverlay(ctx, width, height) {
+        if (!this.currentTrackData || !this.mapRenderer) return;
+        
+        const elevationData = this.mapRenderer.getElevationData?.() || [];
+        if (elevationData.length === 0) return;
+        
+        ctx.save();
+        
+        // Position at bottom of canvas
+        const margin = 20;
+        const profileHeight = 100;
+        const profileWidth = width - (margin * 2);
+        const profileY = height - profileHeight - margin;
+        const profileX = margin;
+        
+        // Background
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+        ctx.strokeStyle = '#C1652F';
+        ctx.lineWidth = 2;
+        
+        // Draw background with border
+        ctx.fillRect(profileX, profileY, profileWidth, profileHeight);
+        ctx.strokeRect(profileX, profileY, profileWidth, profileHeight);
+        
+        // Draw elevation profile
+        if (elevationData.length > 1) {
+            const minElevation = Math.min(...elevationData);
+            const maxElevation = Math.max(...elevationData);
+            const elevationRange = maxElevation - minElevation || 1;
+            
+            ctx.beginPath();
+            ctx.strokeStyle = '#1B2A20';
+            ctx.lineWidth = 2;
+            
+            elevationData.forEach((elevation, index) => {
+                const x = profileX + (index / (elevationData.length - 1)) * profileWidth;
+                const normalizedElevation = (elevation - minElevation) / elevationRange;
+                const y = profileY + profileHeight - (normalizedElevation * (profileHeight - 20)) - 10;
+                
+                if (index === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            });
+            
+            ctx.stroke();
+            
+            // Draw current position indicator
+            const currentProgress = this.mapRenderer.getCurrentProgress?.() || 0;
+            const currentX = profileX + (currentProgress * profileWidth);
+            
+            ctx.beginPath();
+            ctx.strokeStyle = '#C1652F';
+            ctx.lineWidth = 3;
+            ctx.moveTo(currentX, profileY);
+            ctx.lineTo(currentX, profileY + profileHeight);
+            ctx.stroke();
+            
+            // Draw current position circle
+            const currentElevationIndex = Math.floor(currentProgress * (elevationData.length - 1));
+            if (elevationData[currentElevationIndex] !== undefined) {
+                const currentElevation = elevationData[currentElevationIndex];
+                const normalizedElevation = (currentElevation - minElevation) / elevationRange;
+                const currentY = profileY + profileHeight - (normalizedElevation * (profileHeight - 20)) - 10;
+                
+                ctx.beginPath();
+                ctx.fillStyle = '#C1652F';
+                ctx.arc(currentX, currentY, 6, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+        }
+        
+        ctx.restore();
+    }
     
     // Force continuous rendering to ensure video capture works
     startContinuousRendering() {

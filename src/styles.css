@@ -566,6 +566,145 @@ input:checked + .toggle-slider:before {
     transform: translateY(0);
 }
 
+/* Export Section */
+.export-section {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: var(--canvas);
+    border: 2px solid var(--evergreen);
+    border-radius: 6px;
+}
+
+.export-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.export-header h4 {
+    margin: 0;
+    color: var(--evergreen);
+    font-size: 1.1rem;
+}
+
+.export-help-toggle {
+    background: var(--trail-orange-15);
+    border: 1px solid var(--trail-orange);
+    color: var(--trail-orange);
+    padding: 0.3rem 0.7rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 200ms ease-out;
+}
+
+.export-help-toggle:hover {
+    background: var(--trail-orange);
+    color: var(--canvas);
+}
+
+.export-help {
+    background: var(--evergreen-40);
+    border-radius: 6px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-left: 4px solid var(--trail-orange);
+}
+
+.export-option-info {
+    display: grid;
+    gap: 1rem;
+}
+
+.export-option {
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 4px;
+    border-left: 3px solid var(--trail-orange);
+}
+
+.export-option strong {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--evergreen);
+}
+
+.export-option p {
+    margin: 0;
+    color: var(--evergreen);
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.manual-instructions {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    background: rgba(193, 101, 47, 0.1);
+    border-radius: 3px;
+}
+
+.manual-instructions p {
+    margin: 0.25rem 0;
+    font-size: 0.85rem;
+}
+
+.export-buttons {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    width: 100%;
+}
+
+@media (max-width: 768px) {
+    .export-buttons {
+        grid-template-columns: 1fr;
+    }
+}
+
+.export-btn {
+    background: var(--trail-orange);
+    color: var(--canvas);
+    border: 2px solid var(--trail-orange);
+    padding: 0.7rem 1rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 200ms ease-out;
+    text-align: center;
+}
+
+.export-btn:hover {
+    background: var(--evergreen);
+    border-color: var(--evergreen);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.export-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.export-btn.export-manual {
+    background: var(--evergreen);
+    border-color: var(--evergreen);
+}
+
+.export-btn.export-manual:hover {
+    background: var(--trail-orange);
+    border-color: var(--trail-orange);
+}
+
+@media (max-width: 768px) {
+    .export-header {
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: stretch;
+    }
+}
+
 /* Map Container */
 .map-container {
     position: relative;
@@ -582,14 +721,28 @@ input:checked + .toggle-slider:before {
     height: 100%;
     border-radius: inherit;
     overflow: hidden;
+    transition: box-shadow 0.3s ease;
 }
 
-/* Ensure recording overlays stay visible during video export */
-.recording-overlay {
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    z-index: 1000 !important;
+/* Highlight the capture area when exporting with overlays */
+.video-capture-container.recording-highlight {
+    box-shadow: 
+        0 0 0 3px var(--trail-orange),
+        0 0 15px rgba(193, 101, 47, 0.6);
+    animation: captureAreaPulse 2s ease-in-out infinite;
+}
+
+@keyframes captureAreaPulse {
+    0%, 100% { 
+        box-shadow: 
+            0 0 0 3px var(--trail-orange),
+            0 0 15px rgba(193, 101, 47, 0.6);
+    }
+    50% { 
+        box-shadow: 
+            0 0 0 3px var(--trail-orange),
+            0 0 25px rgba(193, 101, 47, 0.8);
+    }
 }
 
 .map {
@@ -2929,4 +3082,17 @@ html .container {
 
 .camera-controls-section p:last-child {
     margin-bottom: 0;
+}
+
+/* Keyboard key styling for export instructions */
+kbd {
+    background-color: var(--evergreen);
+    color: var(--canvas);
+    padding: 0.2em 0.4em;
+    border-radius: 3px;
+    font-family: var(--font-family-mono);
+    font-size: 0.85em;
+    font-weight: 600;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
