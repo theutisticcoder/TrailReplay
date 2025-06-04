@@ -220,12 +220,11 @@ trail-replay/
 ### v1.0
 - [ ] **Enhanced Video Export**: MP4 format with ffmpeg.wasm
 - [ ] **Photo Integration**: Sync photos with GPS locations
-- [ ] **GPX Editor**: In-app editing of track points and metadata
-
-### v1.5
-- [ ] **Route Planning**: Draw routes directly on the map
-- [ ] **Social Sharing**: Direct sharing to social media platforms
+- [ ] **No gpx route builder**: Add a route between two points
 - [ ] **Strava Integration**: Sync with Strava
+- [ ] **Social Sharing**: Direct sharing to social media platforms
+- [ ] **Route Planning**: Draw routes directly on the map
+
 
 ### Medium Term (v1.5)
 - [ ] **Have an account with projects**: Save your journeys to your account

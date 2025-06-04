@@ -197,8 +197,8 @@
                         <div class="control-group" id="terrainSourceGroup" style="display: block;">
                             <label data-i18n="controls.terrainSource">Elevation Data:</label>
                             <select id="terrainSource" class="terrain-source-select">
-                                <option value="mapzen">Mapzen Global</option>
-                                <option value="opentopo" selected>OpenTopography SRTM</option>
+                                <option value="mapzen" selected>Mapzen Global</option>
+                                <option value="opentopo">OpenTopography SRTM</option>
                             </select>
                         </div>
 
@@ -210,8 +210,11 @@
                             <button id="addAnnotationBtn" class="control-btn">
                                 <span data-i18n="controls.addAnnotation">📍 Add Note</span>
                             </button>
-                            <button id="exportBtn" class="control-btn">
-                                <span data-i18n="controls.export">📹 Export Video</span>
+                            <button id="exportCleanBtn" class="control-btn">
+                                <span data-i18n="controls.exportClean">🎬 Clean Video</span>
+                            </button>
+                            <button id="exportWithOverlaysBtn" class="control-btn">
+                                <span data-i18n="controls.exportWithOverlays">📊 Video + Stats</span>
                             </button>
                         </div>
                     </div>

@@ -79,7 +79,9 @@ export class MapRenderer {
             pitch: 0, // Start with 2D view
             bearing: 0,
             maxPitch: 85, // Allow steep 3D viewing angles
-            antialias: true
+            antialias: true,
+            // Enable preserveDrawingBuffer for video capture support
+            preserveDrawingBuffer: true
             // Remove explicit navigation control settings - let MapLibre handle defaults
         });
 
@@ -621,13 +623,14 @@ export class MapRenderer {
                 this.checkAnnotations(this.animationProgress);
             }
 
-            // Auto zoom to follow the marker (only if auto zoom is enabled and we're not manually seeking)
-            if (this.autoZoom && this.isAnimating && !this.performanceMode) {
+            // Auto zoom to follow the marker (always if auto zoom is enabled and we're animating)
+            // Allow autofollow during video recording (performance mode) when user wants it
+            if (this.autoZoom && this.isAnimating) {
                 if (this.is3DMode) {
                     // In 3D mode, maintain the camera angle while following
                     this.map.easeTo({
                         center: [currentPoint.lon, currentPoint.lat],
-                        duration: 100,
+                        duration: this.performanceMode ? 50 : 100, // Faster transitions during recording
                         pitch: this.map.getPitch(), // Maintain current pitch
                         bearing: this.map.getBearing() // Maintain current bearing
                     });
@@ -635,7 +638,7 @@ export class MapRenderer {
                     // Normal 2D following
                     this.map.easeTo({
                         center: [currentPoint.lon, currentPoint.lat],
-                        duration: 100
+                        duration: this.performanceMode ? 50 : 100 // Faster transitions during recording
                     });
                 }
             }
@@ -1633,8 +1636,8 @@ export class MapRenderer {
             
             // Add terrain source only if it doesn't exist
             if (!this.map.getSource('terrain-dem')) {
-                // Default to OpenTopography (more accurate data)
-                this.currentTerrainSource = this.currentTerrainSource || 'opentopo';
+                // Default to Mapzen (more reliable than OpenTopography)
+                this.currentTerrainSource = this.currentTerrainSource || 'mapzen';
                 this.addTerrainSource(this.currentTerrainSource);
                 
                 console.log('Added minimal terrain source:', this.currentTerrainSource);
@@ -1664,11 +1667,11 @@ export class MapRenderer {
     addTerrainSource(provider) {
         const sources = {
             'mapzen': {
-                type: 'raster-dem',
-                tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
-                tileSize: 256,
-                encoding: 'terrarium',
-                maxzoom: 15
+                    type: 'raster-dem',
+                    tiles: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
+                    tileSize: 256,
+                    encoding: 'terrarium',
+                    maxzoom: 15
             },
             'opentopo': {
                 type: 'raster-dem',
@@ -1944,21 +1947,18 @@ export class MapRenderer {
             // Reduce map update frequency during recording
             this.updateThrottle = 16; // ~60fps max
             
-            // Disable auto-following during recording for stability
-            this.recordingAutoZoom = this.autoZoom;
-            this.autoZoom = false;
+            // PRESERVE user's autofollow setting during recording (don't disable it)
+            // The user chose their camera behavior and the video should respect it
+            console.log(`Preserving user's autofollow setting: ${this.autoZoom}`);
             
         } else {
             console.log('Disabling performance mode');
             
-            // Restore original settings
-            if (this.recordingAutoZoom !== undefined) {
-                this.autoZoom = this.recordingAutoZoom;
-                this.recordingAutoZoom = undefined;
-            }
-            
+            // Reset throttling and settings
             this.updateThrottle = 0;
             this.originalMapSettings = null;
+            
+            console.log('Performance mode disabled - autofollow setting preserved');
         }
     }
 
@@ -1967,9 +1967,8 @@ export class MapRenderer {
         if (!this.map) return;
         
         try {
-            // Enable preserveDrawingBuffer for smooth canvas capture
-            const canvas = this.map.getCanvas();
-            const gl = canvas.getContext('webgl2', { preserveDrawingBuffer: true });
+            // Ensure preserveDrawingBuffer is enabled for canvas capture
+            this.ensurePreserveDrawingBuffer();
             
             // Reduce tile cache size temporarily to free memory
             if (this.map.style && this.map.style.sourceCaches) {
@@ -1987,6 +1986,44 @@ export class MapRenderer {
             
         } catch (error) {
             console.warn('Could not fully optimize map for recording:', error);
+        }
+    }
+    
+    // Ensure the WebGL context has preserveDrawingBuffer enabled
+    ensurePreserveDrawingBuffer() {
+        try {
+            const canvas = this.map.getCanvas();
+            
+            // Check current WebGL context
+            const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl') || 
+                      canvas.getContext('webgl2') || canvas.getContext('experimental-webgl2');
+            
+            if (gl) {
+                // Check if preserveDrawingBuffer is enabled
+                const preserveDrawingBuffer = gl.getContextAttributes().preserveDrawingBuffer;
+                console.log('WebGL preserveDrawingBuffer status:', preserveDrawingBuffer);
+                
+                if (!preserveDrawingBuffer) {
+                    console.warn('preserveDrawingBuffer is false - video capture may not work properly');
+                    console.log('This can happen if the map was not initialized with preserveDrawingBuffer: true');
+                    
+                    // Force map to recreate with proper context
+                    this.map.triggerRepaint();
+                    
+                    // Try to trigger context recreation (this is a MapLibre internal process)
+                    if (this.map._painter && this.map._painter.gl) {
+                        console.log('Attempting to refresh MapLibre painter context');
+                        this.map._painter.resize(canvas.width, canvas.height);
+                    }
+                } else {
+                    console.log('✅ preserveDrawingBuffer is enabled - video capture should work');
+                }
+            } else {
+                console.warn('Could not get WebGL context for preserveDrawingBuffer check');
+            }
+            
+        } catch (error) {
+            console.warn('Error checking/setting preserveDrawingBuffer:', error);
         }
     }
 
@@ -2125,150 +2162,356 @@ export class MapRenderer {
         }
     }
     
-    // Preload tiles aggressively for video export
+    // Simple and efficient tile preloading for video export - preserves user camera settings
     async aggressiveTilePreload(route, progressCallback = null) {
         if (!this.map || !route || route.length === 0) return;
         
-        console.log('Starting aggressive tile preload for video export');
+        console.log('Starting efficient tile preloading while preserving user camera settings');
         
         try {
-            // Calculate route bounds
-            const bounds = this.calculateRouteBounds(route);
-            const currentZoom = this.map.getZoom();
+            // Store user's current camera settings to restore later
+            const userSettings = {
+                zoom: this.map.getZoom(),
+                center: this.map.getCenter(),
+                pitch: this.map.getPitch(),
+                bearing: this.map.getBearing()
+            };
             
-            // Preload at multiple zoom levels for comprehensive coverage
-            const zoomLevels = [];
-            for (let z = Math.max(currentZoom - 2, 8); z <= Math.min(currentZoom + 2, 18); z++) {
-                zoomLevels.push(z);
+            console.log('Preserved user camera settings:', userSettings);
+            
+            // Use the current zoom level chosen by the user (never change it)
+            const targetZoom = userSettings.zoom;
+            const tileSize = 256; // Standard tile size
+            
+            // Calculate which unique tiles we need to cover the route
+            const uniqueTiles = this.calculateUniqueTilesForRoute(route, targetZoom, tileSize);
+            
+            console.log(`Loading ${uniqueTiles.length} unique tiles at user's zoom level ${targetZoom.toFixed(1)}`);
+            
+            let loadedCount = 0;
+            
+            // Load each unique tile by centering on it briefly
+            for (const tile of uniqueTiles) {
+                // Convert tile coordinates back to lat/lng for the center of the tile
+                const lat = this.tileToLat(tile.y, targetZoom);
+                const lng = this.tileToLng(tile.x, targetZoom);
+                
+                // Pan to the center of this tile to trigger loading (preserve zoom, pitch, bearing)
+                this.map.jumpTo({
+                    center: [lng, lat],
+                    zoom: targetZoom,
+                    pitch: userSettings.pitch,
+                    bearing: userSettings.bearing
+                });
+                this.map.triggerRepaint();
+                
+                // Very brief wait to trigger tile loading
+                await new Promise(resolve => setTimeout(resolve, 30));
+                
+                loadedCount++;
+                
+                // Update progress
+                if (progressCallback) {
+                    const progress = (loadedCount / uniqueTiles.length) * 100;
+                    progressCallback(progress);
+                }
+                
+                // Log progress every 10 tiles
+                if (loadedCount % 10 === 0) {
+                    console.log(`Loaded ${loadedCount}/${uniqueTiles.length} tiles (${Math.round((loadedCount/uniqueTiles.length)*100)}%)`);
+                }
             }
             
-            let completedOperations = 0;
-            const totalOperations = zoomLevels.length * 3; // 3 operations per zoom level
+            // Restore user's exact camera settings
+            this.map.jumpTo({
+                center: userSettings.center,
+                zoom: userSettings.zoom,
+                pitch: userSettings.pitch,
+                bearing: userSettings.bearing
+            });
             
-            for (const zoom of zoomLevels) {
-                console.log(`Aggressive preload at zoom ${zoom}`);
-                
-                // 1. Load main route area
-                await this.forceTileLoading(bounds, zoom);
-                completedOperations++;
-                if (progressCallback) progressCallback((completedOperations / totalOperations) * 100);
-                
-                // 2. Load expanded area around route
-                const expandedBounds = this.expandBounds(bounds, 0.01); // ~1km buffer
-                await this.forceTileLoading(expandedBounds, zoom);
-                completedOperations++;
-                if (progressCallback) progressCallback((completedOperations / totalOperations) * 100);
-                
-                // 3. Sample key points along route
-                await this.preloadRouteKeyPoints(route, zoom);
-                completedOperations++;
-                if (progressCallback) progressCallback((completedOperations / totalOperations) * 100);
-                
-                // Small delay between zoom levels
-                await new Promise(resolve => setTimeout(resolve, 150));
-            }
-            
-            // Return to original zoom and position
-            this.map.setZoom(currentZoom);
-            if (route.length > 0) {
-                this.map.setCenter([route[0].lon || route[0][0], route[0].lat || route[0][1]]);
-            }
-            
-            console.log('Aggressive tile preload completed');
+            console.log(`Tile preloading completed. Restored user camera settings:`, userSettings);
             
         } catch (error) {
-            console.error('Error during aggressive tile preload:', error);
+            console.error('Error during efficient tile preload:', error);
         }
     }
     
-    // Calculate bounds for a route
-    calculateRouteBounds(route) {
-        if (!route || route.length === 0) return null;
+    // Calculate unique tiles needed to cover the route at a specific zoom level
+    calculateUniqueTilesForRoute(route, zoom, tileSize) {
+        const uniqueTileSet = new Set();
+        const tiles = [];
         
-        let minLat = Infinity, maxLat = -Infinity;
-        let minLon = Infinity, maxLon = -Infinity;
-        
-        route.forEach(point => {
+        // Convert each route point to tile coordinates
+        for (const point of route) {
             const lat = point.lat || point[1];
-            const lon = point.lon || point[0];
+            const lng = point.lon || point[0];
             
-            if (lat < minLat) minLat = lat;
-            if (lat > maxLat) maxLat = lat;
-            if (lon < minLon) minLon = lon;
-            if (lon > maxLon) maxLon = lon;
-        });
-        
-        return [[minLon, minLat], [maxLon, maxLat]];
-    }
-    
-    // Expand bounds by a margin
-    expandBounds(bounds, margin) {
-        if (!bounds) return null;
-        
-        const [[minLon, minLat], [maxLon, maxLat]] = bounds;
-        return [
-            [minLon - margin, minLat - margin],
-            [maxLon + margin, maxLat + margin]
-        ];
-    }
-    
-    // Preload tiles for key points along route
-    async preloadRouteKeyPoints(route, zoom) {
-        if (!route || route.length === 0) return;
-        
-        // Sample key points (every 10th point, but at least 5 points total)
-        const sampleRate = Math.max(1, Math.floor(route.length / Math.max(5, route.length / 10)));
-        
-        for (let i = 0; i < route.length; i += sampleRate) {
-            const point = route[i];
-            const lat = point.lat || point[1];
-            const lon = point.lon || point[0];
+            const tileX = this.lngToTile(lng, zoom);
+            const tileY = this.latToTile(lat, zoom);
             
-            this.map.setCenter([lon, lat]);
-            this.map.triggerRepaint();
+            const tileKey = `${tileX},${tileY}`;
             
-            // Quick wait for this point
-            await new Promise(resolve => setTimeout(resolve, 50));
+            // Only add if we haven't seen this tile before
+            if (!uniqueTileSet.has(tileKey)) {
+                uniqueTileSet.add(tileKey);
+                tiles.push({ x: tileX, y: tileY, z: zoom });
+            }
         }
+        
+        return tiles;
     }
     
-    // Enhanced method to wait for tiles with better progress feedback
-    async waitForTilesWithProgress(timeoutMs = 10000, progressCallback = null) {
-        return new Promise((resolve) => {
-            const startTime = Date.now();
-            let lastLogTime = startTime;
-            
-            const checkTiles = () => {
-                const status = this.getTileLoadingStatus();
-                const currentTime = Date.now();
-                
-                // Log progress every 2 seconds
-                if (currentTime - lastLogTime > 2000) {
-                    console.log(`Tile loading: ${status.progress}% (${status.loadedTiles}/${status.totalTiles})`);
-                    lastLogTime = currentTime;
-                }
-                
-                // Update progress callback
-                if (progressCallback) {
-                    progressCallback(status.progress);
-                }
-                
-                // Check completion
-                if (status.isComplete || currentTime - startTime > timeoutMs) {
-                    if (currentTime - startTime > timeoutMs) {
-                        console.warn(`Tile loading timeout after ${timeoutMs}ms. Status:`, status);
+    // Convert longitude to tile X coordinate
+    lngToTile(lng, zoom) {
+        return Math.floor((lng + 180) / 360 * Math.pow(2, zoom));
+    }
+    
+    // Convert latitude to tile Y coordinate  
+    latToTile(lat, zoom) {
+        const latRad = lat * Math.PI / 180;
+        return Math.floor((1 - Math.asinh(Math.tan(latRad)) / Math.PI) / 2 * Math.pow(2, zoom));
+    }
+    
+    // Convert tile X coordinate to longitude
+    tileToLng(x, zoom) {
+        return x / Math.pow(2, zoom) * 360 - 180;
+    }
+    
+    // Convert tile Y coordinate to latitude
+    tileToLat(y, zoom) {
+        const n = Math.PI - 2 * Math.PI * y / Math.pow(2, zoom);
+        return 180 / Math.PI * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+    }
+
+    // Methods for video export overlay rendering
+    getCurrentDistance() {
+        if (!this.gpxParser || !this.trackData) return 0;
+        
+        const currentPoint = this.gpxParser.getInterpolatedPoint(this.animationProgress);
+        return currentPoint ? currentPoint.distance : 0;
+    }
+    
+    getCurrentElevation() {
+        if (!this.gpxParser || !this.trackData) return 0;
+        
+        const currentPoint = this.gpxParser.getInterpolatedPoint(this.animationProgress);
+        return currentPoint ? currentPoint.elevation : 0;
+    }
+    
+    getCurrentSpeed() {
+        if (!this.gpxParser || !this.trackData) return 0;
+        
+        const currentPoint = this.gpxParser.getInterpolatedPoint(this.animationProgress);
+        return currentPoint ? currentPoint.speed : 0;
+    }
+    
+    getCurrentProgress() {
+        return this.animationProgress;
+    }
+    
+    getElevationData() {
+        if (!this.trackData || !this.trackData.trackPoints) return [];
+        
+        return this.trackData.trackPoints.map(point => point.elevation || 0);
+    }
+    
+    // Enable/disable direct overlay rendering on the map canvas
+    enableOverlayRendering(enabled) {
+        this.overlayRenderingEnabled = enabled;
+        
+        if (enabled) {
+            console.log('Enabling direct overlay rendering on map canvas');
+            // Start the overlay rendering loop
+            this.startDirectOverlayRendering();
                     } else {
-                        console.log('All tiles loaded successfully');
-                    }
-                    resolve(status);
+            console.log('Disabling direct overlay rendering on map canvas');
+            // Stop the overlay rendering loop
+            this.stopDirectOverlayRendering();
+        }
+    }
+    
+    // Start rendering overlays directly on the map canvas
+    startDirectOverlayRendering() {
+        if (this.overlayRenderingId) {
+            cancelAnimationFrame(this.overlayRenderingId);
+        }
+        
+        const renderOverlays = () => {
+            if (!this.overlayRenderingEnabled) {
+                this.overlayRenderingId = null;
                     return;
                 }
                 
-                // Continue checking
-                setTimeout(checkTiles, 100);
-            };
+            try {
+                // Get the canvas and context
+                const canvas = this.map.getCanvas();
+                const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                
+                if (ctx) {
+                    // Render live stats overlay
+                    this.renderLiveStatsOnCanvas(ctx, canvas.width, canvas.height);
+                    
+                    // Render elevation profile overlay
+                    this.renderElevationProfileOnCanvas(ctx, canvas.width, canvas.height);
+                }
+            } catch (error) {
+                console.warn('Error in direct overlay rendering:', error);
+            }
             
-            checkTiles();
-        });
+            // Continue the rendering loop
+            this.overlayRenderingId = requestAnimationFrame(renderOverlays);
+        };
+        
+        this.overlayRenderingId = requestAnimationFrame(renderOverlays);
+    }
+    
+    // Stop direct overlay rendering
+    stopDirectOverlayRendering() {
+        if (this.overlayRenderingId) {
+            cancelAnimationFrame(this.overlayRenderingId);
+            this.overlayRenderingId = null;
+        }
+    }
+    
+    // Render live stats directly on map canvas
+    renderLiveStatsOnCanvas(ctx, width, height) {
+        if (!this.trackData || !window.app) return;
+        
+        try {
+            // Get current progress and calculate stats
+            const progress = this.getAnimationProgress();
+            const currentPoint = this.gpxParser.getInterpolatedPoint(progress);
+            
+            if (!currentPoint) return;
+            
+            // Calculate current stats
+            const totalDistance = this.trackData.stats?.totalDistance || 0;
+            const currentDistance = progress * totalDistance;
+            const currentElevationGain = window.app.calculateActualElevationGain ? 
+                window.app.calculateActualElevationGain(progress) : (currentPoint.elevation || 0);
+            
+            // Style the overlay
+            ctx.save();
+            
+            // Background
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+            ctx.strokeStyle = '#C1652F';
+            ctx.lineWidth = 2;
+            
+            const padding = 16;
+            const x = 20;
+            const y = 20;
+            const boxWidth = 280;
+            const boxHeight = 80;
+            
+            // Draw background with border
+            ctx.fillRect(x, y, boxWidth, boxHeight);
+            ctx.strokeRect(x, y, boxWidth, boxHeight);
+            
+            // Text styling
+            ctx.fillStyle = '#1B2A20';
+            ctx.font = 'bold 14px Inter, sans-serif';
+            
+            // Draw stats text
+            const lineHeight = 20;
+            let textY = y + 25;
+            
+            ctx.fillText(`Distance: ${(currentDistance / 1000).toFixed(2)} km`, x + padding, textY);
+            textY += lineHeight;
+            ctx.fillText(`Elevation: ${Math.round(currentElevationGain)} m`, x + padding, textY);
+            
+            ctx.restore();
+            
+        } catch (error) {
+            console.warn('Error rendering live stats on canvas:', error);
+        }
+    }
+    
+    // Render elevation profile directly on map canvas
+    renderElevationProfileOnCanvas(ctx, width, height) {
+        if (!this.trackData || !this.trackData.trackPoints) return;
+        
+        try {
+            const trackPoints = this.trackData.trackPoints;
+            const elevations = trackPoints.map(point => point.elevation || 0);
+            
+            if (elevations.length < 2) return;
+            
+            const minElevation = Math.min(...elevations);
+            const maxElevation = Math.max(...elevations);
+            const elevationRange = maxElevation - minElevation;
+            
+            if (elevationRange === 0) return;
+            
+            ctx.save();
+            
+            // Position at bottom of canvas
+            const margin = 20;
+            const profileHeight = 100;
+            const profileWidth = Math.min(400, width - (margin * 2));
+            const profileY = height - profileHeight - margin;
+            const profileX = margin;
+            
+            // Background
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+            ctx.strokeStyle = '#C1652F';
+            ctx.lineWidth = 2;
+            
+            // Draw background with border
+            ctx.fillRect(profileX, profileY, profileWidth, profileHeight);
+            ctx.strokeRect(profileX, profileY, profileWidth, profileHeight);
+            
+            // Draw elevation profile
+            ctx.beginPath();
+            ctx.strokeStyle = '#1B2A20';
+            ctx.lineWidth = 2;
+            
+            // Sample elevations for drawing (optimize for large datasets)
+            const step = Math.max(1, Math.floor(elevations.length / profileWidth));
+            for (let i = 0; i < elevations.length; i += step) {
+                const elevation = elevations[i];
+                const x = profileX + (i / (elevations.length - 1)) * profileWidth;
+                const normalizedElevation = (elevation - minElevation) / elevationRange;
+                const y = profileY + profileHeight - (normalizedElevation * (profileHeight - 20)) - 10;
+                
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            
+            ctx.stroke();
+            
+            // Draw current position indicator
+            const currentProgress = this.getAnimationProgress();
+            const currentX = profileX + (currentProgress * profileWidth);
+            
+            ctx.beginPath();
+            ctx.strokeStyle = '#C1652F';
+            ctx.lineWidth = 3;
+            ctx.moveTo(currentX, profileY);
+            ctx.lineTo(currentX, profileY + profileHeight);
+            ctx.stroke();
+            
+            // Draw current position circle
+            const currentElevationIndex = Math.floor(currentProgress * (elevations.length - 1));
+            if (elevations[currentElevationIndex] !== undefined) {
+                const currentElevation = elevations[currentElevationIndex];
+                const normalizedElevation = (currentElevation - minElevation) / elevationRange;
+                const currentY = profileY + profileHeight - (normalizedElevation * (profileHeight - 20)) - 10;
+                
+                ctx.beginPath();
+                ctx.fillStyle = '#C1652F';
+                ctx.arc(currentX, currentY, 6, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+            
+            ctx.restore();
+            
+        } catch (error) {
+            console.warn('Error rendering elevation profile on canvas:', error);
+        }
     }
 } 

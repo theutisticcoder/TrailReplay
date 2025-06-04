@@ -651,11 +651,6 @@ input:checked + .toggle-slider:before {
     }
 }
 
-/* Hide watermark during video export to keep it clean */
-body.video-export-active .map-watermark {
-    display: none;
-}
-
 /* Elevation Profile Container (inside map) */
 .elevation-profile-container {
     position: absolute;
@@ -1936,100 +1931,9 @@ body.route-drawing-active .transportation-options {
     }
 }
 
-/* Video Export Specific Styles */
-body.video-export-active .header,
-body.video-export-active .controls-panel,
-body.video-export-active .stats-section,
-body.video-export-active .progress-bar-container,
-body.video-export-active .annotations-section,
-body.video-export-active .icon-timeline-section,
-body.video-export-active .journey-planning-section,
-body.video-export-active .journey-timeline-container,
-body.video-export-active .live-stats-overlay,
-body.video-export-active .language-switcher,
-body.video-export-active .toast, /* Hide individual toasts */
-body.video-export-active #toast-container, /* Hide toast container if it exists */
-body.video-export-active footer,
-body.video-export-active .maplibregl-ctrl-top-right,
-body.video-export-active .maplibregl-ctrl-top-left,
-body.video-export-active .maplibregl-ctrl-bottom-left,
-body.video-export-active .maplibregl-ctrl-bottom-right {
-    visibility: hidden !important;
-    opacity: 0 !important; /* Also set opacity for good measure */
-    pointer-events: none !important; /* Prevent any interaction */
-}
 
-/* Ensure the map container itself remains visible and takes full space if needed */
-body.video-export-active .map-container {
-    /* Potentially adjust if other elements are affecting its layout during export */
-    transform: translateZ(0); /* Force hardware acceleration */
-    backface-visibility: hidden; /* Optimize for performance */
-}
 
-/* Performance optimizations for recording mode */
-body.video-export-active * {
-    animation-duration: 0s !important; /* Disable all animations during recording */
-    animation-delay: 0s !important;
-    transition-duration: 0s !important; /* Disable all transitions during recording */
-    transition-delay: 0s !important;
-}
 
-/* Optimize canvas rendering during recording */
-body.video-export-active .map canvas {
-    image-rendering: optimizeSpeed;
-    image-rendering: -moz-crisp-edges;
-    image-rendering: -webkit-optimize-contrast;
-    image-rendering: optimize-contrast;
-    image-rendering: pixelated;
-    transform: translateZ(0);
-    backface-visibility: hidden;
-}
-
-/* Video export progress indicator */
-.video-export-progress {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: var(--canvas);
-    border: 2px solid var(--trail-orange);
-    border-radius: 8px;
-    padding: 2rem;
-    z-index: 10000;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(10px);
-    text-align: center;
-    min-width: 300px;
-}
-
-.video-export-progress h3 {
-    color: var(--evergreen);
-    margin-bottom: 1rem;
-    font-size: 1.2rem;
-}
-
-.video-export-progress-bar {
-    width: 100%;
-    height: 8px;
-    background: var(--evergreen-40);
-    border-radius: 4px;
-    overflow: hidden;
-    margin-bottom: 1rem;
-}
-
-.video-export-progress-fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--trail-orange), var(--lake-teal));
-    border-radius: 4px;
-    width: 0%;
-    transition: width 0.3s ease;
-    animation: shimmer 2s infinite;
-}
-
-@keyframes shimmer {
-    0% { background-position: -200px 0; }
-    100% { background-position: calc(200px + 100%) 0; }
-}
 
 .video-export-status {
     color: var(--evergreen);
@@ -2093,38 +1997,6 @@ body.video-export-active .map canvas {
     color: var(--lake-teal);
 }
 
-/* Optimized elevation profile for recording */
-body.video-export-active .elevation-progress-bar {
-    will-change: transform;
-    transform: translateZ(0);
-}
-
-body.video-export-active #elevationPath,
-body.video-export-active #progressPath {
-    will-change: d;
-    transform: translateZ(0);
-}
-
-body.video-export-active #progressIndicator {
-    will-change: transform;
-    transform: translateZ(0);
-}
-
-/* Reduce visual complexity during recording */
-body.video-export-active .timeline-segment {
-    box-shadow: none !important;
-    transition: none !important;
-    animation: none !important;
-}
-
-body.video-export-active .map-watermark {
-    display: none; /* Hide watermark during recording */
-}
-
-/* Optimize map controls area */
-body.video-export-active .map-controls-overlay {
-    display: none !important;
-}
 
 /* Memory optimization hints */
 .memory-optimized {
@@ -3041,4 +2913,3 @@ html .container {
 .camera-controls-section p:last-child {
     margin-bottom: 0;
 }
-  
