@@ -23,6 +23,12 @@ export const translations = {
             downloadHiking: "🥾 Mountain Hike (8km)",
             downloadMulti: "🏆 Multi-Sport Journey",
             
+            // Demo video section
+            demoVideoTitle: "See What You Can Create",
+            demoVideoSubtitle: "Example of a 3D trail animation made with TrailReplay",
+            demoCaption: "This example showcases the kind of immersive 3D trail animation you can create from your own GPX data using TrailReplay's powerful features.",
+            videoNotSupported: "Your browser doesn't support video playback. You can download the example video instead.",
+            
             // Core features
             coreFeatures: "Core Features Overview",
             coreFeaturesSubtitle: "Everything you can do with TrailReplay",
@@ -430,6 +436,12 @@ export const translations = {
             downloadCycling: "🚴‍♂️ Ruta de Ciclismo (25km)",
             downloadHiking: "🥾 Caminata de Montaña (8km)",
             downloadMulti: "🏆 Viaje Multideporte",
+            
+            // Demo video section
+            demoVideoTitle: "Ve Lo Que Puedes Crear",
+            demoVideoSubtitle: "Ejemplo de una animación de sendero 3D hecha con TrailReplay",
+            demoCaption: "Este ejemplo muestra el tipo de animación inmersiva de senderos 3D que puedes crear con tus propios datos GPX usando las potentes funciones de TrailReplay.",
+            videoNotSupported: "Tu navegador no soporta reproducción de video. Puedes descargar el video de ejemplo en su lugar.",
             
             // Core features
             coreFeatures: "Resumen de Funciones Principales",

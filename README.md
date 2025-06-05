@@ -2,6 +2,18 @@
 
 TrailReplay is a powerful, open-source web application that transforms your GPX trail data into stunning, interactive 3D animations. Create beautiful visual stories of your outdoor adventures with professional-quality video exports, detailed analytics, and rich storytelling features.
 
+## 🎬 See What You Can Create
+
+<div align="center">
+
+https://github.com/user-attachments/assets/your-video-file-here
+
+*Example of a stunning 3D trail animation created with TrailReplay - this is what your GPX data can become!*
+
+**🎥 [View Full Example Video](media/video/demo.mov)**
+
+</div>
+
 ## ✨ Core Features
 
 ### 📁 **Multi-File Journey Builder**
@@ -194,26 +206,6 @@ We welcome contributions! Here are ways you can help:
 - 📱 **Device Testing**: Test on different devices and browsers
 - 🗺️ **Map Testing**: Test with different GPX files and regions
 
-## 📂 Project Structure
-
-```
-trail-replay/
-├── src/
-│   ├── main.js              # Main application logic & UI management
-│   ├── gpxParser.js         # GPX file parsing and processing
-│   ├── mapRenderer.js       # Map rendering, animation & 3D graphics
-│   ├── journeyBuilder.js    # Multi-track journey management
-│   ├── translations.js      # Multi-language support
-│   └── styles.css          # Application styling & responsive design
-├── images/
-│   ├── logo.svg            # Main application logo
-│   └── logohorizontal.svg  # Horizontal logo for watermarks
-├── index.html              # Main application page
-├── tutorial.html           # Comprehensive tutorial & examples
-├── package.json            # Dependencies and build scripts
-├── vite.config.js         # Build configuration
-└── README.md              # This documentation
-```
 
 ## 🔮 Roadmap & Future Features
 

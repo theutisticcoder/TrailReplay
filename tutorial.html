@@ -174,6 +174,37 @@
             border-radius: 6px;
             margin: 1rem 0;
         }
+        
+        .demo-video-container {
+            text-align: center;
+            margin: 2rem 0;
+        }
+        
+        .demo-video {
+            max-width: 100%;
+            width: 800px;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            border: 2px solid var(--evergreen);
+        }
+        
+        .demo-caption {
+            margin-top: 1rem;
+            color: var(--evergreen);
+            opacity: 0.8;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            line-height: 1.6;
+        }
+        
+        @media (max-width: 768px) {
+            .demo-video {
+                width: 100%;
+                height: auto;
+            }
+        }
     </style>
 </head>
 <body>
@@ -222,6 +253,28 @@
                     </div>
                 </section>
 
+                <!-- Demo Video -->
+                <section class="tutorial-section">
+                    <div class="tutorial-header">
+                        <div class="tutorial-icon">🎬</div>
+                        <div>
+                            <h2 data-i18n="tutorial.demoVideoTitle">See What You Can Create</h2>
+                            <p data-i18n="tutorial.demoVideoSubtitle">Example of a stunning 3D trail animation made with TrailReplay</p>
+                        </div>
+                    </div>
+                    
+                    <div class="demo-video-container">
+                        <video controls class="demo-video" preload="metadata">
+                            <source src="media/video/demo.mp4" type="video/mp4">
+                            <source src="media/video/demo.mov" type="video/quicktime">
+                            <p data-i18n="tutorial.videoNotSupported">Your browser doesn't support video playback. You can <a href="media/video/demo.mp4" download>download the demo video</a> instead.</p>
+                        </video>
+                        <p class="demo-caption" data-i18n="tutorial.demoCaption">
+                            <em>This example showcases the kind of immersive 3D trail animation you can create from your own GPX data using TrailReplay's powerful features.</em>
+                        </p>
+                    </div>
+                </section>
+
                 <!-- Sample Files -->
                 <section class="tutorial-section">
                     <div class="tutorial-header">
@@ -233,8 +286,6 @@
                     </div>
                     
                     <div class="download-section">
-                        <h3 data-i18n="tutorial.exampleActivities">🏃‍♂️ Example Activities</h3>
-                        <p data-i18n="tutorial.sampleDescription">Download these sample GPX files to explore all of TrailReplay's features:</p>
                         
                         <a href="#" class="download-btn" onclick="downloadSampleGPX('running')" data-i18n="tutorial.downloadRunning">
                             🏃‍♂️ Running Trail (5km)

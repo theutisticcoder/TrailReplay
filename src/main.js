@@ -811,16 +811,16 @@ class TrailReplayApp {
             // For journeys, ensure time and position are synchronized before starting
             if (this.currentTrackData.isJourney && this.currentTrackData.segmentTiming) {
                 try {
-                    const expectedSegmentTime = this.convertLinearProgressToSegmentTime(currentProgress);
-                    
+                const expectedSegmentTime = this.convertLinearProgressToSegmentTime(currentProgress);
+                
                     if (this.mapRenderer.journeyElapsedTime !== undefined && expectedSegmentTime !== null && !isNaN(expectedSegmentTime)) {
-                        const timeDiff = Math.abs(this.mapRenderer.journeyElapsedTime - expectedSegmentTime);
-                        if (timeDiff > 1) { // 1 second tolerance
+                    const timeDiff = Math.abs(this.mapRenderer.journeyElapsedTime - expectedSegmentTime);
+                    if (timeDiff > 1) { // 1 second tolerance
                             console.log(`🔄 Synchronizing journey time: ${this.mapRenderer.journeyElapsedTime.toFixed(1)}s → ${expectedSegmentTime.toFixed(1)}s`);
-                            if (this.mapRenderer.setJourneyElapsedTime) {
-                                this.mapRenderer.setJourneyElapsedTime(expectedSegmentTime);
-                            }
+                        if (this.mapRenderer.setJourneyElapsedTime) {
+                            this.mapRenderer.setJourneyElapsedTime(expectedSegmentTime);
                         }
+                    }
                     } else if (expectedSegmentTime === null || isNaN(expectedSegmentTime)) {
                         // Fallback synchronization for problematic segment data
                         const totalDuration = this.currentTrackData.segmentTiming.totalDuration || this.totalAnimationTime;
@@ -999,6 +999,7 @@ class TrailReplayApp {
             this.elevationProfile = this.cachedElevationProfiles[trackId];
             document.getElementById('elevationPath').setAttribute('d', this.elevationProfile.pathData);
             console.log('Using cached elevation profile for:', trackId);
+            this.updateElevationLabels();
             return;
         }
 
@@ -1033,6 +1034,7 @@ class TrailReplayApp {
             };
             
             console.log('Generated flat elevation profile (no elevation variation)');
+            this.updateElevationLabels();
             return;
         }
 
@@ -1076,6 +1078,77 @@ class TrailReplayApp {
         this.cachedElevationProfiles[trackId] = this.elevationProfile;
 
         console.log(`Generated elevation profile: ${elevations.length} points (optimized to ${pathPoints.length}), range: ${elevationRange.toFixed(1)}m`);
+        
+        // Update elevation labels
+        this.updateElevationLabels();
+    }
+
+    // Update elevation labels with start and peak elevation values
+    updateElevationLabels() {
+        console.log('🏔️ updateElevationLabels called');
+        console.log('elevationProfile:', this.elevationProfile);
+        console.log('currentTrackData:', this.currentTrackData);
+        
+        if (!this.elevationProfile || !this.currentTrackData) {
+            // Hide labels if no elevation data
+            const minLabel = document.getElementById('minElevationLabel');
+            const maxLabel = document.getElementById('maxElevationLabel');
+            console.log('minLabel element:', minLabel);
+            console.log('maxLabel element:', maxLabel);
+            if (minLabel) minLabel.style.display = 'none';
+            if (maxLabel) maxLabel.style.display = 'none';
+            console.log('❌ No elevation data, hiding labels');
+            return;
+        }
+
+        const { minElevation, maxElevation, elevationRange } = this.elevationProfile;
+        const trackPoints = this.currentTrackData.trackPoints;
+        
+        // Find the starting elevation (first point)
+        const startElevation = trackPoints.length > 0 ? (trackPoints[0].elevation || 0) : minElevation;
+        
+        // Find the position of the maximum elevation point
+        let maxElevationIndex = 0;
+        let currentMaxElevation = startElevation;
+        
+        trackPoints.forEach((point, index) => {
+            if (point.elevation && point.elevation > currentMaxElevation) {
+                currentMaxElevation = point.elevation;
+                maxElevationIndex = index;
+            }
+        });
+        
+        // Calculate position of peak as percentage along the track
+        const peakPosition = trackPoints.length > 1 ? (maxElevationIndex / (trackPoints.length - 1)) * 100 : 50;
+        
+        // Update start elevation label
+        const minLabel = document.getElementById('minElevationLabel');
+        console.log('minLabel element found:', minLabel);
+        if (minLabel) {
+            minLabel.style.display = 'flex';
+            minLabel.style.visibility = 'visible';
+            const valueSpan = minLabel.querySelector('.elevation-value');
+            console.log('start valueSpan:', valueSpan);
+            if (valueSpan) {
+                valueSpan.textContent = `${Math.round(startElevation)} m`;
+            }
+        }
+        
+        // Update peak elevation label  
+        const maxLabel = document.getElementById('maxElevationLabel');
+        console.log('maxLabel element found:', maxLabel);
+        if (maxLabel) {
+            maxLabel.style.display = 'flex';
+            maxLabel.style.visibility = 'visible';
+            // Don't set left position - let CSS handle it
+            const valueSpan = maxLabel.querySelector('.elevation-value');
+            console.log('peak valueSpan:', valueSpan);
+            if (valueSpan) {
+                valueSpan.textContent = `${Math.round(maxElevation)} m`;
+            }
+        }
+        
+        console.log(`Elevation labels updated: Start ${Math.round(startElevation)}m, Peak ${Math.round(maxElevation)}m at ${peakPosition.toFixed(1)}%`);
     }
 
     // Clear elevation profile cache (useful for journey updates)
@@ -1675,7 +1748,7 @@ class TrailReplayApp {
                     elements.forEach(element => {
                         element.style.display = 'none';
                     });
-                });
+            });
                 
                 // Ensure live stats and elevation profile are visible for overlay recording
                 const liveStatsOverlay = document.getElementById('liveStatsOverlay');
@@ -1908,7 +1981,7 @@ class TrailReplayApp {
                     if (!supportsRegionCapture) {
                         console.warn('Element cropping not supported; falling back to canvas overlay rendering.');
                         this.mapRenderer.enableOverlayRendering(true);
-                        stream = mapElement.captureStream(30);
+            stream = mapElement.captureStream(30);
                         updateProgress(75, 'Canvas overlay rendering ready - will render overlays on map...');
                     } else {
                         try {
@@ -2039,8 +2112,8 @@ class TrailReplayApp {
                     mime = 'video/webm';                        // Last resort
                 }
             }
-                         
-            const options = { 
+
+            const options = {
                 mimeType: mime,
                 bitsPerSecond: 4000000  // 4 Mbps for good quality
             };
@@ -2065,7 +2138,7 @@ class TrailReplayApp {
                 console.log('MediaRecorder data available:', e.data.size, 'bytes');
                 chunks.push(e.data);
             };
-            
+
             mediaRecorder.onstop = () => {
                 console.log('MediaRecorder stopped. Total chunks:', chunks.length);
                 
@@ -2112,7 +2185,7 @@ class TrailReplayApp {
                 this.showMessage(`Export error: ${event.error.name}`, 'error');
                 cleanup();
                 if (stream) {
-                    stream.getTracks().forEach(track => track.stop());
+                stream.getTracks().forEach(track => track.stop());
                 }
             };
 
@@ -3000,9 +3073,9 @@ class TrailReplayApp {
             // For journeys, synchronize the segment timing with error handling
             if (this.currentTrackData.isJourney && this.currentTrackData.segmentTiming) {
                 try {
-                    const segmentTime = this.convertLinearProgressToSegmentTime(progress);
+                const segmentTime = this.convertLinearProgressToSegmentTime(progress);
                     if (this.mapRenderer.setJourneyElapsedTime && segmentTime !== null && !isNaN(segmentTime)) {
-                        this.mapRenderer.setJourneyElapsedTime(segmentTime);
+                    this.mapRenderer.setJourneyElapsedTime(segmentTime);
                         console.log(`Journey seeking: progress ${progress.toFixed(3)} → time ${segmentTime.toFixed(1)}s`);
                     } else {
                         // Fallback: use proportional time mapping
@@ -3011,8 +3084,8 @@ class TrailReplayApp {
                         if (this.mapRenderer.setJourneyElapsedTime) {
                             this.mapRenderer.setJourneyElapsedTime(fallbackTime);
                             console.log(`Journey seeking fallback: progress ${progress.toFixed(3)} → time ${fallbackTime.toFixed(1)}s`);
-                        }
-                    }
+                }
+            }
                 } catch (error) {
                     console.warn('Error during journey seeking, using simple progress:', error);
                     // Continue with simple progress-based seeking
