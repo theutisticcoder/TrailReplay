@@ -70,7 +70,8 @@ export class GPXParser {
             const lat = parseFloat(trkpt.getAttribute('lat'));
             const lon = parseFloat(trkpt.getAttribute('lon'));
             
-            if (isNaN(lat) || isNaN(lon)) {
+            if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+                console.warn(`Skipping invalid coordinate: lat=${lat}, lon=${lon}`);
                 return; // Skip invalid points
             }
             
@@ -137,6 +138,11 @@ export class GPXParser {
             }
         });
 
+        // Check if we have any valid track points
+        if (this.trackPoints.length === 0) {
+            throw new Error('No valid track points found in GPX file');
+        }
+
         // Calculate final statistics
         let duration = startTime && endTime ? (endTime - startTime) / 1000 / 3600 : 0; // hours
         
@@ -189,17 +195,36 @@ export class GPXParser {
     calculateBounds() {
         if (this.trackPoints.length === 0) return null;
 
-        const lats = this.trackPoints.map(p => p.lat);
-        const lons = this.trackPoints.map(p => p.lon);
+        // Filter out any points with NaN coordinates
+        const validPoints = this.trackPoints.filter(p => !isNaN(p.lat) && !isNaN(p.lon));
+        
+        if (validPoints.length === 0) {
+            console.error('No valid track points found - all have NaN coordinates');
+            return null;
+        }
+
+        const lats = validPoints.map(p => p.lat);
+        const lons = validPoints.map(p => p.lon);
+
+        const north = Math.max(...lats);
+        const south = Math.min(...lats);
+        const east = Math.max(...lons);
+        const west = Math.min(...lons);
+
+        // Validate the calculated bounds
+        if (isNaN(north) || isNaN(south) || isNaN(east) || isNaN(west)) {
+            console.error('Calculated bounds contain NaN values:', { north, south, east, west });
+            return null;
+        }
 
         return {
-            north: Math.max(...lats),
-            south: Math.min(...lats),
-            east: Math.max(...lons),
-            west: Math.min(...lons),
+            north,
+            south,
+            east,
+            west,
             center: [
-                (Math.min(...lons) + Math.max(...lons)) / 2,
-                (Math.min(...lats) + Math.max(...lats)) / 2
+                (west + east) / 2,
+                (south + north) / 2
             ]
         };
     }

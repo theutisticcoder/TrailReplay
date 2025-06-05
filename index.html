@@ -17,7 +17,7 @@
             <div class="container">
                 <div class="logo-container">
                     <div class="logo-placeholder" id="logoPlaceholder">
-                        <img src="images/logohorizontal.svg" alt="TrailReplay logo" class="logo-image" 
+                        <img src="media/images/logohorizontal.svg" alt="TrailReplay logo" class="logo-image" 
                              onload="if(this.offsetWidth > 0) { document.querySelector('.logo-text').style.display = 'none'; } else { document.querySelector('.logo-text').style.display = 'block'; this.style.display = 'none'; }"
                              onerror="document.querySelector('.logo-text').style.display = 'block'; this.style.display = 'none';" />
                         <span class="logo-text">TrailReplay</span>
@@ -98,6 +98,8 @@
                             <div class="segments-actions">
                                 <!-- The Preview Journey button is removed as it's now automatic -->
                             </div>
+                            
+
                         </div>
 
                         <div class="transportation-options" id="transportationOptions" style="display: none;">
@@ -177,21 +179,7 @@
                             </div>
                         </div>
 
-                        <div class="control-group">
-                            <label data-i18n="controls.showStats">Show Live Stats:</label>
-                            <div class="toggle-switch">
-                                <input type="checkbox" id="showLiveStats" checked>
-                                <label for="showLiveStats" class="toggle-slider"></label>
-                            </div>
-                        </div>
 
-                        <div class="control-group">
-                            <label data-i18n="controls.gpxOnlyStats">GPX Only Stats:</label>
-                            <div class="toggle-switch">
-                                <input type="checkbox" id="gpxOnlyStats" checked>
-                                <label for="gpxOnlyStats" class="toggle-slider"></label>
-                            </div>
-                        </div>
 
                         <!-- Terrain Source Selection (shown when 3D is enabled) -->
                         <div class="control-group" id="terrainSourceGroup" style="display: block;">
@@ -224,7 +212,7 @@
                             
                             <!-- Logo Watermark -->
                             <div class="map-watermark">
-                                <img src="images/logohorizontalfondo.svg" alt="TrailReplay" class="watermark-logo" />
+                                <img src="media/images/logohorizontalfondo.svg" alt="TrailReplay" class="watermark-logo" />
                             </div>
                             
                             <!-- Elevation Profile (stays in map) -->
@@ -445,6 +433,6 @@
         </div>
     </div>
 
-    <script type="module" src="./src/main.js"></script>
+    <script type="module" src="./src/index.js"></script>
 </body>
 </html> 

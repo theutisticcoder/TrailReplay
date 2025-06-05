@@ -425,7 +425,10 @@ export class MapRenderer {
         }
 
         // Fit map to trail bounds
-        if (trackData.bounds) {
+        if (trackData.bounds && 
+            !isNaN(trackData.bounds.west) && !isNaN(trackData.bounds.south) && 
+            !isNaN(trackData.bounds.east) && !isNaN(trackData.bounds.north)) {
+            
             const fitOptions = {
                 padding: 50,
                 duration: 1000
@@ -437,10 +440,16 @@ export class MapRenderer {
                 fitOptions.bearing = 0;
             }
             
-            this.map.fitBounds([
-                [trackData.bounds.west, trackData.bounds.south],
-                [trackData.bounds.east, trackData.bounds.north]
-            ], fitOptions);
+            try {
+                this.map.fitBounds([
+                    [trackData.bounds.west, trackData.bounds.south],
+                    [trackData.bounds.east, trackData.bounds.north]
+                ], fitOptions);
+            } catch (error) {
+                console.error('Error fitting map bounds:', error, 'Bounds:', trackData.bounds);
+            }
+        } else {
+            console.warn('Invalid or missing track bounds, skipping map fit:', trackData.bounds);
         }
 
         // Reset animation and icon changes (don't clear them for journeys as they're auto-generated)
@@ -586,6 +595,14 @@ export class MapRenderer {
         
         const currentPoint = this.gpxParser.getInterpolatedPoint(this.animationProgress);
         
+        // Debug: Check the interpolated point
+        if (currentPoint) {
+            if (isNaN(currentPoint.lat) || isNaN(currentPoint.lon)) {
+                console.error('NaN coordinates from interpolated point:', currentPoint, 'Progress:', this.animationProgress);
+                return;
+            }
+        }
+        
         if (currentPoint) {
             
             // Update current position marker
@@ -670,19 +687,8 @@ export class MapRenderer {
 
     checkIconChanges(progress) {
         if (this.iconChanges.length === 0) {
-            // No icon changes, ensure we're showing the base icon
-            const baseIcon = this.getBaseIcon();
-            if (this.currentIcon !== baseIcon) {
-                console.log(`No icon changes - reverting to base icon: ${baseIcon}`);
-                this.currentIcon = baseIcon;
-                this.forceIconUpdate();
-                
-                // Dispatch event to update UI
-                const iconChangeEvent = new CustomEvent('iconChanged', {
-                    detail: { icon: this.currentIcon, progress: progress }
-                });
-                document.dispatchEvent(iconChangeEvent);
-            }
+            // No icon changes defined - keep current icon as is
+            // Don't automatically revert to base icon, respect manually set icons
             return;
         }
         
@@ -1274,6 +1280,20 @@ export class MapRenderer {
         if (!this.gpxParser.trackPoints || this.gpxParser.trackPoints !== this.trackData.trackPoints) {
             console.log('Setting up GPX parser with track data');
             this.gpxParser.trackPoints = this.trackData.trackPoints;
+            
+            // Debug: Check if trackPoints have valid data
+            if (this.trackData.trackPoints.length > 0) {
+                const firstPoint = this.trackData.trackPoints[0];
+                console.log('First track point:', firstPoint);
+                console.log('Track points count:', this.trackData.trackPoints.length);
+                
+                // Validate coordinates
+                if (typeof firstPoint.lat !== 'number' || typeof firstPoint.lon !== 'number' || 
+                    isNaN(firstPoint.lat) || isNaN(firstPoint.lon)) {
+                    console.error('Invalid track point coordinates detected:', firstPoint);
+                    return false;
+                }
+            }
         }
         
         return true;

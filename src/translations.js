@@ -252,6 +252,13 @@ export const translations = {
             noAnnotations: "No annotations added yet"
         },
         
+        timeline: {
+            title: "Timeline Events",
+            annotation: "Note",
+            iconChange: "Icon Change",
+            iconChangeTo: "Change icon to"
+        },
+        
         stats: {
             title: "Trail Statistics",
             distance: "Total Distance",
@@ -386,7 +393,8 @@ export const translations = {
             cancel: "Cancel",
             close: "Close",
             choose: "Choose",
-            chooseIcon: "Choose Icon"
+            chooseIcon: "Choose Icon",
+            delete: "Delete"
         },
         
         // Status messages
@@ -411,9 +419,45 @@ export const translations = {
             edit: "Edit",
             addTransport: "Add Transport",
             chooseHowToTravelBetweenTracks: "Choose how to travel between tracks",
-            journeyTimeline: "🎬 Journey Timeline"
-        }
-    },
+            journeyTimeline: "🎬 Journey Timeline", 
+            animationTime: "Animation Time",
+            duration: "Duration",
+            editTiming: "Edit Timing",
+            totalDuration: "Total Duration",
+            currentDuration: "Current Duration",
+            useCustomTiming: "Use Custom Timing",
+            resetToDefault: "Reset to Default",
+            distance: "Distance",
+            transportMode: "Transport Mode",
+            defaultDuration: "Default Duration",
+            customDuration: "Custom Duration",
+            durationInMinutes: "Duration in minutes",
+            leaveEmptyForDefault: "Leave empty for default",
+            transportationOptions: "Transportation Options",
+            routeOptions: "Route Options",
+            directRoute: "Direct Route",
+            directRouteDescription: "Straight line connection",
+            calculateRoute: "Calculate Route",
+            calculateRouteDescription: "Use routing service",
+            drawRoute: "Draw Route",
+            drawRouteDescription: "Draw custom route on map",
+            timing: "Timing",
+            editTransport: "Edit Transportation",
+            drawRouteBtn: "Draw Route",
+            needTwoTracksForTransport: "Need at least 2 tracks to add transportation",
+            mapNotAvailable: "Map not available for route drawing",
+            transport: {
+                car: "Car",
+                walking: "Walking",
+                cycling: "Cycling",
+                bus: "Bus",
+                train: "Train",
+                plane: "Plane",
+                boat: "Boat",
+                walk: "Walk"
+                         }
+         }
+      },
     es: {
         subtitle: "Revive la historia que contaron tus senderos",
         
@@ -825,7 +869,43 @@ export const translations = {
             edit: "Editar",
             addTransport: "Añadir Transporte",
             chooseHowToTravelBetweenTracks: "Elige cómo viajar entre rutas",
-            journeyTimeline: "🎬 Cronología del Viaje"
+            journeyTimeline: "🎬 Cronología del Viaje",
+            animationTime: "Tiempo de Animación", 
+            duration: "Duración",
+            editTiming: "Editar Tiempo",
+            totalDuration: "Duración Total",
+            currentDuration: "Duración Actual",
+            useCustomTiming: "Usar Tiempo Personalizado",
+            resetToDefault: "Restablecer por Defecto",
+            distance: "Distancia",
+            transportMode: "Modo de Transporte",
+            defaultDuration: "Duración por Defecto",
+            customDuration: "Duración Personalizada",
+            durationInMinutes: "Duración en minutos",
+            leaveEmptyForDefault: "Dejar vacío para por defecto",
+            transportationOptions: "Opciones de Transporte",
+            routeOptions: "Opciones de Ruta",
+            directRoute: "Ruta Directa",
+            directRouteDescription: "Conexión en línea recta",
+            calculateRoute: "Calcular Ruta",
+            calculateRouteDescription: "Usar servicio de rutas",
+            drawRoute: "Dibujar Ruta",
+            drawRouteDescription: "Dibujar ruta personalizada en el mapa",
+            timing: "Tiempo",
+            editTransport: "Editar Transporte",
+            drawRouteBtn: "Dibujar Ruta",
+            needTwoTracksForTransport: "Se necesitan al menos 2 rutas para añadir transporte",
+            mapNotAvailable: "Mapa no disponible para dibujar rutas",
+            transport: {
+                car: "Coche",
+                walking: "Caminando",
+                cycling: "Ciclismo",
+                bus: "Autobús",
+                train: "Tren",
+                plane: "Avión",
+                boat: "Barco",
+                walk: "Caminar"
+            }
         }
     }
 };
