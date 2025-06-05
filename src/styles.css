@@ -42,7 +42,8 @@ body {
     max-width: none;
     margin: 0 auto;
     padding: 0 clamp(1rem, 2vw, 2rem);
-    min-width: 800px; /* Always accommodate camera info tooltip width */
+    min-width: 1200px; /* Match tutorial width for consistency */
+    width: 100%;
 }
 
 @media (min-width: 1400px) {
@@ -274,7 +275,7 @@ body {
     border: 2px solid var(--evergreen);
     margin-bottom: 3rem;
     width: 100%;
-    min-width: 800px; /* Always accommodate camera info tooltip width */
+    min-width: 100%; /* Match container width */
     max-width: none;
     box-sizing: border-box;
 }
@@ -1767,9 +1768,10 @@ input:checked + .toggle-slider:before {
     border: 2px solid var(--evergreen);
     margin-bottom: 2rem;
     animation: fadeIn 0.5s ease;
-    min-width: 800px; /* Always accommodate camera info tooltip width */
+    min-width: 100%; /* Match container width */
     max-width: none;
     box-sizing: border-box;
+    width: 100%;
 }
 
 .timing-panel-header {
@@ -2679,10 +2681,7 @@ body.high-quality-recording .map canvas {
     transition: d 0.1s ease;
 }
 
-#progressIndicator {
-    transition: cx 0.1s ease, cy 0.1s ease;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-}
+
 
 /* Elevation Markers */
 .elevation-markers {

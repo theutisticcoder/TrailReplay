@@ -182,8 +182,9 @@ export const translations = {
             manualRecordingStep1: "Map tiles will preload for smooth recording",
             manualRecordingStep2: "The recording area will be highlighted in orange", 
             manualRecordingStep3: "Animation will start automatically with all statistics",
-            manualRecordingStep4: "Use your system's screen recorder to capture the highlighted area",
-            manualRecordingCancel: "Cancel",
+                    manualRecordingStep4: "Use your system's screen recorder to capture the highlighted area",
+        manualRecordingStep5: "Press Escape at any time to exit manual recording mode",
+        manualRecordingCancel: "Cancel",
             manualRecordingStart: "🎬 Start Preparation",
 
             exportAutoTitle: "🔧 Auto Recording (WebM)",
@@ -589,8 +590,9 @@ export const translations = {
             manualRecordingStep1: "Los tiles del mapa se precargarán para una grabación fluida",
             manualRecordingStep2: "El área de grabación se resaltará en naranja",
             manualRecordingStep3: "La animación comenzará automáticamente con todas las estadísticas",
-            manualRecordingStep4: "Usa el grabador de pantalla de tu sistema para capturar el área resaltada",
-            manualRecordingCancel: "Cancelar",
+                    manualRecordingStep4: "Usa el grabador de pantalla de tu sistema para capturar el área resaltada", 
+        manualRecordingStep5: "Presiona Escape en cualquier momento para salir del modo de grabación manual",
+        manualRecordingCancel: "Cancelar",
             manualRecordingStart: "🎬 Iniciar Preparación",
 
             exportAutoTitle: "🔧 Grabación Automática (WebM)",

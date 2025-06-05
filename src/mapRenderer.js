@@ -85,8 +85,8 @@ export class MapRenderer {
             // Remove explicit navigation control settings - let MapLibre handle defaults
         });
 
-        // Add navigation control
-        this.map.addControl(new maplibregl.NavigationControl());
+        // Navigation controls (zoom buttons) disabled for cleaner look
+        // this.map.addControl(new maplibregl.NavigationControl());
         
         this.map.on('load', () => {
             this.setupMapLayers();

@@ -801,8 +801,8 @@ class TrailReplayApp {
             this.isPlaying = false;
             console.log('Playback paused at progress:', this.mapRenderer.getAnimationProgress().toFixed(3));
             
-            // Clean up manual recording mode when paused (user might be done recording)
-            this.cleanupManualRecordingMode();
+            // Don't clean up manual recording mode when paused - user might be getting ready to record
+            // Manual recording mode will only be cleaned up when animation completes or is reset
         } else {
             // Preserve current position before starting
             const currentProgress = this.mapRenderer.getAnimationProgress();
@@ -810,18 +810,28 @@ class TrailReplayApp {
             
             // For journeys, ensure time and position are synchronized before starting
             if (this.currentTrackData.isJourney && this.currentTrackData.segmentTiming) {
-                // Convert current linear progress to segment time
-                const expectedSegmentTime = this.convertLinearProgressToSegmentTime(currentProgress);
-                
-                // If MapRenderer has a different journeyElapsedTime, synchronize it
-                if (this.mapRenderer.journeyElapsedTime !== undefined && expectedSegmentTime !== null) {
-                    const timeDiff = Math.abs(this.mapRenderer.journeyElapsedTime - expectedSegmentTime);
-                    if (timeDiff > 1) { // 1 second tolerance
-                        console.log(`🔄 Synchronizing journey time before playback: ${this.mapRenderer.journeyElapsedTime.toFixed(1)}s → ${expectedSegmentTime.toFixed(1)}s`);
+                try {
+                    const expectedSegmentTime = this.convertLinearProgressToSegmentTime(currentProgress);
+                    
+                    if (this.mapRenderer.journeyElapsedTime !== undefined && expectedSegmentTime !== null && !isNaN(expectedSegmentTime)) {
+                        const timeDiff = Math.abs(this.mapRenderer.journeyElapsedTime - expectedSegmentTime);
+                        if (timeDiff > 1) { // 1 second tolerance
+                            console.log(`🔄 Synchronizing journey time: ${this.mapRenderer.journeyElapsedTime.toFixed(1)}s → ${expectedSegmentTime.toFixed(1)}s`);
+                            if (this.mapRenderer.setJourneyElapsedTime) {
+                                this.mapRenderer.setJourneyElapsedTime(expectedSegmentTime);
+                            }
+                        }
+                    } else if (expectedSegmentTime === null || isNaN(expectedSegmentTime)) {
+                        // Fallback synchronization for problematic segment data
+                        const totalDuration = this.currentTrackData.segmentTiming.totalDuration || this.totalAnimationTime;
+                        const fallbackTime = currentProgress * totalDuration;
                         if (this.mapRenderer.setJourneyElapsedTime) {
-                            this.mapRenderer.setJourneyElapsedTime(expectedSegmentTime);
+                            this.mapRenderer.setJourneyElapsedTime(fallbackTime);
+                            console.log(`🔄 Fallback journey time sync: ${fallbackTime.toFixed(1)}s`);
                         }
                     }
+                } catch (error) {
+                    console.warn('Error synchronizing journey time, continuing with simple playback:', error);
                 }
             }
             
@@ -835,7 +845,7 @@ class TrailReplayApp {
             this.isPlaying = true;
             this.startProgressUpdate();
             
-            console.log('Playback started successfully from progress:', this.mapRenderer.getAnimationProgress().toFixed(3));
+            console.log('Playback started from progress:', this.mapRenderer.getAnimationProgress().toFixed(3));
         }
     }
 
@@ -1128,13 +1138,7 @@ class TrailReplayApp {
         }
 
         // Batch DOM updates for better performance
-        const progressIndicator = document.getElementById('progressIndicator');
         const progressPath = document.getElementById('progressPath');
-        
-        if (progressIndicator) {
-            // Use transform instead of attribute change for better performance
-            progressIndicator.style.transform = `translate(${currentX}px, ${currentY}px)`;
-        }
 
         // Update progress path less frequently during animation for performance
         if (progressPath && points.length > 0) {
@@ -1447,6 +1451,9 @@ class TrailReplayApp {
             this.resetAnimation();
             setTimeout(() => {
                 this.togglePlayback(); // Start playback
+                // Show user guidance for manual recording mode
+                this.showMessage('🎥 Manual recording active - Press Escape to exit anytime', 'success');
+                console.log('Manual recording mode ready - Press Escape to exit');
             }, 500);
             
         } catch (error) {
@@ -1490,6 +1497,7 @@ class TrailReplayApp {
                             <li>${t('controls.manualRecordingStep2')}</li>
                             <li>${t('controls.manualRecordingStep3')}</li>
                             <li>${t('controls.manualRecordingStep4')}</li>
+                            <li style="color: var(--trail-orange); font-weight: 500;">${t('controls.manualRecordingStep5')}</li>
                         </ul>
                     </div>
                     <div class="modal-footer">
@@ -2986,23 +2994,35 @@ class TrailReplayApp {
                 return;
             }
             
-            // Normal seeking - set the animation progress
+            // Normal seeking - set the animation progress first
             this.mapRenderer.setAnimationProgress(progress);
             
-            // CRITICAL: For journeys, also synchronize the segment timing
+            // For journeys, synchronize the segment timing with error handling
             if (this.currentTrackData.isJourney && this.currentTrackData.segmentTiming) {
-                // Convert linear progress to segment timing
-                const segmentTime = this.convertLinearProgressToSegmentTime(progress);
-                if (this.mapRenderer.setJourneyElapsedTime && segmentTime !== null) {
-                    this.mapRenderer.setJourneyElapsedTime(segmentTime);
-                    console.log(`Journey seeking: linear progress ${progress.toFixed(3)} → segment time ${segmentTime.toFixed(1)}s`);
+                try {
+                    const segmentTime = this.convertLinearProgressToSegmentTime(progress);
+                    if (this.mapRenderer.setJourneyElapsedTime && segmentTime !== null && !isNaN(segmentTime)) {
+                        this.mapRenderer.setJourneyElapsedTime(segmentTime);
+                        console.log(`Journey seeking: progress ${progress.toFixed(3)} → time ${segmentTime.toFixed(1)}s`);
+                    } else {
+                        // Fallback: use proportional time mapping
+                        const totalDuration = this.currentTrackData.segmentTiming.totalDuration || this.totalAnimationTime;
+                        const fallbackTime = progress * totalDuration;
+                        if (this.mapRenderer.setJourneyElapsedTime) {
+                            this.mapRenderer.setJourneyElapsedTime(fallbackTime);
+                            console.log(`Journey seeking fallback: progress ${progress.toFixed(3)} → time ${fallbackTime.toFixed(1)}s`);
+                        }
+                    }
+                } catch (error) {
+                    console.warn('Error during journey seeking, using simple progress:', error);
+                    // Continue with simple progress-based seeking
                 }
             }
             
-            // CRITICAL: Update the current position to match the new progress
+            // Update the current position to match the new progress
             this.mapRenderer.updateCurrentPosition();
             
-            // Update progress display immediately (this will update the elevation profile)
+            // Update progress display
             this.updateProgressDisplay();
             
             // Update timeline progress indicator if available
@@ -3010,19 +3030,18 @@ class TrailReplayApp {
                 this.updateTimelineProgressIndicator(progress);
             }
             
-            // Force the view to follow the new position (auto-center)
+            // Auto-center view on new position if enabled
             if (this.currentTrackData && this.currentTrackData.trackPoints) {
                 const currentPoint = this.mapRenderer.gpxParser.getInterpolatedPoint(progress);
                 if (currentPoint && this.mapRenderer.map) {
-                    console.log('Centering view on seeked position:', currentPoint.lat, currentPoint.lon);
                     this.mapRenderer.map.easeTo({
                         center: [currentPoint.lon, currentPoint.lat],
-                        duration: 300 // Smooth transition
+                        duration: 300
                     });
                 }
             }
             
-            console.log('Seek completed to progress:', progress.toFixed(3), 'Animation can now resume from this position');
+            console.log('Seek completed to progress:', progress.toFixed(3));
         };
         
         // Mouse events
@@ -3893,6 +3912,27 @@ class TrailReplayApp {
         if (exportManualBtn) {
             exportManualBtn.addEventListener('click', () => this.startManualRecordingMode());
         }
+
+        // Setup global keyboard handler for manual recording mode
+        this.setupManualRecordingKeyboardHandler();
+    }
+
+    setupManualRecordingKeyboardHandler() {
+        // Remove existing listener if any
+        if (this._manualRecordingEscapeListener) {
+            document.removeEventListener('keydown', this._manualRecordingEscapeListener);
+        }
+
+        this._manualRecordingEscapeListener = (e) => {
+            // Only handle Escape key during manual recording mode
+            if (e.key === 'Escape' && this.recordingMode && this.overlayRecordingMode) {
+                console.log('Escape pressed - exiting manual recording mode');
+                this.cleanupManualRecordingMode();
+                this.showMessage('Manual recording mode cancelled', 'info');
+            }
+        };
+
+        document.addEventListener('keydown', this._manualRecordingEscapeListener);
     }
 
     // Add automatic icon changes based on journey segments
@@ -4187,6 +4227,9 @@ class TrailReplayApp {
             return null;
         }
 
+        // Ensure progress is within bounds
+        linearProgress = Math.max(0, Math.min(1, linearProgress));
+
         const segments = this.currentTrackData.segmentTiming.segments;
         if (!segments || segments.length === 0) {
             return linearProgress * (this.currentTrackData.segmentTiming.totalDuration || this.totalAnimationTime);
@@ -4195,6 +4238,13 @@ class TrailReplayApp {
         // Find which segment this linear progress falls into
         for (let i = 0; i < segments.length; i++) {
             const segment = segments[i];
+            
+            // Validate segment data
+            if (typeof segment.progressStartRatio !== 'number' || typeof segment.progressEndRatio !== 'number' ||
+                typeof segment.startTime !== 'number' || typeof segment.duration !== 'number') {
+                console.warn(`Invalid segment data at index ${i}:`, segment);
+                continue;
+            }
             
             // Check if the linear progress falls within this segment's coordinate range
             if (linearProgress >= segment.progressStartRatio && linearProgress <= segment.progressEndRatio) {
@@ -4210,15 +4260,18 @@ class TrailReplayApp {
                 const timeInSegment = relativeProgressInSegment * segment.duration;
                 const totalTime = segment.startTime + timeInSegment;
                 
-                console.log(`Linear progress ${linearProgress.toFixed(3)} maps to segment ${i}, time: ${totalTime.toFixed(1)}s`);
+                if (isNaN(totalTime)) {
+                    console.warn(`Invalid time calculation for segment ${i}:`, { timeInSegment, totalTime, segment });
+                    break; // Fall through to fallback
+                }
+                
                 return totalTime;
             }
         }
 
         // Fallback: if not found in any segment, use proportional mapping
-        const fallbackTime = linearProgress * this.currentTrackData.segmentTiming.totalDuration;
-        console.log(`Linear progress ${linearProgress.toFixed(3)} fallback to proportional time: ${fallbackTime.toFixed(1)}s`);
-        return fallbackTime;
+        const fallbackTime = linearProgress * (this.currentTrackData.segmentTiming.totalDuration || this.totalAnimationTime);
+        return isNaN(fallbackTime) ? linearProgress * this.totalAnimationTime : fallbackTime;
     }
 
     // Convert segment time to linear progress for journeys (reverse mapping)
@@ -4227,14 +4280,28 @@ class TrailReplayApp {
             return null;
         }
 
+        // Ensure time is valid
+        if (typeof segmentTime !== 'number' || isNaN(segmentTime)) {
+            return null;
+        }
+
         const segments = this.currentTrackData.segmentTiming.segments;
         if (!segments || segments.length === 0) {
-            return segmentTime / (this.currentTrackData.segmentTiming.totalDuration || this.totalAnimationTime);
+            const totalDuration = this.currentTrackData.segmentTiming.totalDuration || this.totalAnimationTime;
+            return totalDuration > 0 ? Math.max(0, Math.min(1, segmentTime / totalDuration)) : 0;
         }
 
         // Find which segment this time falls into
         for (let i = 0; i < segments.length; i++) {
             const segment = segments[i];
+            
+            // Validate segment data
+            if (typeof segment.startTime !== 'number' || typeof segment.endTime !== 'number' ||
+                typeof segment.duration !== 'number' || typeof segment.progressStartRatio !== 'number' ||
+                typeof segment.progressEndRatio !== 'number') {
+                console.warn(`Invalid segment data for time conversion at index ${i}:`, segment);
+                continue;
+            }
             
             if (segmentTime >= segment.startTime && segmentTime <= segment.endTime) {
                 // Calculate relative position within this segment's time
@@ -4245,14 +4312,18 @@ class TrailReplayApp {
                 const segmentProgressRange = segment.progressEndRatio - segment.progressStartRatio;
                 const linearProgress = segment.progressStartRatio + (relativeProgressInSegment * segmentProgressRange);
                 
-                console.log(`Segment time ${segmentTime.toFixed(1)}s maps to linear progress ${linearProgress.toFixed(3)}`);
+                if (isNaN(linearProgress)) {
+                    console.warn(`Invalid progress calculation for segment ${i}:`, { relativeProgressInSegment, linearProgress, segment });
+                    break; // Fall through to fallback
+                }
+                
                 return Math.max(0, Math.min(1, linearProgress));
             }
         }
 
         // Fallback: if not found in any segment, use proportional mapping
-        const fallbackProgress = segmentTime / this.currentTrackData.segmentTiming.totalDuration;
-        console.log(`Segment time ${segmentTime.toFixed(1)}s fallback to proportional progress: ${fallbackProgress.toFixed(3)}`);
+        const totalDuration = this.currentTrackData.segmentTiming.totalDuration || this.totalAnimationTime;
+        const fallbackProgress = totalDuration > 0 ? segmentTime / totalDuration : 0;
         return Math.max(0, Math.min(1, fallbackProgress));
     }
 
