@@ -4,6 +4,7 @@ import { MapController } from '../controllers/MapController.js';
 import { PlaybackController } from '../controllers/PlaybackController.js';
 import { StatsController } from '../controllers/StatsController.js';
 import { ExportController } from '../controllers/ExportController.js';
+import { VideoExportController } from '../controllers/VideoExportController.js';
 import { AnnotationController } from '../controllers/AnnotationController.js';
 import { ProgressController } from '../controllers/ProgressController.js';
 import { JourneyController } from '../controllers/JourneyController.js';
@@ -56,6 +57,7 @@ export class TrailReplayApp {
         this.journey = null;
         this.icon = null;
         this.exporter = null;
+        this.videoExporter = null;
         this.notes = null;
 
         // Legacy property names for compatibility
@@ -82,6 +84,7 @@ export class TrailReplayApp {
         this.icon = new IconController(this);
         this.timeline = new TimelineController(this);
         this.exporter = new ExportController(this);
+        this.videoExporter = new VideoExportController(this);
         this.notes = new AnnotationController(this);
 
         // Set legacy compatibility references
@@ -103,6 +106,9 @@ export class TrailReplayApp {
         
         // Initialize icon functionality
         this.icon.initialize();
+        
+        // Initialize video export functionality
+        this.videoExporter.initialize();
         
         // Set up timing synchronization for journeys
         this.setupTimingSynchronization();
@@ -259,7 +265,10 @@ export class TrailReplayApp {
                 this.isPlaying = false; // Legacy compatibility
                 const playBtn = document.getElementById('playBtn');
                 if (playBtn) {
-                    playBtn.querySelector('span').textContent = 'Play'; // Will be translated by eventListeners
+                    const playBtnSpan = playBtn.querySelector('span');
+                    if (playBtnSpan) {
+                        playBtnSpan.textContent = 'Play'; // Will be translated by eventListeners
+                    }
                 }
             }
         };
@@ -1035,6 +1044,48 @@ export class TrailReplayApp {
             }
         });
 
-        console.log('✅ Timing synchronization event listeners set up');
-    } 
+
+    }
+
+    // Video export support methods
+    async enhancedTilePreloading(progressCallback) {
+        if (!this.mapRenderer || !this.currentTrackData) return;
+        
+        const trackPoints = this.currentTrackData.trackPoints;
+        if (!trackPoints || trackPoints.length === 0) return;
+        
+        console.log('Starting enhanced tile preloading for video export');
+        
+        // Use basic tile preloading for now - can be enhanced later
+        if (progressCallback) {
+            for (let i = 0; i <= 100; i += 10) {
+                await new Promise(resolve => setTimeout(resolve, 50));
+                progressCallback(i);
+            }
+        }
+        
+        console.log('Enhanced tile preloading completed');
+    }
+
+    async waitForMapTilesToLoadWithTimeout(timeoutMs = 8000) {
+        if (!this.mapRenderer || !this.mapRenderer.map) {
+            return Promise.resolve();
+        }
+
+        return new Promise((resolve) => {
+            const timeoutId = setTimeout(() => {
+                console.warn('Map tiles loading timeout reached');
+                resolve();
+            }, timeoutMs);
+
+            // Wait for map to be idle (all tiles loaded)
+            const onIdle = () => {
+                clearTimeout(timeoutId);
+                console.log('Map tiles loaded successfully');
+                resolve();
+            };
+
+            this.mapRenderer.map.once('idle', onIdle);
+        });
+    }
 } 

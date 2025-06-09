@@ -857,7 +857,7 @@ export class JourneySegmentsUI {
                     'line-color': this.getRouteColor(),
                     'line-width': 4,
                     'line-opacity': 0.8,
-                    'line-dasharray': this.currentDrawingMode === 'plane' ? [2, 2] : null
+                    'line-dasharray': this.currentDrawingMode === 'plane' ? ['literal', [2, 2]] : null
                 }
             });
         }

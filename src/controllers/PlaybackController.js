@@ -52,6 +52,13 @@ export class PlaybackController {
     reset() {
         this.pause();
         
+        // Exit manual recording mode if active
+        if (this.app.videoExporter && this.app.videoExporter.currentExportMode === 'manual' && this.app.videoExporter.isExporting) {
+            console.log('Reset: Automatically exiting manual recording mode');
+            this.app.videoExporter.cleanup();
+            this.app.showMessage('Manual recording mode exited', 'info');
+        }
+        
         // Reset animation through map controller
         if (this.app.map && this.app.map.mapRenderer) {
             this.app.map.mapRenderer.resetAnimation();

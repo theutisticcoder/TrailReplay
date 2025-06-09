@@ -28,7 +28,7 @@
                 <!-- Language Switcher -->
                 <div class="language-switcher">
                     <select id="languageSelect">
-                        <option value="en">🇺🇸 English</option>
+                        <option value="en">🇬🇧 English</option>
                         <option value="es">🇪🇸 Español</option>
                     </select>
                 </div>
@@ -305,21 +305,7 @@
                     </div>
                 </section>
 
-                <!-- Icon Changes Timeline -->
-                <section class="icon-timeline-section" id="iconTimelineSection" style="display: none;">
-                    <h3 data-i18n="iconChanges.title">Icon Changes Timeline</h3>
-                    <div class="icon-timeline" id="iconTimeline">
-                        <!-- Icon changes will be added dynamically -->
-                    </div>
-                </section>
 
-                <!-- Annotations Panel -->
-                <section class="annotations-section" id="annotationsSection" style="display: none;">
-                    <h3 data-i18n="annotations.title">Trail Annotations</h3>
-                    <div class="annotations-list" id="annotationsList">
-                        <!-- Annotations will be added dynamically -->
-                    </div>
-                </section>
 
                 <!-- Stats Section -->
                 <section class="stats-section" id="statsSection" style="display: none;">
@@ -413,8 +399,8 @@
                 <button class="modal-close" id="closeAnnotationModal">✕</button>
             </div>
             <div class="modal-body">
-                <input type="text" id="annotationTitle" placeholder="Annotation title..." maxlength="50">
-                <textarea id="annotationDescription" placeholder="Description (optional)..." maxlength="200"></textarea>
+                <input type="text" id="annotationTitle" data-i18n-placeholder="messages.annotationTitlePlaceholder" placeholder="Annotation title..." maxlength="50">
+                <textarea id="annotationDescription" data-i18n-placeholder="messages.annotationDescriptionPlaceholder" placeholder="Description (optional)..." maxlength="200"></textarea>
                 <div class="annotation-icons">
                     <span class="annotation-icon" data-icon="📍">📍</span>
                     <span class="annotation-icon" data-icon="⚠️">⚠️</span>
@@ -434,5 +420,25 @@
     </div>
 
     <script type="module" src="./src/index.js"></script>
+    
+    <!-- Language Switcher Initialization -->
+    <script type="module">
+        import { initializeTranslations, setLanguage } from './src/translations.js';
+        
+        // Setup language switcher functionality on DOM ready
+        document.addEventListener('DOMContentLoaded', () => {
+            const languageSelect = document.getElementById('languageSelect');
+            if (languageSelect) {
+                // Set current language as selected
+                const lang = localStorage.getItem('trailReplayLang') || navigator.language.slice(0,2) || 'en';
+                languageSelect.value = lang.startsWith('es') ? 'es' : 'en';
+                
+                // Add event listener for language changes
+                languageSelect.addEventListener('change', (e) => {
+                    setLanguage(e.target.value);
+                });
+            }
+        });
+    </script>
 </body>
 </html> 

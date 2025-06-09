@@ -41,31 +41,10 @@ export class MapRenderer {
         this.annotations = new MapAnnotations(this);
         this.iconChanges = new MapIconChanges(this);
         
-        // Debug: Log the methods available on each module
-        console.log('🔍 MapRenderer constructor - Annotations methods:', {
-            instance: !!this.annotations,
-            enableMethod: typeof this.annotations?.enableAnnotationMode,
-            addMethod: typeof this.annotations?.addAnnotation,
-            getMethod: typeof this.annotations?.getAnnotations,
-            allMethods: this.annotations ? Object.getOwnPropertyNames(Object.getPrototypeOf(this.annotations)) : 'N/A'
-        });
-        
-        console.log('🔍 MapRenderer constructor - IconChanges methods:', {
-            instance: !!this.iconChanges,
-            enableMethod: typeof this.iconChanges?.enableIconChangeMode,
-            addMethod: typeof this.iconChanges?.addIconChange,
-            getMethod: typeof this.iconChanges?.getIconChanges,
-            checkMethod: typeof this.iconChanges?.checkIconChanges,
-            allMethods: this.iconChanges ? Object.getOwnPropertyNames(Object.getPrototypeOf(this.iconChanges)) : 'N/A'
-        });
-        
         // Ensure proper method binding for icon changes
         if (this.iconChanges && typeof this.iconChanges.checkIconChanges === 'function') {
             // Explicitly bind the method to ensure it's available
             this.iconChanges.checkIconChanges = this.iconChanges.checkIconChanges.bind(this.iconChanges);
-            console.log('✅ MapRenderer: iconChanges.checkIconChanges method properly bound');
-        } else {
-            console.error('❌ MapRenderer: iconChanges.checkIconChanges method not found');
         }
         
         this.initializeMap();
@@ -122,22 +101,13 @@ export class MapRenderer {
 
         this.map.on('load', () => {
             this.setupMapLayers();
-            console.log('Map loaded successfully - basic navigation should work');
         });
 
         // Add click handler for annotations and icon changes
         this.map.on('click', (e) => {
-            console.log('🗺️ Map clicked:', {
-                isAnnotationMode: this.isAnnotationMode,
-                isIconChangeMode: this.isIconChangeMode,
-                coords: [e.lngLat.lng, e.lngLat.lat]
-            });
-            
             if (this.isAnnotationMode) {
-                console.log('🎯 Handling annotation click');
                 this.annotations.handleAnnotationClick(e);
             } else if (this.isIconChangeMode) {
-                console.log('🎯 Handling icon change click');
                 // Stop event propagation to prevent modal from closing immediately
                 e.originalEvent?.stopPropagation();
                 this.iconChanges.handleIconChangeClick(e);
@@ -147,7 +117,6 @@ export class MapRenderer {
         // Change cursor when in special modes
         this.map.on('mouseenter', () => {
             if (this.isAnnotationMode || this.isIconChangeMode) {
-                console.log('🖱️ Setting crosshair cursor - annotation mode:', this.isAnnotationMode, 'icon change mode:', this.isIconChangeMode);
                 this.map.getCanvas().style.cursor = 'crosshair';
             } else {
                 this.map.getCanvas().style.cursor = '';
@@ -158,7 +127,6 @@ export class MapRenderer {
         this.map.on('mousemove', () => {
             if (this.isAnnotationMode || this.isIconChangeMode) {
                 if (this.map.getCanvas().style.cursor !== 'crosshair') {
-                    console.log('🖱️ Correcting cursor to crosshair during special mode');
                     this.map.getCanvas().style.cursor = 'crosshair';
                 }
             } else {
@@ -250,14 +218,9 @@ export class MapRenderer {
                 ],
                 'line-dasharray': [
                     'case',
-                    ['==', ['get', 'isTransportation'], true],
-                    [
-                        'case',
-                        ['==', ['get', 'segmentMode'], 'plane'], ['literal', [2, 2]],
-                        ['==', ['get', 'segmentMode'], 'boat'], ['literal', [5, 3]],
-                        ['literal', [1]]
-                    ],
-                    ['literal', [1]]
+                    ['==', ['get', 'segmentMode'], 'plane'], [2, 2],
+                    ['==', ['get', 'segmentMode'], 'boat'], [5, 3],
+                    [1]
                 ]
             }
         });
@@ -311,7 +274,7 @@ export class MapRenderer {
     // Delegate annotation methods to the annotations module
     enableAnnotationMode() {
         if (this.annotations && typeof this.annotations.enableAnnotationMode === 'function') {
-            return this.annotations.enableAnnotationMode();
+        return this.annotations.enableAnnotationMode();
         } else {
             console.error('annotations.enableAnnotationMode not available');
         }
@@ -319,7 +282,7 @@ export class MapRenderer {
 
     disableAnnotationMode() {
         if (this.annotations && typeof this.annotations.disableAnnotationMode === 'function') {
-            return this.annotations.disableAnnotationMode();
+        return this.annotations.disableAnnotationMode();
         } else {
             console.error('annotations.disableAnnotationMode not available');
         }
@@ -327,7 +290,7 @@ export class MapRenderer {
 
     addAnnotation(progress, title, description, icon = '📍') {
         if (this.annotations && typeof this.annotations.addAnnotation === 'function') {
-            return this.annotations.addAnnotation(progress, title, description, icon);
+        return this.annotations.addAnnotation(progress, title, description, icon);
         } else {
             console.error('annotations.addAnnotation not available');
             return null;
@@ -336,7 +299,7 @@ export class MapRenderer {
 
     removeAnnotation(id) {
         if (this.annotations && typeof this.annotations.removeAnnotation === 'function') {
-            return this.annotations.removeAnnotation(id);
+        return this.annotations.removeAnnotation(id);
         } else {
             console.error('annotations.removeAnnotation not available');
         }
@@ -353,31 +316,20 @@ export class MapRenderer {
 
     // Delegate icon change methods to the iconChanges module
     enableIconChangeMode() {
-        console.log('🎯 MapRenderer.enableIconChangeMode() called');
         if (this.iconChanges && typeof this.iconChanges.enableIconChangeMode === 'function') {
-            const result = this.iconChanges.enableIconChangeMode();
-            console.log('🎯 Icon change mode enabled, isIconChangeMode:', this.isIconChangeMode);
-            return result;
-        } else {
-            console.error('iconChanges.enableIconChangeMode not available');
+            return this.iconChanges.enableIconChangeMode();
         }
     }
 
     disableIconChangeMode() {
-        console.log('🎯 MapRenderer.disableIconChangeMode() called');
-        console.trace('🎯 Stack trace for disableIconChangeMode call:');
         if (this.iconChanges && typeof this.iconChanges.disableIconChangeMode === 'function') {
-            const result = this.iconChanges.disableIconChangeMode();
-            console.log('🎯 Icon change mode disabled, isIconChangeMode:', this.isIconChangeMode);
-            return result;
-        } else {
-            console.error('iconChanges.disableIconChangeMode not available');
+            return this.iconChanges.disableIconChangeMode();
         }
     }
 
     addIconChange(progress, icon) {
         if (this.iconChanges && typeof this.iconChanges.addIconChange === 'function') {
-            return this.iconChanges.addIconChange(progress, icon);
+        return this.iconChanges.addIconChange(progress, icon);
         } else {
             console.error('iconChanges.addIconChange not available');
             return null;
@@ -386,7 +338,7 @@ export class MapRenderer {
 
     removeIconChange(id) {
         if (this.iconChanges && typeof this.iconChanges.removeIconChange === 'function') {
-            return this.iconChanges.removeIconChange(id);
+        return this.iconChanges.removeIconChange(id);
         } else {
             console.error('iconChanges.removeIconChange not available');
         }
@@ -461,9 +413,9 @@ export class MapRenderer {
         
         if (this.map.loaded()) {
             this.map.setPaintProperty('current-position-glow', 'circle-radius', 15 * size);
-            if (this.map.getLayer('activity-icon')) {
-                this.map.setLayoutProperty('activity-icon', 'icon-size', size);
-            }
+        if (this.map.getLayer('activity-icon')) {
+            this.map.setLayoutProperty('activity-icon', 'icon-size', size);
+        }
             this.updateActivityIcon();
         }
     }
@@ -516,7 +468,7 @@ export class MapRenderer {
         }
         
         if (!this.gpxParser.trackPoints || this.gpxParser.trackPoints !== this.trackData.trackPoints) {
-            this.gpxParser.trackPoints = this.trackData.trackPoints;
+                this.gpxParser.trackPoints = this.trackData.trackPoints;
         }
         
         return true;
@@ -619,7 +571,7 @@ export class MapRenderer {
             if (isNaN(currentPoint.lat) || isNaN(currentPoint.lon)) {
                 console.error('NaN coordinates from interpolated point:', currentPoint, 'Progress:', this.animationProgress);
                 return;
-            }
+        }
             
             // Update current position marker
             this.map.getSource('current-position').setData({
@@ -652,14 +604,14 @@ export class MapRenderer {
             if (this.iconChanges && typeof this.iconChanges.checkIconChanges === 'function') {
                 try {
                     this.iconChanges.checkIconChanges(this.animationProgress);
-                } catch (error) {
+                    } catch (error) {
                     console.error('Error calling checkIconChanges:', error);
                 }
             }
 
             // Check for annotations
             if (this.annotations && typeof this.annotations.checkAnnotations === 'function') {
-                this.annotations.checkAnnotations(this.animationProgress);
+            this.annotations.checkAnnotations(this.animationProgress);
             }
 
             // Auto zoom to follow the marker
@@ -809,8 +761,8 @@ export class MapRenderer {
         if (!this.map.loaded() || !this.map.hasImage) {
             return;
         }
-
-        this.createAndAddActivityIcon();
+        
+            this.createAndAddActivityIcon();
         
         if (this.map.getLayer('activity-icon')) {
             this.map.setLayoutProperty('activity-icon', 'visibility', 'visible');
@@ -839,23 +791,23 @@ export class MapRenderer {
             const delay = immediate ? 10 : 100;
             setTimeout(() => {
                 try {
-                    if (!this.map.getLayer('activity-icon')) {
-                        this.map.addLayer({
-                            id: 'activity-icon',
-                            type: 'symbol',
-                            source: 'current-position',
-                            layout: {
-                                'icon-image': 'activity-icon',
-                                'icon-size': this.markerSize,
-                                'icon-allow-overlap': true,
-                                'icon-ignore-placement': true,
+            if (!this.map.getLayer('activity-icon')) {
+                this.map.addLayer({
+                    id: 'activity-icon',
+                    type: 'symbol',
+                    source: 'current-position',
+                    layout: {
+                        'icon-image': 'activity-icon',
+                        'icon-size': this.markerSize,
+                        'icon-allow-overlap': true,
+                        'icon-ignore-placement': true,
                                 'icon-anchor': 'center'
-                            },
-                            paint: {
-                                'icon-opacity': 1
-                            }
-                        });
+                    },
+                    paint: {
+                        'icon-opacity': 1
                     }
+                });
+            }
                 } catch (layerError) {
                     console.error('Error adding activity icon layer:', layerError);
                 }

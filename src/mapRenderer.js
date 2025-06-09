@@ -198,11 +198,11 @@ export class MapRenderer {
                     ['==', ['get', 'isTransportation'], true],
                     [
                         'case',
-                        ['==', ['get', 'segmentMode'], 'plane'], [2, 2], // dashed for plane
-                        ['==', ['get', 'segmentMode'], 'boat'], [5, 3], // different dash for boat
-                        null // solid for car/train/etc
+                        ['==', ['get', 'segmentMode'], 'plane'], ['literal', [2, 2]], // dashed for plane
+                        ['==', ['get', 'segmentMode'], 'boat'], ['literal', [5, 3]], // different dash for boat
+                        ['literal', [1]] // solid for car/train/etc
                     ],
-                    null // solid for tracks
+                    ['literal', [1]] // solid for tracks
                 ]
             }
         });

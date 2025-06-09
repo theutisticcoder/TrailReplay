@@ -50,7 +50,11 @@ class TrailReplayApp {
         initializeTranslations();
         
         // Update placeholders with translations
-        setTimeout(() => this.updatePlaceholders(), 100);
+        setTimeout(() => {
+            import('./translations.js').then(({ t }) => {
+                this.updatePlaceholders(t);
+            });
+        }, 100);
         
         // Initialize UI event listeners
         this.setupEventListeners();
@@ -58,8 +62,7 @@ class TrailReplayApp {
         // Add drag and drop functionality
         this.setupDragAndDrop();
         
-        // Add language switcher
-        this.addLanguageSwitcher();
+        // Language switcher is initialized directly in HTML
 
         // Setup event listeners for new features
         this.setupFeatureListeners();
@@ -482,77 +485,14 @@ class TrailReplayApp {
                 this.currentIconChange.icon
             );
 
-            this.addIconChangeToTimeline(iconChange);
-            this.updateProgressBarMarkers();
+                    this.updateProgressBarMarkers();
             this.showMessage(t('messages.iconChangeAdded'), 'success');
         }
 
         this.closeIconChangeModal();
     }
 
-    addIconChangeToTimeline(iconChange) {
-        const timelineSection = document.getElementById('iconTimelineSection');
-        const timeline = document.getElementById('iconTimeline');
-        
-        // Show timeline section if hidden
-        if (timelineSection.style.display === 'none') {
-            timelineSection.style.display = 'block';
-            timelineSection.classList.add('fade-in');
-        }
 
-        const timelineItem = document.createElement('div');
-        timelineItem.className = 'icon-timeline-item';
-        timelineItem.setAttribute('data-id', iconChange.id);
-        
-        const progressPercent = (iconChange.progress * 100).toFixed(1);
-        const timeFromStart = this.currentTrackData ? 
-            this.gpxParser.formatDuration(iconChange.progress * this.currentTrackData.stats.totalDuration) : 
-            `${progressPercent}%`;
-
-        timelineItem.innerHTML = `
-            <div class="icon-timeline-icon">${iconChange.icon}</div>
-            <div class="icon-timeline-content">
-                <div class="icon-timeline-time">At ${timeFromStart}</div>
-                <div class="icon-timeline-description">Change to ${iconChange.icon}</div>
-            </div>
-            <div class="icon-timeline-actions">
-                <button class="timeline-action" onclick="app.removeIconChangeFromTimeline(${iconChange.id})" title="Delete">🗑️</button>
-            </div>
-        `;
-
-        // Add click handler to jump to that position
-        timelineItem.addEventListener('click', (e) => {
-            // Don't trigger if clicking on delete button
-            if (!e.target.classList.contains('timeline-action')) {
-                if (this.mapRenderer) {
-                    this.mapRenderer.setAnimationProgress(iconChange.progress);
-                    this.updateProgressDisplay();
-                }
-            }
-        });
-
-        timeline.appendChild(timelineItem);
-    }
-
-    removeIconChangeFromTimeline(id) {
-        if (this.mapRenderer) {
-            this.mapRenderer.removeIconChange(id);
-        }
-
-        // Remove from UI
-        const timeline = document.getElementById('iconTimeline');
-        const item = timeline.querySelector(`[data-id="${id}"]`);
-        if (item) {
-            item.remove();
-        }
-
-        // Hide section if no icon changes left
-        if (timeline.children.length === 0) {
-            document.getElementById('iconTimelineSection').style.display = 'none';
-        }
-
-        this.updateProgressBarMarkers();
-    }
 
     setupDragAndDrop() {
         const uploadCard = document.querySelector('.upload-card');
@@ -857,6 +797,16 @@ class TrailReplayApp {
         
         const playBtn = document.getElementById('playBtn');
         playBtn.querySelector('span').textContent = t('controls.play');
+        
+        // Force clear any recording modes to ensure progress updates work
+        this.recordingMode = false;
+        this.overlayRecordingMode = false;
+        
+        // Remove any recording highlights
+        const videoCaptureContainer = document.getElementById('videoCaptureContainer');
+        if (videoCaptureContainer) {
+            videoCaptureContainer.classList.remove('recording-highlight');
+        }
         
         // Reset elevation profile progress
         this.updateElevationProgress(0);
@@ -1365,77 +1315,14 @@ class TrailReplayApp {
                 this.currentAnnotation.icon
             );
 
-            this.addAnnotationToList(annotation);
-            this.updateProgressBarMarkers();
+                    this.updateProgressBarMarkers();
             this.showMessage(t('messages.annotationAdded'), 'success');
         }
 
         this.closeAnnotationModal();
     }
 
-    addAnnotationToList(annotation) {
-        const annotationsSection = document.getElementById('annotationsSection');
-        const annotationsList = document.getElementById('annotationsList');
-        
-        // Show annotations section if hidden
-        if (annotationsSection.style.display === 'none') {
-            annotationsSection.style.display = 'block';
-            annotationsSection.classList.add('fade-in');
-        }
 
-        const progressPercent = (annotation.progress * 100).toFixed(1);
-        const timeFromStart = this.currentTrackData ? 
-            this.gpxParser.formatDuration(annotation.progress * this.currentTrackData.stats.totalDuration) : 
-            `${progressPercent}%`;
-
-        const annotationElement = document.createElement('div');
-        annotationElement.className = 'annotation-item';
-        annotationElement.setAttribute('data-id', annotation.id);
-        annotationElement.innerHTML = `
-            <div class="annotation-header">
-                <span class="annotation-icon">${annotation.icon}</span>
-                <span class="annotation-title">${annotation.title}</span>
-                <span class="annotation-time">At ${timeFromStart}</span>
-                <div class="annotation-actions">
-                    <button class="annotation-action" onclick="app.removeAnnotationFromList(${annotation.id})" title="Delete">🗑️</button>
-                </div>
-            </div>
-            ${annotation.description ? `<div class="annotation-description">${annotation.description}</div>` : ''}
-        `;
-
-        // Add click handler to jump to annotation
-        annotationElement.addEventListener('click', (e) => {
-            // Don't trigger if clicking on delete button
-            if (!e.target.classList.contains('annotation-action')) {
-                if (this.mapRenderer) {
-                    this.mapRenderer.setAnimationProgress(annotation.progress);
-                    this.updateProgressDisplay();
-                }
-            }
-        });
-
-        annotationsList.appendChild(annotationElement);
-    }
-
-    removeAnnotationFromList(id) {
-        if (this.mapRenderer) {
-            this.mapRenderer.removeAnnotation(id);
-        }
-
-        // Remove from UI
-        const annotationsList = document.getElementById('annotationsList');
-        const item = annotationsList.querySelector(`[data-id="${id}"]`);
-        if (item) {
-            item.remove();
-        }
-
-        // Hide section if no annotations left
-        if (annotationsList.children.length === 0) {
-            document.getElementById('annotationsSection').style.display = 'none';
-        }
-
-        this.updateProgressBarMarkers();
-    }
 
     toggleExportHelp() {
         const exportHelp = document.getElementById('exportHelp');
@@ -1671,8 +1558,6 @@ class TrailReplayApp {
             '.controls-panel',
             '.stats-section',
             '.progress-controls-container',
-            '.annotations-section',
-            '.icon-timeline-section',
             '.journey-planning-section',
             '.journey-timeline-container',
             '.language-switcher',
@@ -1734,8 +1619,6 @@ class TrailReplayApp {
             '.header',
             '.controls-panel',
                     '.progress-controls-container',
-            '.annotations-section',
-            '.icon-timeline-section',
             '.journey-planning-section',
             '.journey-timeline-container',
             '.language-switcher',
@@ -2894,39 +2777,32 @@ class TrailReplayApp {
     addLanguageSwitcher() {
         const languageSelect = document.getElementById('languageSelect');
         if (languageSelect) {
-            // Add label if not present
-            let label = document.getElementById('languageSelectLabel');
-            if (!label) {
-                label = document.createElement('label');
-                label.id = 'languageSelectLabel';
-                label.setAttribute('for', 'languageSelect');
-                label.style.marginRight = '0.5rem';
-                label.textContent = t('controls.language');
-                languageSelect.parentNode.insertBefore(label, languageSelect);
-            } else {
-                label.textContent = t('controls.language');
-            }
-            // Set the current language as selected
-            import('./translations.js').then(({ translations }) => {
-                const currentLang = localStorage.getItem('trailReplayLang') || navigator.language.slice(0, 2);
-                for (const option of languageSelect.options) {
-                    option.selected = (option.value === currentLang);
-                }
-            });
+            // Set current language as selected
+            const lang = localStorage.getItem('trailReplayLang') || navigator.language.slice(0,2) || 'en';
+            languageSelect.value = lang.startsWith('es') ? 'es' : 'en';
+            
+            // Add event listener
             languageSelect.addEventListener('change', (e) => {
-                import('./translations.js').then(({ setLanguage }) => {
+                import('./translations.js').then(({ setLanguage, t }) => {
                     setLanguage(e.target.value);
+                    
                     // Update placeholders after language change
-                    this.updatePlaceholders();
-                    // Update label
-                    let label = document.getElementById('languageSelectLabel');
-                    if (label) label.textContent = t('controls.language');
+                    this.updatePlaceholders(t);
+                    
+                    // Re-render timeline with new language
+                    if (this.timeline) {
+                        this.timeline.renderTimelineEvents();
+                    }
+                    
+                    // Show feedback message
+                    const langName = e.target.value === 'es' ? 'Español' : 'English';
+                    this.showMessage(`Language changed to ${langName}`);
                 });
             });
         }
     }
     
-    updatePlaceholders() {
+    updatePlaceholders(t) {
         // Update annotation form placeholders
         const annotationTitle = document.getElementById('annotationTitle');
         if (annotationTitle) {
@@ -3030,25 +2906,12 @@ class TrailReplayApp {
             const progress = x / rect.width;
             
             // Ensure progress is within bounds
-            const boundedProgress = Math.max(0, Math.min(1, progress));
-            
-            console.log('Progress calculation:', {
-                clientX,
-                rectLeft: rect.left,
-                rectWidth: rect.width,
-                x,
-                rawProgress: progress,
-                boundedProgress: boundedProgress.toFixed(3)
-            });
-            
-            return boundedProgress;
+            return Math.max(0, Math.min(1, progress));
         };
         
         // Helper function to handle seeking to a specific progress
         const seekToProgress = (progress) => {
             if (!this.mapRenderer || !this.currentTrackData) return;
-            
-            console.log('Seeking to progress:', progress.toFixed(3));
             
             // Check if in special modes (icon change or annotation)
             if (this.mapRenderer.isIconChangeMode) {

@@ -844,7 +844,8 @@ export const translations = {
             cancel: "Cancelar",
             close: "Cerrar",
             choose: "Elegir",
-            chooseIcon: "Elegir Icono"
+            chooseIcon: "Elegir Icono",
+            delete: "Eliminar"
         },
         
         // Status messages
@@ -922,6 +923,10 @@ export function setLanguage(lang) {
     }
 }
 
+export function getCurrentLanguage() {
+    return currentLanguage;
+}
+
 export function t(key, params = {}) {
     const keys = key.split('.');
     let value = translations[currentLanguage];
@@ -942,12 +947,37 @@ export function t(key, params = {}) {
     return value;
 }
 
-function updatePageTranslations() {
-    document.querySelectorAll('[data-i18n]').forEach(element => {
+export function updatePageTranslations() {
+    // Update text content with data-i18n attributes
+    const i18nElements = document.querySelectorAll('[data-i18n]');
+    
+    i18nElements.forEach(element => {
         const key = element.getAttribute('data-i18n');
         const translation = t(key);
         if (translation) {
             element.innerHTML = translation;
+        }
+    });
+
+    // Update placeholder attributes with data-i18n-placeholder
+    const placeholderElements = document.querySelectorAll('[data-i18n-placeholder]');
+    
+    placeholderElements.forEach(element => {
+        const key = element.getAttribute('data-i18n-placeholder');
+        const translation = t(key);
+        if (translation) {
+            element.placeholder = translation;
+        }
+    });
+
+    // Update title attributes with data-i18n-title
+    const titleElements = document.querySelectorAll('[data-i18n-title]');
+    
+    titleElements.forEach(element => {
+        const key = element.getAttribute('data-i18n-title');
+        const translation = t(key);
+        if (translation) {
+            element.title = translation;
         }
     });
 }

@@ -107,6 +107,11 @@ export class TimelineController {
             const eventElement = this.createTimelineEventElement(event);
             timelineList.appendChild(eventElement);
         });
+
+        // Update translations for newly created elements
+        import('../translations.js').then(({ updatePageTranslations }) => {
+            updatePageTranslations();
+        });
     }
 
     // Create the timeline section HTML
@@ -126,11 +131,16 @@ export class TimelineController {
         timelineSection.style.display = 'none';
         
         timelineSection.innerHTML = `
-            <h3>${t('timeline.title')}</h3>
+            <h3 data-i18n="timeline.title">Timeline Events</h3>
             <div class="timeline-events-list" id="timelineEventsList">
                 <!-- Timeline events will be added dynamically -->
             </div>
         `;
+
+        // Update translations for the newly created elements
+        import('../translations.js').then(({ updatePageTranslations }) => {
+            updatePageTranslations();
+        });
 
         // Insert before stats section
         if (statsSection && statsSection.parentNode) {
@@ -189,7 +199,7 @@ export class TimelineController {
             eventContent = `
                 <div class="timeline-event-icon">${event.icon}</div>
                 <div class="timeline-event-content">
-                    <div class="timeline-event-title">${t('timeline.iconChangeTo')} ${event.icon}</div>
+                    <div class="timeline-event-title"><span data-i18n="timeline.iconChangeTo">Change icon to</span> ${event.icon}</div>
                     <div class="timeline-event-time">At ${timeFromStart}</div>
                 </div>
             `;
@@ -198,7 +208,7 @@ export class TimelineController {
         eventElement.innerHTML = `
             ${eventContent}
             <div class="timeline-event-actions">
-                <button class="timeline-event-action" onclick="window.app.timeline.removeTimelineEvent(${event.id})" title="${t('buttons.delete')}">🗑️</button>
+                <button class="timeline-event-action" onclick="window.app.timeline.removeTimelineEvent(${event.id})" data-i18n-title="buttons.delete" title="Delete">🗑️</button>
             </div>
         `;
 

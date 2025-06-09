@@ -6,11 +6,11 @@ TrailReplay is a powerful, open-source web application that transforms your GPX 
 
 <div align="center">
 
-https://github.com/user-attachments/assets/your-video-file-here
+https://github.com/alexalmansa/TrailReplay/blob/main/media/video/demo.mp4 
 
 *Example of a stunning 3D trail animation created with TrailReplay - this is what your GPX data can become!*
 
-**🎥 [View Full Example Video](media/video/demo.mov)**
+**🎥 [View Full Example Video](media/video/demo.mp4)**
 
 </div>
 
