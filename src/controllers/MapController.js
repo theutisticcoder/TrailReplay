@@ -83,6 +83,25 @@ export class MapController {
         }
     }
 
+    setCameraMode(mode) {
+        console.log('🎬 MapController.setCameraMode called with:', mode);
+        if (this.mapRenderer) {
+            console.log('🎬 MapController delegating to MapRenderer.setCameraMode');
+            this.mapRenderer.setCameraMode(mode);
+        } else {
+            console.warn('🎬 MapRenderer not available in MapController');
+        }
+    }
+
+    setFollowBehindZoomPreset(presetName) {
+        console.log('🎬 MapController.setFollowBehindZoomPreset called with:', presetName);
+        if (this.mapRenderer && this.mapRenderer.followBehindCamera) {
+            this.mapRenderer.followBehindCamera.setZoomPreset(presetName);
+        } else {
+            console.warn('🎬 FollowBehindCamera not available in MapController');
+        }
+    }
+
     enable3DTerrain() {
         if (this.mapRenderer) {
             this.mapRenderer.enable3DTerrain();

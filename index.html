@@ -143,8 +143,8 @@
 
                         <div class="control-group">
                             <label data-i18n="controls.markerSize">Marker Size:</label>
-                            <input type="range" id="markerSize" min="0.5" max="3" step="0.1" value="1.0">
-                            <span id="markerSizeValue">1.0x</span>
+                            <input type="range" id="markerSize" min="0.5" max="3" step="0.1" value="0.7">
+                            <span id="markerSizeValue">0.7x</span>
                         </div>
 
                         <div class="control-group">
@@ -161,6 +161,24 @@
                                 <input type="checkbox" id="autoZoom" checked>
                                 <label for="autoZoom" class="toggle-slider"></label>
                             </div>
+                        </div>
+
+                        <div class="control-group">
+                            <label data-i18n="controls.cameraMode">Camera Mode:</label>
+                            <select id="cameraMode">
+                                <option value="standard" data-i18n="controls.cameraStandard">🎥 Standard</option>
+                                <option value="followBehind" data-i18n="controls.cameraFollowBehind" selected>🎬 Follow Behind</option>
+                            </select>
+                        </div>
+
+                        <!-- Follow-Behind Zoom Preset (shown when Follow Behind is selected) -->
+                        <div class="control-group" id="followBehindZoomGroup" style="display: block;">
+                            <label data-i18n="controls.followBehindZoom">Follow Distance:</label>
+                            <select id="followBehindZoom">
+                                <option value="VERY_CLOSE" data-i18n="controls.followBehindVeryClose">🔍 Very Close</option>
+                                <option value="MEDIUM" data-i18n="controls.followBehindMedium" selected>📍 Medium</option>
+                                <option value="FAR" data-i18n="controls.followBehindFar">🌍 Far</option>
+                            </select>
                         </div>
 
                         <div class="control-group">

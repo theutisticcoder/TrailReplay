@@ -97,6 +97,36 @@ export function setupEventListeners(app) {
         });
     }
 
+    // Camera mode dropdown
+    const cameraModeSelect = byId('cameraMode');
+    if (cameraModeSelect) {
+        console.log('🎬 Setting up camera mode event listener');
+        cameraModeSelect.addEventListener('change', (e) => {
+            console.log('🎬 Camera mode changed to:', e.target.value);
+            app.map.setCameraMode(e.target.value);
+            
+            // Show/hide follow-behind zoom preset dropdown
+            const followBehindZoomGroup = byId('followBehindZoomGroup');
+            if (followBehindZoomGroup) {
+                followBehindZoomGroup.style.display = e.target.value === 'followBehind' ? 'block' : 'none';
+            }
+        });
+        console.log('🎬 Camera mode event listener set up successfully');
+    } else {
+        console.warn('🎬 Camera mode dropdown not found in DOM');
+    }
+
+    // Follow-behind zoom preset dropdown
+    const followBehindZoomSelect = byId('followBehindZoom');
+    if (followBehindZoomSelect) {
+        console.log('🎬 Setting up follow-behind zoom preset event listener');
+        followBehindZoomSelect.addEventListener('change', (e) => {
+            console.log('🎬 Follow-behind zoom preset changed to:', e.target.value);
+            app.map.setFollowBehindZoomPreset(e.target.value);
+        });
+        console.log('🎬 Follow-behind zoom preset event listener set up successfully');
+    }
+
     // 3D terrain toggle
     const terrain3dToggle = byId('terrain3d');
     if (terrain3dToggle) {

@@ -209,7 +209,14 @@ export const translations = {
             terrainSource: "Elevation Data",
             showStats: "Show Live Stats",
             gpxOnlyStats: "Exclude Transfer Distances",
-            language: "Language"
+            language: "Language",
+            cameraMode: "Camera Mode",
+            cameraStandard: "🎥 Standard",
+            cameraFollowBehind: "🎬 Follow Behind",
+            followBehindZoom: "Follow Distance",
+            followBehindVeryClose: "🔍 Very Close",
+            followBehindMedium: "📍 Medium",
+            followBehindFar: "🌍 Far"
         },
         
         cameraInfo: {
@@ -667,7 +674,14 @@ export const translations = {
             terrainSource: "Datos de Elevación",
             showStats: "Mostrar Estadísticas en Vivo",
             gpxOnlyStats: "No contar distancias en transfers",
-            language: "Idioma"
+            language: "Idioma",
+            cameraMode: "Modo de Cámara",
+            cameraStandard: "🎥 Estándar",
+            cameraFollowBehind: "🎬 Seguir Detrás",
+            followBehindZoom: "Distancia de Seguimiento",
+            followBehindVeryClose: "🔍 Muy Cerca",
+            followBehindMedium: "📍 Medio",
+            followBehindFar: "🌍 Lejos"
         },
         
         cameraInfo: {

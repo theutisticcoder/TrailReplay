@@ -245,13 +245,21 @@ export class GPXParser {
         const currentPoint = this.trackPoints[index];
         const nextPoint = this.trackPoints[index + 1];
 
-        // Linear interpolation
+        // Safety checks for undefined points or properties
+        if (!currentPoint || !nextPoint || 
+            typeof currentPoint.lat === 'undefined' || typeof nextPoint.lat === 'undefined' ||
+            typeof currentPoint.lon === 'undefined' || typeof nextPoint.lon === 'undefined') {
+            console.warn('GPXParser: Invalid track points for interpolation at index:', index);
+            return currentPoint || null;
+        }
+
+        // Linear interpolation with safe defaults
         return {
             lat: currentPoint.lat + (nextPoint.lat - currentPoint.lat) * fraction,
             lon: currentPoint.lon + (nextPoint.lon - currentPoint.lon) * fraction,
-            elevation: currentPoint.elevation + (nextPoint.elevation - currentPoint.elevation) * fraction,
-            distance: currentPoint.distance + (nextPoint.distance - currentPoint.distance) * fraction,
-            speed: currentPoint.speed + (nextPoint.speed - currentPoint.speed) * fraction,
+            elevation: (currentPoint.elevation || 0) + ((nextPoint.elevation || 0) - (currentPoint.elevation || 0)) * fraction,
+            distance: (currentPoint.distance || 0) + ((nextPoint.distance || 0) - (currentPoint.distance || 0)) * fraction,
+            speed: (currentPoint.speed || 0) + ((nextPoint.speed || 0) - (currentPoint.speed || 0)) * fraction,
             index: targetIndex
         };
     }

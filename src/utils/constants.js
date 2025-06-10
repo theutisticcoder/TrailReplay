@@ -20,7 +20,8 @@ export const DEFAULT_SETTINGS = {
     GPX_ONLY_STATS: false,
     DEFAULT_ICON: '🏃‍♂️',
     DEFAULT_ANNOTATION_ICON: '📍',
-    DEFAULT_ICON_CHANGE: '🚴‍♂️'
+    DEFAULT_ICON_CHANGE: '🚴‍♂️',
+    DEFAULT_MARKER_SIZE: 0.7 // Smaller default marker size
 };
 
 // Activity type mappings

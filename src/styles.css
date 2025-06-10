@@ -547,6 +547,18 @@ input:checked + .toggle-slider:before {
     transform: translateX(24px);
 }
 
+/* Disabled toggle switch styling */
+.toggle-switch input:disabled + .toggle-slider {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: var(--evergreen-20);
+}
+
+.toggle-switch input:disabled:checked + .toggle-slider {
+    background-color: var(--trail-orange);
+    opacity: 0.7;
+}
+
 /* Custom range slider styling */
 .control-group input[type="range"] {
     -webkit-appearance: none;
