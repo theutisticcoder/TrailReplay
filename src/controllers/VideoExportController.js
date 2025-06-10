@@ -41,6 +41,42 @@ export class VideoExportController {
     initialize() {
         this.createExportUI();
         this.setupEventListeners();
+        
+        // Ensure aspect ratio is applied after everything is set up
+        setTimeout(() => {
+            this.ensureInitialAspectRatio();
+        }, 1000); // Increased delay to ensure page is fully rendered
+    }
+
+    /**
+     * Ensure initial aspect ratio is applied
+     */
+    ensureInitialAspectRatio() {
+        console.log('🔄 Ensuring initial aspect ratio is applied...');
+        
+        // Check if the map container is ready
+        const mapContainer = document.querySelector('.map-container');
+        if (!mapContainer) {
+            console.warn('⚠️ Map container not ready, retrying in 1 second...');
+            setTimeout(() => {
+                this.ensureInitialAspectRatio();
+            }, 1000);
+            return;
+        }
+
+        const containerRect = mapContainer.getBoundingClientRect();
+        if (containerRect.width === 0 || containerRect.height === 0) {
+            console.warn('⚠️ Map container has no dimensions, retrying in 1 second...');
+            setTimeout(() => {
+                this.ensureInitialAspectRatio();
+            }, 1000);
+            return;
+        }
+
+        const selectedAspect = this.getSelectedAspectRatio();
+        console.log(`📐 Applying initial aspect ratio: ${selectedAspect}`);
+        console.log(`Map container ready with dimensions: ${containerRect.width}x${containerRect.height}`);
+        this.resizeContainerForAspectRatio(selectedAspect);
     }
 
     /**
@@ -64,6 +100,106 @@ export class VideoExportController {
         }
 
         exportPanel.innerHTML = `
+            <style>
+                .aspect-ratio-section {
+                    margin: 15px 0;
+                    padding: 12px;
+                }
+                .section-label {
+                    display: block;
+                    margin-bottom: 10px;
+                    font-weight: 600;
+                    color: rgba(46, 125, 50, 0.1);
+                    font-size: 14px;
+                }
+                .aspect-ratio-options {
+                    display: flex;
+                    gap: 15px;
+                    flex-wrap: wrap;
+                }
+                .aspect-option {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    cursor: pointer;
+                    padding: 8px;
+                    border-radius: 6px;
+                    transition: all 0.2s ease;
+                    min-width: 80px;
+                    background: rgba(46, 125, 50, 0.05);
+                }
+                .aspect-option:hover {
+                    background: rgba(46, 125, 50, 0.1);
+                    transform: translateY(-1px);
+                }
+                .aspect-option input[type="radio"] {
+                    display: none;
+                }
+                .aspect-option input[type="radio"]:checked + .aspect-visual {
+                    border-color: #2E7D32;
+                    background: rgba(46, 125, 50, 0.15);
+                    box-shadow: 0 0 8px rgba(46, 125, 50, 0.3);
+                }
+                .aspect-option input[type="radio"]:checked {
+                    background: rgba(46, 125, 50, 0.08);
+                }
+                .aspect-visual {
+                    width: 40px;
+                    height: 30px;
+                    border: 2px solid rgba(46, 125, 50, 0.4);
+                    border-radius: 4px;
+                    margin-bottom: 5px;
+                    transition: all 0.2s ease;
+                    position: relative;
+                    background: rgba(46, 125, 50, 0.08);
+                }
+                .aspect-16-9 {
+                    width: 40px;
+                    height: 22px;
+                }
+                .aspect-1-1 {
+                    width: 30px;
+                    height: 30px;
+                }
+                .aspect-9-16 {
+                    width: 22px;
+                    height: 40px;
+                }
+                .aspect-label {
+                    font-size: 11px;
+                    color:#1B2A20;
+                    text-align: center;
+                    white-space: nowrap;
+                    font-weight: 500;
+                }
+                .aspect-option input[type="radio"]:checked ~ .aspect-label {
+                    color: #1B2A20;
+                    font-weight: 700;
+                }
+                
+                /* Video capture container responsive styles */
+                .video-capture-container {
+                    transition: all 0.3s ease;
+                    margin: 0 auto;
+                    position: relative;
+                    display: flex;
+                    flex-direction: column;
+                }
+                
+                /* Ensure map fills the container properly */
+                .video-capture-container .map {
+                    width: 100% !important;
+                    height: 100% !important;
+                    flex: 1;
+                }
+                
+                /* Make sure overlays scale with container */
+                .video-capture-container .elevation-profile-container,
+                .video-capture-container .live-stats-overlay,
+                .video-capture-container .map-watermark {
+                    position: absolute;
+                }
+            </style>
             <div class="export-section">
                 <div class="export-header">
                     <h4>📹 Video Export</h4>
@@ -91,6 +227,28 @@ export class VideoExportController {
                                 <p><strong>Mac:</strong> <kbd>⌘</kbd> + <kbd>⇧</kbd> + <kbd>5</kbd> → Record Selected Portion</p>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Aspect Ratio Selection -->
+                <div class="aspect-ratio-section">
+                    <label class="section-label">Video Ratio:</label>
+                    <div class="aspect-ratio-options">
+                        <label class="aspect-option">
+                            <input type="radio" name="aspectRatio" value="16:9">
+                            <span class="aspect-visual aspect-16-9"></span>
+                            <span class="aspect-label">16:9 Landscape</span>
+                        </label>
+                        <label class="aspect-option">
+                            <input type="radio" name="aspectRatio" value="1:1" checked>
+                            <span class="aspect-visual aspect-1-1"></span>
+                            <span class="aspect-label">1:1 Square</span>
+                        </label>
+                        <label class="aspect-option">
+                            <input type="radio" name="aspectRatio" value="9:16">
+                            <span class="aspect-visual aspect-9-16"></span>
+                            <span class="aspect-label">9:16 Mobile</span>
+                        </label>
                     </div>
                 </div>
 
@@ -140,6 +298,193 @@ export class VideoExportController {
 
         // Setup keyboard handler for manual recording
         this.setupManualRecordingKeyboardHandler();
+
+        // Setup aspect ratio change handlers after UI is rendered
+        setTimeout(() => {
+            this.setupAspectRatioHandlers();
+        }, 100);
+
+        // Also listen for track load events to apply aspect ratio when map is ready
+        if (this.app) {
+            this.app.addEventListener('journeyDataLoaded', () => {
+                console.log('🎯 Track loaded, applying aspect ratio...');
+                setTimeout(() => {
+                    this.ensureInitialAspectRatio();
+                }, 500);
+            });
+        }
+    }
+
+    /**
+     * Setup aspect ratio change handlers
+     */
+    setupAspectRatioHandlers() {
+        console.log('🔧 Setting up aspect ratio handlers...');
+        
+        const aspectRatioInputs = document.querySelectorAll('input[name="aspectRatio"]');
+        console.log(`Found ${aspectRatioInputs.length} aspect ratio inputs`);
+        
+        if (aspectRatioInputs.length === 0) {
+            console.warn('⚠️ No aspect ratio inputs found - UI may not be rendered yet');
+            // Try again after a short delay, but with a maximum number of retries
+            if (!this.aspectRetryCount) this.aspectRetryCount = 0;
+            if (this.aspectRetryCount < 10) {
+                this.aspectRetryCount++;
+                setTimeout(() => {
+                    this.setupAspectRatioHandlers();
+                }, 500);
+            } else {
+                console.error('❌ Failed to setup aspect ratio handlers after multiple retries');
+            }
+            return;
+        }
+        
+        // Reset retry count on success
+        this.aspectRetryCount = 0;
+        
+        aspectRatioInputs.forEach((input, index) => {
+            console.log(`Setting up handler for aspect ratio input ${index}: ${input.value}`);
+            input.addEventListener('change', () => {
+                if (input.checked) {
+                    console.log(`📐 Aspect ratio changed to: ${input.value}`);
+                    this.resizeContainerForAspectRatio(input.value);
+                }
+            });
+        });
+
+        // Set initial aspect ratio (square by default)
+        const selectedAspect = this.getSelectedAspectRatio();
+        console.log(`📐 Setting initial aspect ratio: ${selectedAspect}`);
+        
+        // Apply the initial resize immediately
+        this.resizeContainerForAspectRatio(selectedAspect);
+        
+        console.log('✅ Aspect ratio handlers setup complete');
+    }
+
+    /**
+     * Resize the videoCaptureContainer to match selected aspect ratio
+     */
+    resizeContainerForAspectRatio(aspectRatio) {
+        const videoCaptureContainer = document.getElementById('videoCaptureContainer');
+        if (!videoCaptureContainer) {
+            console.warn('videoCaptureContainer not found, retrying...');
+            setTimeout(() => {
+                this.resizeContainerForAspectRatio(aspectRatio);
+            }, 500);
+            return;
+        }
+
+        // Get the available space (viewport or parent container)
+        const mapContainer = document.querySelector('.map-container');
+        if (!mapContainer) {
+            console.warn('map-container not found, retrying...');
+            setTimeout(() => {
+                this.resizeContainerForAspectRatio(aspectRatio);
+            }, 500);
+            return;
+        }
+
+        const parentRect = mapContainer.getBoundingClientRect();
+        let availableWidth = parentRect.width;
+        let availableHeight = parentRect.height;
+
+        // If dimensions are still 0, use fallback dimensions or try viewport
+        if (availableWidth === 0 || availableHeight === 0) {
+            console.warn('Container dimensions are 0, using viewport fallback');
+            availableWidth = window.innerWidth * 0.8; // 80% of viewport
+            availableHeight = window.innerHeight * 0.7; // 70% of viewport
+            
+            // If still 0, use fixed fallback
+            if (availableWidth === 0 || availableHeight === 0) {
+                availableWidth = 1200;
+                availableHeight = 800;
+                console.warn('Using fixed fallback dimensions: 1200x800');
+            }
+        }
+
+        let targetWidth, targetHeight;
+
+        console.log(`🔄 Resizing container for ${aspectRatio} aspect ratio`);
+        console.log(`Available space: ${availableWidth}x${availableHeight}`);
+
+        switch (aspectRatio) {
+            case '16:9':
+                // Landscape - fit to available width, calculate height
+                targetWidth = availableWidth;
+                targetHeight = Math.round(targetWidth * (9/16));
+                
+                // If height exceeds available space, fit to height instead
+                if (targetHeight > availableHeight) {
+                    targetHeight = availableHeight;
+                    targetWidth = Math.round(targetHeight * (16/9));
+                }
+                break;
+                
+            case '1:1':
+                // Square - use the smaller dimension
+                const squareSize = Math.min(availableWidth, availableHeight);
+                targetWidth = squareSize;
+                targetHeight = squareSize;
+                break;
+                
+            case '9:16':
+                // Portrait - fit to available height, calculate width
+                targetHeight = availableHeight;
+                targetWidth = Math.round(targetHeight * (9/16));
+                
+                // If width exceeds available space, fit to width instead
+                if (targetWidth > availableWidth) {
+                    targetWidth = availableWidth;
+                    targetHeight = Math.round(targetWidth * (16/9));
+                }
+                break;
+                
+            default:
+                targetWidth = availableWidth;
+                targetHeight = availableHeight;
+        }
+
+        // Apply the new dimensions
+        videoCaptureContainer.style.width = `${targetWidth}px`;
+        videoCaptureContainer.style.height = `${targetHeight}px`;
+        
+        // Center the container if it's smaller than available space
+        const offsetX = (availableWidth - targetWidth) / 2;
+        const offsetY = (availableHeight - targetHeight) / 2;
+        
+        videoCaptureContainer.style.marginLeft = `${offsetX}px`;
+        videoCaptureContainer.style.marginTop = `${offsetY}px`;
+
+        console.log(`✅ Container resized to: ${targetWidth}x${targetHeight}`);
+        console.log(`Container positioned with offset: ${offsetX}x${offsetY}`);
+
+        // Trigger map resize to fit new container
+        setTimeout(() => {
+            this.resizeMapToContainer();
+        }, 100);
+    }
+
+    /**
+     * Resize the map to fit the container perfectly
+     */
+    resizeMapToContainer() {
+        try {
+            if (this.app.mapRenderer && this.app.mapRenderer.map) {
+                console.log('🗺️ Resizing map to fit container...');
+                
+                // Trigger map resize
+                this.app.mapRenderer.map.resize();
+                
+                // Force a repaint
+                this.app.mapRenderer.map.getCanvas().style.width = '100%';
+                this.app.mapRenderer.map.getCanvas().style.height = '100%';
+                
+                console.log('✅ Map resized successfully');
+            }
+        } catch (error) {
+            console.warn('Failed to resize map:', error);
+        }
     }
 
     /**
@@ -286,7 +631,11 @@ export class VideoExportController {
             await this.prepareForExport();
             this.updateProgress(15, 'Environment prepared...');
 
-            // Step 3: Setup canvas recording infrastructure
+            // Step 3: Load html2canvas library if needed
+            await this.loadHtml2Canvas();
+            this.updateProgress(20, 'Capture libraries loaded...');
+
+            // Step 4: Setup canvas recording infrastructure
             await this.setupCanvasRecording();
             this.updateProgress(25, 'Canvas recording setup complete...');
 
@@ -311,17 +660,19 @@ export class VideoExportController {
                 // Don't throw - the map might still work fine for recording
             }
 
-            // Step 7: Initialize MediaRecorder with optimal settings
-            this.updateProgress(70, 'Initializing video encoder...');
-            console.log('🎬 Starting MediaRecorder initialization...');
-            await this.initializeAdvancedMediaRecorder();
-            console.log('✅ MediaRecorder initialization complete');
-            
-            // Step 8: Start the recording process
-            this.updateProgress(80, 'Starting MP4 recording...');
-            console.log('🎬 Starting recording process...');
-            await this.startAdvancedRecording();
-            console.log('✅ Recording process started');
+            // Step 7: Phase 1 - Capture high-quality frames during animation playback
+            this.updateProgress(65, 'Phase 1: Capturing high-quality frames...');
+            console.log('🎬 Starting Phase 1: Frame capture...');
+            await this.captureAnimationFrames();
+            console.log('✅ Phase 1 complete: All frames captured');
+
+            // Step 8: Phase 2 - Create video from captured frames
+            this.updateProgress(85, 'Phase 2: Creating video from frames...');
+            console.log('🎬 Starting Phase 2: Video creation...');
+            await this.createVideoFromFrames();
+            console.log('✅ Phase 2 complete: Video created');
+
+            this.updateProgress(100, 'MP4 export complete!');
 
         } catch (error) {
             console.error('Advanced MP4 export failed:', error);
@@ -365,26 +716,109 @@ export class VideoExportController {
     }
 
     /**
-     * Setup canvas recording infrastructure similar to MapDirector
+     * Load html2canvas if not already available
+     */
+    async loadHtml2Canvas() {
+        if (window.html2canvas) {
+            return true;
+        }
+
+        try {
+            console.log('Loading html2canvas library...');
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+            script.crossOrigin = 'anonymous';
+            
+            await new Promise((resolve, reject) => {
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+            
+            console.log('html2canvas loaded successfully');
+            return window.html2canvas !== undefined;
+        } catch (error) {
+            console.warn('Failed to load html2canvas:', error);
+            return false;
+        }
+    }
+
+        /**
+     * Get selected aspect ratio from UI
+     */
+    getSelectedAspectRatio() {
+        const selectedAspect = document.querySelector('input[name="aspectRatio"]:checked');
+        return selectedAspect ? selectedAspect.value : '1:1'; // Default to square
+    }
+
+    /**
+     * Calculate dimensions for selected aspect ratio
+     */
+    calculateAspectRatioDimensions(containerRect, aspectRatio) {
+        let width, height;
+        const containerWidth = containerRect.width;
+        const containerHeight = containerRect.height;
+
+        console.log(`Original container size: ${containerWidth}x${containerHeight}`);
+
+        switch (aspectRatio) {
+            case '16:9':
+                // Landscape - fit to container width, adjust height
+                width = Math.max(containerWidth, 1280);
+                height = Math.round(width * (9/16));
+                break;
+            case '1:1':
+                // Square - use smaller dimension
+                const squareSize = Math.max(Math.min(containerWidth, containerHeight), 720);
+                width = squareSize;
+                height = squareSize;
+                break;
+            case '9:16':
+                // Portrait/Mobile - fit to container height, adjust width
+                height = Math.max(containerHeight, 720);
+                width = Math.round(height * (9/16));
+                break;
+            default:
+                width = Math.max(containerWidth, 1280);
+                height = Math.max(containerHeight, 720);
+        }
+
+        // Ensure dimensions are even numbers (some codecs require this)
+        width = Math.floor(width / 2) * 2;
+        height = Math.floor(height / 2) * 2;
+
+        console.log(`Calculated ${aspectRatio} dimensions: ${width}x${height}`);
+        return { width, height };
+    }
+
+    /**
+     * Setup canvas recording infrastructure to capture the entire videoCaptureContainer
      */
     async setupCanvasRecording() {
-        // Get the map canvas
-        const mapCanvas = this.app.mapRenderer.map.getCanvas();
-        if (!mapCanvas) {
-            throw new Error('Map canvas not available');
+        // Get the video capture container (this contains map + overlays + stats)
+            const videoCaptureContainer = document.getElementById('videoCaptureContainer');
+            if (!videoCaptureContainer) {
+            throw new Error('Video capture container not available');
         }
 
         // Get optimal recording settings based on device capabilities
         const optimalSettings = MP4Utils.getOptimalRecordingSettings();
         console.log('Using optimal recording settings:', optimalSettings);
 
+        // Get the actual container dimensions
+        const containerRect = videoCaptureContainer.getBoundingClientRect();
+        console.log('Video capture container size:', containerRect);
+
+        // Get selected aspect ratio and calculate dimensions
+        const selectedAspectRatio = this.getSelectedAspectRatio();
+        const { width, height } = this.calculateAspectRatioDimensions(containerRect, selectedAspectRatio);
+
         // Create a composite canvas for recording (similar to MapDirector's approach)
         this.recordingCanvas = document.createElement('canvas');
         this.recordingContext = this.recordingCanvas.getContext('2d');
         
-        // Set high resolution for better quality
-        const { width, height, devicePixelRatio } = optimalSettings;
-        
+        // Set canvas dimensions with device pixel ratio for crisp rendering
+        const { devicePixelRatio } = optimalSettings;
         this.recordingCanvas.width = width * devicePixelRatio;
         this.recordingCanvas.height = height * devicePixelRatio;
         this.recordingCanvas.style.width = width + 'px';
@@ -393,9 +827,30 @@ export class VideoExportController {
         // Scale context to match device pixel ratio
         this.recordingContext.scale(devicePixelRatio, devicePixelRatio);
         
+        // Since container is already resized to match aspect ratio, use direct mapping
+        const scale = 1.0; // No scaling needed since container matches target size
+        const scaledWidth = width;
+        const scaledHeight = height;
+        const offsetX = 0;
+        const offsetY = 0;
+
+        console.log(`Direct container mapping - no scaling needed (container already matches ${selectedAspectRatio})`);
+
         // Store dimensions and settings for later use
-        this.recordingDimensions = optimalSettings;
+        this.recordingDimensions = { 
+            ...optimalSettings, 
+            width, 
+            height,
+            containerRect,
+            scale,
+            offsetX,
+            offsetY,
+            scaledWidth,
+            scaledHeight,
+            aspectRatio: selectedAspectRatio
+        };
         this.optimalSettings = optimalSettings;
+        this.videoCaptureContainer = videoCaptureContainer;
         
         // Add canvas to hidden container for reference (don't display it)
         this.recordingCanvas.style.position = 'absolute';
@@ -403,7 +858,8 @@ export class VideoExportController {
         this.recordingCanvas.style.top = '-9999px';
         document.body.appendChild(this.recordingCanvas);
         
-        console.log(`Recording canvas created: ${width}x${height} (${devicePixelRatio}x DPI) @ ${optimalSettings.bitrate/1000000}Mbps`);
+        console.log(`Recording canvas created: ${width}x${height} (${selectedAspectRatio}) (${devicePixelRatio}x DPI) @ ${optimalSettings.bitrate/1000000}Mbps`);
+        console.log(`Content scaling: ${scale.toFixed(2)}x, offset: ${offsetX.toFixed(1)}, ${offsetY.toFixed(1)}`);
     }
 
     /**
@@ -496,17 +952,22 @@ export class VideoExportController {
             return this.initializeWebCodecsRecorder();
         }
 
-        // Create a stream from our recording canvas
-        const stream = this.recordingCanvas.captureStream(this.optimalSettings.framerate);
+        // Create a stream from our recording canvas at exactly 30 FPS
+        const targetFPS = 30;
+        const stream = this.recordingCanvas.captureStream(targetFPS);
         
-        // Create optimized MediaRecorder options
-        const options = MP4Utils.createMediaRecorderOptions(this.mp4CodecInfo, this.optimalSettings);
+        // Create optimized MediaRecorder options with 30 FPS
+        const customSettings = {
+            ...this.optimalSettings,
+            framerate: targetFPS
+        };
+        const options = MP4Utils.createMediaRecorderOptions(this.mp4CodecInfo, customSettings);
         
         // Estimate file size for user information
         console.log('📊 Estimating file size...');
         const estimatedDuration = this.estimateAnimationDuration();
-        const sizeEstimate = MP4Utils.estimateFileSize(estimatedDuration, this.optimalSettings.bitrate);
-        console.log(`📊 Estimated file size: ${sizeEstimate.displaySize} for ${estimatedDuration}s video`);
+        const sizeEstimate = MP4Utils.estimateFileSize(estimatedDuration, customSettings.bitrate);
+        console.log(`📊 Estimated file size: ${sizeEstimate.displaySize} for ${estimatedDuration}s video at ${targetFPS} FPS`);
 
         this.mediaRecorder = new MediaRecorder(stream, options);
         this.recordedChunks = [];
@@ -531,7 +992,7 @@ export class VideoExportController {
             this.cleanup();
         };
 
-        console.log(`Advanced MediaRecorder initialized with: ${this.mp4CodecInfo.description} @ ${this.optimalSettings.bitrate/1000000}Mbps`);
+        console.log(`Advanced MediaRecorder initialized with: ${this.mp4CodecInfo.description} @ ${customSettings.bitrate/1000000}Mbps, ${targetFPS} FPS`);
     }
 
     /**
@@ -553,18 +1014,19 @@ export class VideoExportController {
             }
         });
 
-        // Configure encoder for MP4/H.264
+        // Configure encoder for MP4/H.264 at exactly 30 FPS
+        const targetFPS = 30;
         const config = {
             codec: 'avc1.42E01E', // H.264 baseline profile
             width: this.recordingDimensions.width,
             height: this.recordingDimensions.height,
             bitrate: 8000000, // 8 Mbps
-            framerate: 30,
+            framerate: targetFPS,
             hardwareAcceleration: 'prefer-hardware'
         };
 
         this.webCodecsEncoder.configure(config);
-        console.log('WebCodecs encoder configured for MP4');
+        console.log(`WebCodecs encoder configured for MP4 at ${targetFPS} FPS`);
     }
 
     /**
@@ -610,7 +1072,7 @@ export class VideoExportController {
 
             console.log(`🎬 Starting frame recording at ${targetFPS} FPS...`);
 
-            const renderFrame = (currentTime) => {
+            const renderFrame = async (currentTime) => {
                 try {
                     // Safety timeout
                     if (Date.now() - startTime > maxRecordingTime) {
@@ -622,7 +1084,7 @@ export class VideoExportController {
 
                     // Throttle to target FPS
                     if (currentTime - lastFrameTime >= frameInterval) {
-                        this.captureFrame(frameCount);
+                        await this.captureFrame(frameCount);
                         frameCount++;
                         lastFrameTime = currentTime;
 
@@ -668,73 +1130,662 @@ export class VideoExportController {
     }
 
     /**
-     * Capture a single frame to the recording canvas
+     * Capture a single frame of the entire videoCaptureContainer
      */
-    captureFrame(frameNumber) {
-        const mapCanvas = this.app.mapRenderer.map.getCanvas();
+    async captureFrame(frameNumber) {
         const { width, height } = this.recordingDimensions;
 
-        // Clear the recording canvas
-        this.recordingContext.clearRect(0, 0, width, height);
+        try {
+            // Clear the recording canvas
+            this.recordingContext.clearRect(0, 0, width, height);
 
-        // Draw the map canvas
-        this.recordingContext.drawImage(mapCanvas, 0, 0, width, height);
+            // Capture the entire videoCaptureContainer using DOM-to-canvas approach
+            await this.captureContainerToCanvas();
 
-        // Add any overlays (stats, progress bar, etc.)
-        this.renderOverlays();
-
-        // If using WebCodecs, encode this frame
-        if (this.webCodecsEncoder) {
-            this.encodeFrameWithWebCodecs(frameNumber);
+            // If using WebCodecs, encode this frame
+            if (this.webCodecsEncoder) {
+                this.encodeFrameWithWebCodecs(frameNumber);
+            }
+        } catch (error) {
+            console.warn(`Frame ${frameNumber} capture failed:`, error);
+            // Fallback: just draw the map canvas if container capture fails
+            this.fallbackMapCapture();
         }
     }
 
     /**
-     * Render overlays on the recording canvas
+     * Capture the videoCaptureContainer content to the recording canvas
      */
-    renderOverlays() {
-        const ctx = this.recordingContext;
-        const { width, height } = this.recordingDimensions;
-
-        // Get current stats
-        const progress = this.getAnimationProgress();
-        const stats = this.getCurrentStats();
-
-        // Render progress indicator
-        if (progress > 0) {
-            const barWidth = width * 0.8;
-            const barHeight = 6;
-            const barX = (width - barWidth) / 2;
-            const barY = height - 30;
-
-            // Background
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-            ctx.fillRect(barX, barY, barWidth, barHeight);
-
-            // Progress
-            ctx.fillStyle = '#4CAF50';
-            ctx.fillRect(barX, barY, barWidth * progress, barHeight);
+    async captureContainerToCanvas() {
+        const { width, height, scale, offsetX, offsetY, scaledWidth, scaledHeight, containerRect } = this.recordingDimensions;
+        
+        // Clear canvas with background color
+        this.recordingContext.fillStyle = '#000000';
+        this.recordingContext.fillRect(0, 0, width, height);
+        
+        // Method 1: Try using html2canvas if available
+        if (window.html2canvas) {
+            try {
+                const canvas = await html2canvas(this.videoCaptureContainer, {
+                    width: width,
+                    height: height,
+                    backgroundColor: null,
+                    allowTaint: true,
+                    useCORS: true,
+                    logging: false,
+                    scale: 1,
+                    ignoreElements: (element) => {
+                        // Ignore certain elements that might cause issues
+                        return element.tagName === 'SCRIPT' || element.tagName === 'STYLE';
+                    }
+                });
+                
+                // Draw the html2canvas result directly (no scaling needed)
+                this.recordingContext.drawImage(canvas, 0, 0, width, height);
+                return;
+            } catch (error) {
+                console.warn('html2canvas failed, using manual method:', error);
+            }
+        } else {
+            console.log('html2canvas not available, using manual DOM capture');
         }
 
-        // Render stats if available
-        if (stats) {
+        // Method 2: Manual DOM element capture with proper scaling
+        await this.manualDOMCapture();
+    }
+
+    /**
+     * Manual DOM capture approach - captures elements individually (direct mapping)
+     */
+    async manualDOMCapture() {
+        const { width, height } = this.recordingDimensions;
+
+        // 1. Draw the map canvas first (direct mapping since container matches target size)
+        const mapCanvas = this.app.mapRenderer.map.getCanvas();
+        if (mapCanvas) {
+            this.recordingContext.drawImage(mapCanvas, 0, 0, width, height);
+        }
+
+        // 2. Capture and draw the live stats overlay
+        await this.drawLiveStatsOverlay();
+
+        // 3. Capture and draw the elevation profile
+        await this.drawElevationProfile();
+
+        // 4. Draw the logo watermark
+        await this.drawLogoWatermark();
+
+        // 5. Draw any active annotations
+        await this.drawActiveAnnotations();
+    }
+
+    /**
+     * Fallback method: just capture the map canvas
+     */
+    fallbackMapCapture() {
+        const mapCanvas = this.app.mapRenderer.map.getCanvas();
+        const { width, height } = this.recordingDimensions;
+        
+        if (mapCanvas) {
+            this.recordingContext.drawImage(mapCanvas, 0, 0, width, height);
+        }
+    }
+
+    /**
+     * Phase 1: Capture high-quality frames during animation playback
+     */
+    async captureAnimationFrames() {
+        // Initialize frame storage
+        this.capturedFrames = [];
+        this.captureQuality = 2; // Higher quality multiplier
+        
+        return new Promise((resolve, reject) => {
+            let frameCount = 0;
+            let lastProgressUpdate = 0;
+            const targetFPS = 30; // Fixed at 30 FPS for consistent timing
+            const frameInterval = 1000 / targetFPS; // 33.33ms per frame
+            let lastFrameTime = 0;
+            const startTime = Date.now();
+            const maxRecordingTime = 600000; // 10 minutes max
+
+            // Get animation duration to calculate total expected frames
+            const animationDuration = this.estimateAnimationDuration();
+            const expectedFrames = Math.ceil(animationDuration * targetFPS);
+            
+            console.log(`🎬 Phase 1: Starting frame capture at ${targetFPS} FPS...`);
+            console.log(`🎬 Expected duration: ${animationDuration}s, Expected frames: ${expectedFrames}`);
+
+            const captureFrame = async (currentTime) => {
+                try {
+                    // Safety timeout
+                    if (Date.now() - startTime > maxRecordingTime) {
+                        console.warn('⚠️ Frame capture timeout reached, processing captured frames...');
+                        resolve();
+                        return;
+                    }
+
+                    // Throttle to exact target FPS timing
+                    if (currentTime - lastFrameTime >= frameInterval) {
+                        // Capture high-quality frame
+                        const frameData = await this.captureHighQualityFrame(frameCount);
+                        this.capturedFrames.push(frameData);
+                        
+                        frameCount++;
+                        lastFrameTime = currentTime;
+
+                        // Update progress periodically
+                        const now = Date.now();
+                        if (now - lastProgressUpdate > 1000) { // Update every second
+                            const progress = this.getAnimationProgress();
+                            const captureProgress = frameCount / expectedFrames;
+                            this.updateProgress(65 + (Math.min(progress, captureProgress) * 15), `Capturing frame ${frameCount}/${expectedFrames}... ${Math.round(progress * 100)}% complete`);
+                            lastProgressUpdate = now;
+                            console.log(`📹 Captured frame ${frameCount}/${expectedFrames}, Animation: ${Math.round(progress * 100)}%`);
+                        }
+                    }
+
+                    // Continue recording if animation is still playing AND we haven't captured all expected frames
+                    const animationStillPlaying = this.isAnimationPlaying();
+                    const hasMoreFramesToCapture = frameCount < expectedFrames;
+                    
+                    if (animationStillPlaying && hasMoreFramesToCapture) {
+                        requestAnimationFrame(captureFrame);
+                    } else {
+                        // Animation complete or expected frames captured
+                        const actualDuration = (Date.now() - startTime) / 1000;
+                        const calculatedDuration = frameCount / targetFPS;
+                        console.log(`✅ Frame capture complete. Captured ${frameCount} frames in ${actualDuration.toFixed(1)}s`);
+                        console.log(`✅ Video duration will be: ${calculatedDuration.toFixed(1)}s at ${targetFPS} FPS`);
+                        resolve();
+                    }
+                } catch (error) {
+                    console.error('❌ Frame capture error:', error);
+                    reject(error);
+                }
+            };
+
+            // Start animation and capture
+            console.log('🎬 Starting animation playback for frame capture...');
+            if (this.app.playback && this.app.playback.play) {
+                this.app.playback.play();
+            } else if (this.app.map && this.app.map.startAnimation) {
+                this.app.map.startAnimation();
+            }
+            
+            // Delay slightly to ensure animation has started
+            setTimeout(() => {
+                console.log('🎬 Starting frame capture loop...');
+                requestAnimationFrame(captureFrame);
+            }, 100);
+        });
+    }
+
+    /**
+     * Capture a high-quality frame of the videoCaptureContainer
+     */
+    async captureHighQualityFrame(frameNumber) {
+        const { width, height, scale, offsetX, offsetY, scaledWidth, scaledHeight, containerRect } = this.recordingDimensions;
+
+        try {
+            // Create a high-quality capture canvas
+            const captureCanvas = document.createElement('canvas');
+            const captureContext = captureCanvas.getContext('2d');
+            
+            // Use higher resolution for better quality
+            const qualityMultiplier = this.captureQuality || 2;
+            captureCanvas.width = width * qualityMultiplier;
+            captureCanvas.height = height * qualityMultiplier;
+            captureContext.scale(qualityMultiplier, qualityMultiplier);
+
+            // Clear with black background
+            captureContext.fillStyle = '#000000';
+            captureContext.fillRect(0, 0, width, height);
+
+            // Method 1: Try using html2canvas if available
+            if (window.html2canvas) {
+                try {
+                    const canvas = await html2canvas(this.videoCaptureContainer, {
+                        width: containerRect.width,
+                        height: containerRect.height,
+                        backgroundColor: null,
+                        allowTaint: true,
+                        useCORS: true,
+                        logging: false,
+                        scale: qualityMultiplier,
+                        ignoreElements: (element) => {
+                            return element.tagName === 'SCRIPT' || element.tagName === 'STYLE';
+                        }
+                    });
+                    
+                                    // Draw the captured content directly (no scaling needed)
+                captureContext.drawImage(canvas, 0, 0, width, height);
+                    
+                    return {
+                        canvas: captureCanvas,
+                        frameNumber: frameNumber,
+                        timestamp: Date.now()
+                    };
+                } catch (error) {
+                    console.warn('html2canvas failed for high-quality capture, using manual method:', error);
+                }
+            }
+
+            // Method 2: Manual high-quality DOM capture
+            await this.manualHighQualityCapture(captureContext, width, height);
+
+            return {
+                canvas: captureCanvas,
+                frameNumber: frameNumber,
+                timestamp: Date.now()
+            };
+        } catch (error) {
+            console.warn(`High-quality frame ${frameNumber} capture failed:`, error);
+            // Fallback to regular capture
+            return this.fallbackFrameCapture(frameNumber);
+        }
+    }
+
+    /**
+     * Manual high-quality DOM capture (direct mapping)
+     */
+    async manualHighQualityCapture(context, width, height) {
+        // 1. Draw the map canvas first (direct mapping)
+        const mapCanvas = this.app.mapRenderer.map.getCanvas();
+        if (mapCanvas) {
+            context.drawImage(mapCanvas, 0, 0, width, height);
+        }
+
+        // 2. Capture and draw the live stats overlay
+        await this.drawHighQualityLiveStats(context);
+
+        // 3. Capture and draw the elevation profile
+        await this.drawHighQualityElevationProfile(context);
+
+        // 4. Draw the logo watermark
+        await this.drawHighQualityLogo(context);
+
+        // 5. Draw any active annotations
+        await this.drawHighQualityAnnotations(context);
+    }
+
+    /**
+     * Phase 2: Create video from captured high-quality frames
+     */
+    async createVideoFromFrames() {
+        if (!this.capturedFrames || this.capturedFrames.length === 0) {
+            throw new Error('No frames captured to create video');
+        }
+
+        console.log(`🎬 Phase 2: Creating video from ${this.capturedFrames.length} frames...`);
+
+        // Initialize MediaRecorder with optimal settings
+        await this.initializeAdvancedMediaRecorder();
+        
+        // Start MediaRecorder
+        this.mediaRecorder.start();
+        const startTime = Date.now();
+
+        // Stream frames to MediaRecorder at exact 30 FPS
+        const targetFPS = 30; // Fixed at 30 FPS to match capture
+        const frameInterval = 1000 / targetFPS; // 33.33ms per frame
+        
+        console.log(`🎬 Processing ${this.capturedFrames.length} frames at ${targetFPS} FPS (${frameInterval.toFixed(2)}ms per frame)`);
+        
+        for (let i = 0; i < this.capturedFrames.length; i++) {
+            const frameData = this.capturedFrames[i];
+            
+            // Clear and draw frame to recording canvas
+            const { width, height } = this.recordingDimensions;
+            this.recordingContext.clearRect(0, 0, width, height);
+            
+            if (frameData.imageData) {
+                // Draw captured ImageData
+                this.recordingContext.putImageData(frameData.imageData, 0, 0);
+            } else if (frameData.canvas) {
+                // Draw captured canvas
+                this.recordingContext.drawImage(frameData.canvas, 0, 0, width, height);
+            }
+
+            // Let MediaRecorder capture this frame with precise timing
+            await new Promise(resolve => {
+                setTimeout(() => {
+                    const progress = (i / this.capturedFrames.length) * 100;
+                    this.updateProgress(85 + (progress * 0.1), `Encoding frame ${i + 1}/${this.capturedFrames.length}...`);
+                    resolve();
+                }, frameInterval);
+            });
+        }
+
+        // Stop recording and finalize
+        this.mediaRecorder.stop();
+        await this.finishRecording();
+        
+        // Calculate final video duration
+        const finalDuration = this.capturedFrames.length / targetFPS;
+        console.log(`✅ Video creation complete in ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
+        console.log(`✅ Final video duration: ${finalDuration.toFixed(1)}s at ${targetFPS} FPS`);
+        
+        // Clean up captured frames to free memory
+        this.capturedFrames = [];
+    }
+
+    /**
+     * Fallback frame capture method
+     */
+    fallbackFrameCapture(frameNumber) {
+        const { width, height } = this.recordingDimensions;
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Just capture the map canvas as fallback
+        const mapCanvas = this.app.mapRenderer.map.getCanvas();
+        if (mapCanvas) {
+            context.drawImage(mapCanvas, 0, 0, width, height);
+        }
+
+        return {
+            canvas: canvas,
+            frameNumber: frameNumber,
+            timestamp: Date.now()
+        };
+    }
+
+    /**
+     * High-quality live stats drawing
+     */
+    async drawHighQualityLiveStats(context) {
+        const liveStatsOverlay = document.getElementById('liveStatsOverlay');
+        if (!liveStatsOverlay || liveStatsOverlay.style.display === 'none') return;
+
+        const rect = liveStatsOverlay.getBoundingClientRect();
+        const containerRect = this.videoCaptureContainer.getBoundingClientRect();
+        
+        const x = rect.left - containerRect.left;
+        const y = rect.top - containerRect.top;
+
+        const distanceElement = document.getElementById('liveDistance');
+        const elevationElement = document.getElementById('liveElevation');
+        
+        if (distanceElement && elevationElement) {
+            context.font = 'bold 18px Arial';
+            context.fillStyle = 'rgba(255, 255, 255, 0.95)';
+            context.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+            context.lineWidth = 3;
+
+            // Draw distance with better styling
+            const distanceText = `Distance: ${distanceElement.textContent}`;
+            context.strokeText(distanceText, x + 10, y + 30);
+            context.fillText(distanceText, x + 10, y + 30);
+
+            // Draw elevation with better styling
+            const elevationText = `Elevation: ${elevationElement.textContent}`;
+            context.strokeText(elevationText, x + 10, y + 60);
+            context.fillText(elevationText, x + 10, y + 60);
+        }
+    }
+
+    /**
+     * High-quality elevation profile drawing
+     */
+    async drawHighQualityElevationProfile(context) {
+        const elevationContainer = document.querySelector('.elevation-profile-container');
+        if (!elevationContainer || elevationContainer.style.display === 'none') return;
+
+        const rect = elevationContainer.getBoundingClientRect();
+        const containerRect = this.videoCaptureContainer.getBoundingClientRect();
+        
+        const x = rect.left - containerRect.left;
+        const y = rect.top - containerRect.top;
+
+        const progress = this.getAnimationProgress();
+        const { width, height } = this.recordingDimensions;
+
+        if (progress > 0) {
+            const barWidth = Math.min(rect.width, width * 0.9);
+            const barHeight = 8; // Slightly thicker for better visibility
+            const barX = x;
+            const barY = y + rect.height - 25;
+
+            // Background with gradient
+            const gradient = context.createLinearGradient(0, barY, 0, barY + barHeight);
+            gradient.addColorStop(0, 'rgba(76, 175, 80, 0.4)');
+            gradient.addColorStop(1, 'rgba(76, 175, 80, 0.2)');
+            context.fillStyle = gradient;
+            context.fillRect(barX, barY, barWidth, barHeight);
+
+            // Progress with gradient
+            const progressGradient = context.createLinearGradient(0, barY, 0, barY + barHeight);
+            progressGradient.addColorStop(0, 'rgba(193, 101, 47, 0.9)');
+            progressGradient.addColorStop(1, 'rgba(193, 101, 47, 0.7)');
+            context.fillStyle = progressGradient;
+            context.fillRect(barX, barY, barWidth * progress, barHeight);
+
+            // Add border
+            context.strokeStyle = '#4CAF50';
+            context.lineWidth = 1;
+            context.strokeRect(barX, barY, barWidth, barHeight);
+        }
+    }
+
+    /**
+     * High-quality logo drawing
+     */
+    async drawHighQualityLogo(context) {
+        const logoElement = document.querySelector('.map-watermark img');
+        if (!logoElement || logoElement.style.display === 'none') return;
+
+        try {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            
+            return new Promise((resolve) => {
+                img.onload = () => {
+                    const rect = logoElement.getBoundingClientRect();
+                    const containerRect = this.videoCaptureContainer.getBoundingClientRect();
+                    
+                    const x = rect.left - containerRect.left;
+                    const y = rect.top - containerRect.top;
+                    
+                    // Draw with high quality
+                    context.imageSmoothingEnabled = true;
+                    context.imageSmoothingQuality = 'high';
+                    context.drawImage(img, x, y, rect.width, rect.height);
+                    resolve();
+                };
+                img.onerror = () => resolve();
+                img.src = logoElement.src;
+            });
+        } catch (error) {
+            console.warn('Failed to draw high-quality logo:', error);
+        }
+    }
+
+    /**
+     * High-quality annotations drawing
+     */
+    async drawHighQualityAnnotations(context) {
+        const activeAnnotation = document.getElementById('activeAnnotation');
+        if (!activeAnnotation || activeAnnotation.style.display === 'none') return;
+
+        const rect = activeAnnotation.getBoundingClientRect();
+        const containerRect = this.videoCaptureContainer.getBoundingClientRect();
+        
+        const x = rect.left - containerRect.left;
+        const y = rect.top - containerRect.top;
+
+        const titleElement = activeAnnotation.querySelector('.annotation-popup-title');
+        const descElement = activeAnnotation.querySelector('.annotation-popup-description');
+
+        if (titleElement || descElement) {
+            // Draw background with rounded corners effect
+            context.fillStyle = 'rgba(0, 0, 0, 0.85)';
+            context.fillRect(x, y, Math.min(rect.width, 350), Math.min(rect.height, 120));
+
+            // Draw border
+            context.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            context.lineWidth = 1;
+            context.strokeRect(x, y, Math.min(rect.width, 350), Math.min(rect.height, 120));
+
+            // Draw text with high quality
+            context.textAlign = 'left';
+            context.textBaseline = 'top';
+            
+            if (titleElement && titleElement.textContent) {
+                context.font = 'bold 16px Arial';
+                context.fillStyle = 'white';
+                context.fillText(titleElement.textContent, x + 15, y + 15);
+            }
+            
+            if (descElement && descElement.textContent) {
+                context.font = '14px Arial';
+                context.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                context.fillText(descElement.textContent, x + 15, y + 45);
+            }
+        }
+    }
+
+    /**
+     * Draw the live stats overlay from DOM
+     */
+    async drawLiveStatsOverlay() {
+        const liveStatsOverlay = document.getElementById('liveStatsOverlay');
+        if (!liveStatsOverlay || liveStatsOverlay.style.display === 'none') return;
+
+        const rect = liveStatsOverlay.getBoundingClientRect();
+        const containerRect = this.videoCaptureContainer.getBoundingClientRect();
+        
+        // Calculate relative position within the container
+        const x = rect.left - containerRect.left;
+        const y = rect.top - containerRect.top;
+
+        // Get the stats text from DOM
+        const distanceElement = document.getElementById('liveDistance');
+        const elevationElement = document.getElementById('liveElevation');
+        
+        if (distanceElement && elevationElement) {
+            const ctx = this.recordingContext;
             ctx.font = '16px Arial';
             ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
             ctx.strokeStyle = 'rgba(0, 0, 0, 0.7)';
             ctx.lineWidth = 2;
 
-            const statsText = [
-                `Speed: ${stats.speed || '0 km/h'}`,
-                `Distance: ${stats.distance || '0 km'}`,
-                `Elevation: ${stats.elevation || '0 m'}`
-            ];
+            // Draw distance
+            const distanceText = `Distance: ${distanceElement.textContent}`;
+            ctx.strokeText(distanceText, x + 10, y + 25);
+            ctx.fillText(distanceText, x + 10, y + 25);
 
-            statsText.forEach((text, index) => {
-                const x = 20;
-                const y = 30 + (index * 25);
-                ctx.strokeText(text, x, y);
-                ctx.fillText(text, x, y);
+            // Draw elevation
+            const elevationText = `Elevation: ${elevationElement.textContent}`;
+            ctx.strokeText(elevationText, x + 10, y + 50);
+            ctx.fillText(elevationText, x + 10, y + 50);
+        }
+    }
+
+    /**
+     * Draw the elevation profile from DOM
+     */
+    async drawElevationProfile() {
+        const elevationContainer = document.querySelector('.elevation-profile-container');
+        if (!elevationContainer || elevationContainer.style.display === 'none') return;
+
+        const rect = elevationContainer.getBoundingClientRect();
+        const containerRect = this.videoCaptureContainer.getBoundingClientRect();
+        
+        // Calculate relative position within the container
+        const x = rect.left - containerRect.left;
+        const y = rect.top - containerRect.top;
+
+        // Get current progress for the progress bar
+        const progress = this.getAnimationProgress();
+        const { width, height } = this.recordingDimensions;
+
+        if (progress > 0) {
+            const ctx = this.recordingContext;
+            const barWidth = Math.min(rect.width, width * 0.9);
+            const barHeight = 6;
+            const barX = x;
+            const barY = y + rect.height - 20;
+
+            // Background
+            ctx.fillStyle = 'rgba(76, 175, 80, 0.3)';
+            ctx.fillRect(barX, barY, barWidth, barHeight);
+
+            // Progress
+            ctx.fillStyle = '#C1652F';
+            ctx.fillRect(barX, barY, barWidth * progress, barHeight);
+        }
+    }
+
+    /**
+     * Draw the logo watermark from DOM
+     */
+    async drawLogoWatermark() {
+        const logoElement = document.querySelector('.map-watermark img');
+        if (!logoElement || logoElement.style.display === 'none') return;
+
+        try {
+            // Create an image element and draw it
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            
+            return new Promise((resolve) => {
+                img.onload = () => {
+                    const rect = logoElement.getBoundingClientRect();
+                    const containerRect = this.videoCaptureContainer.getBoundingClientRect();
+                    
+                    const x = rect.left - containerRect.left;
+                    const y = rect.top - containerRect.top;
+                    
+                    this.recordingContext.drawImage(img, x, y, rect.width, rect.height);
+                    resolve();
+                };
+                img.onerror = () => resolve(); // Continue even if logo fails to load
+                img.src = logoElement.src;
             });
+        } catch (error) {
+            console.warn('Failed to draw logo watermark:', error);
+        }
+    }
+
+    /**
+     * Draw any active annotations from DOM
+     */
+    async drawActiveAnnotations() {
+        const activeAnnotation = document.getElementById('activeAnnotation');
+        if (!activeAnnotation || activeAnnotation.style.display === 'none') return;
+
+        const rect = activeAnnotation.getBoundingClientRect();
+        const containerRect = this.videoCaptureContainer.getBoundingClientRect();
+        
+        // Calculate relative position within the container
+        const x = rect.left - containerRect.left;
+        const y = rect.top - containerRect.top;
+
+        // Draw annotation popup (simplified version)
+        const ctx = this.recordingContext;
+        const titleElement = activeAnnotation.querySelector('.annotation-popup-title');
+        const descElement = activeAnnotation.querySelector('.annotation-popup-description');
+
+        if (titleElement || descElement) {
+            // Draw background
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            ctx.fillRect(x, y, Math.min(rect.width, 300), Math.min(rect.height, 100));
+
+            // Draw text
+            ctx.font = '14px Arial';
+            ctx.fillStyle = 'white';
+            
+            if (titleElement && titleElement.textContent) {
+                ctx.fillText(titleElement.textContent, x + 10, y + 20);
+            }
+            
+            if (descElement && descElement.textContent) {
+                ctx.font = '12px Arial';
+                ctx.fillText(descElement.textContent, x + 10, y + 40);
+            }
         }
     }
 
@@ -744,9 +1795,10 @@ export class VideoExportController {
     encodeFrameWithWebCodecs(frameNumber) {
         if (!this.webCodecsEncoder) return;
 
-        // Create VideoFrame from canvas
+        const targetFPS = 30;
+        // Create VideoFrame from canvas with precise timing
         const frame = new VideoFrame(this.recordingCanvas, {
-            timestamp: frameNumber * (1000000 / 30) // microseconds, 30 FPS
+            timestamp: frameNumber * (1000000 / targetFPS) // microseconds, exactly 30 FPS
         });
 
         // Encode the frame
