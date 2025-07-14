@@ -320,8 +320,8 @@ export class TrailReplayApp {
     }
 
     updateElevationProgress(progress) {
-        // Skip expensive operations during recording
-        if (this.recordingMode) {
+        // Skip expensive operations during clean recording, but allow updates during overlay recording (manual mode)
+        if (this.recordingMode && !this.overlayRecordingMode) {
             return;
         }
         

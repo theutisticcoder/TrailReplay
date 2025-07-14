@@ -870,33 +870,7 @@ input:checked + .toggle-slider:before {
     transform: translateY(-1px);
 }
 
-/* Map Watermark */
-.map-watermark {
-    position: absolute;
-    top: 1rem;
-    left: 1rem;
-    z-index: 500; /* Below controls but above map */
-    pointer-events: none; /* Don't interfere with map interactions */
-}
-
-.watermark-logo {
-    height: 40px;
-    width: auto;
-    opacity: 0.7;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
-    transition: opacity 0.3s ease;
-}
-
-/* Responsive watermark */
-@media (max-width: 768px) {
-    .watermark-logo {
-        height: 30px;
-    }
-    
-    .map-controls-overlay {
-        margin-top: 40px;
-    }
-}
+/* Map Watermark - removed DOM element, using programmatic drawing only */
 
 /* Elevation Profile Container (inside map) */
 .elevation-profile-container {
@@ -3061,7 +3035,7 @@ body.high-quality-recording .map canvas {
     padding: 1rem;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
     z-index: 99999;
-    width: 280px;
+    width: 360px;
     opacity: 0;
     visibility: hidden;
     transform: translateY(8px);
@@ -3121,9 +3095,16 @@ body.high-quality-recording .map canvas {
     }
 }
 
+/* Wider tooltip for large screens */
+@media (min-width: 1200px) {
+    .camera-info-tooltip {
+        width: 420px;
+    }
+}
+
 @media (max-width: 768px) {
     .camera-info-tooltip {
-        width: 240px;
+        width: 300px;
     }
     
     .camera-info-tooltip::before {

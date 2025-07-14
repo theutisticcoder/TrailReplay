@@ -464,9 +464,77 @@ export const translations = {
                 plane: "Plane",
                 boat: "Boat",
                 walk: "Walk"
-                         }
-         }
-      },
+            }
+        },
+        
+        // Video Export
+        videoExport: {
+            title: "Video Export",
+            exportHelp: "Export Help",
+            autoWebM: "Auto Recording (WebM)",
+            autoMP4: "Auto Recording (MP4)",
+            manualMode: "Manual Screen Recording",
+            webMDescription: "Automatic recording with overlays rendered on canvas. Works on all browsers.",
+            mp4Description: "Advanced client-side MP4 generation with canvas rendering. Optimized for quality and compatibility. Auto-detects best codec and settings for your device.",
+            manualDescription: "Best quality with all statistics and overlays. Use your system's screen recorder to capture the highlighted area while the animation plays.",
+            gameBarRecord: "Game Bar → Record",
+            recordSelectedPortion: "Record Selected Portion",
+            videoRatio: "Video Ratio",
+            landscape: "16:9 Landscape",
+            square: "1:1 Square", 
+            mobile: "9:16 Mobile",
+            autoWebMShort: "Auto (WebM)",
+            autoMP4Short: "Auto (MP4)",
+            manualModeShort: "Manual Mode",
+            
+            // Messages
+            exportInProgress: "Video Export In Progress",
+            initializing: "Initializing...",
+            keepTabActive: "Keep this browser tab active",
+            closeOtherApps: "Close other applications for best performance",
+            doNotResizeWindow: "Do not resize or minimize this window",
+            letComplete: "Let the export complete without interruption",
+            cancelExport: "Cancel Export",
+            exportCancelled: "Video export cancelled by user",
+            noTrackData: "No track data available for export",
+            browserNotSupported: "Media recording not supported in this browser",
+            mapNotReady: "Map not ready for export",
+            exportError: "Export error: {error}",
+            mp4NotSupported: "MP4 not directly supported, using WebM format instead",
+            mp4ExportFailed: "MP4 export failed: {error}",
+            exportComplete: "Export complete!",
+            mp4ExportSuccess: "MP4 video exported successfully: {filename} ({size})",
+            downloadFailed: "Failed to download MP4 file",
+            manualRecordingActive: "🎥 Manual recording active - Press Escape or Reset to exit anytime",
+            manualRecordingFailed: "Manual recording setup failed: {error}",
+            cannotResizeWindow: "Cannot resize window during video export",
+            warningBeforeClose: "Video export in progress. Are you sure you want to leave?",
+            keepWindowVisible: "Keep this window visible for best video export quality",
+            
+            // Confirmation dialog
+            beforeExporting: "Before exporting",
+            ensurePerformance: "Ensure good system performance", 
+            closeUnnecessaryApps: "Close unnecessary applications",
+            keepTabActiveDuringExport: "Keep this browser tab active during export",
+            doNotResizeWindowConfirm: "Do not resize or minimize this window during export",
+            cancel: "Cancel",
+            startExport: "Start Export",
+            
+            // Manual recording dialog
+            manualRecordingInstructions: "Manual Recording Instructions",
+            howToRecord: "How to record",
+            highlightOrange: "The recording area will be highlighted in orange",
+            useSystemRecorder: "Use your system's screen recorder to capture the highlighted area",
+            animationAutoStart: "Animation will start automatically with all statistics visible",
+            recordUntilComplete: "Record until the animation completes",
+            escapeToExit: "Press Escape or Reset to exit recording mode anytime",
+            screenRecordingShortcuts: "Screen recording shortcuts",
+            useFullscreen: "Use fullscreen mode for best quality",
+            ensureGoodPerformance: "Ensure good system performance",
+            startPreparation: "Start Preparation",
+            manualRecordingExited: "Manual recording mode exited"
+        }
+    },
     es: {
         subtitle: "Revive la historia que contaron tus senderos",
         
@@ -923,6 +991,74 @@ export const translations = {
                 boat: "Barco",
                 walk: "Caminar"
             }
+        },
+        
+        // Exportación de Video
+        videoExport: {
+            title: "Exportación de Video",
+            exportHelp: "Ayuda de Exportación",
+            autoWebM: "Grabación Automática (WebM)",
+            autoMP4: "Grabación Automática (MP4)",
+            manualMode: "Grabación Manual de Pantalla",
+            webMDescription: "Grabación automática con superposiciones renderizadas en canvas. Funciona en todos los navegadores.",
+            mp4Description: "Generación avanzada de MP4 del lado del cliente con renderizado de canvas. Optimizado para calidad y compatibilidad. Detecta automáticamente el mejor códec y configuración para tu dispositivo.",
+            manualDescription: "La mejor calidad con todas las estadísticas y superposiciones. Usa la grabadora de pantalla de tu sistema para capturar el área resaltada mientras la animación se reproduce.",
+            gameBarRecord: "Game Bar → Grabar",
+            recordSelectedPortion: "Grabar Porción Seleccionada",
+            videoRatio: "Proporción de Video",
+            landscape: "16:9 Horizontal",
+            square: "1:1 Cuadrado",
+            mobile: "9:16 Móvil",
+            autoWebMShort: "Auto (WebM)",
+            autoMP4Short: "Auto (MP4)",
+            manualModeShort: "Modo Manual",
+            
+            // Mensajes
+            exportInProgress: "Exportación de Video en Progreso",
+            initializing: "Inicializando...",
+            keepTabActive: "Mantén esta pestaña del navegador activa",
+            closeOtherApps: "Cierra otras aplicaciones para el mejor rendimiento",
+            doNotResizeWindow: "No redimensiones ni minimices esta ventana",
+            letComplete: "Deja que la exportación se complete sin interrupciones",
+            cancelExport: "Cancelar Exportación",
+            exportCancelled: "Exportación de video cancelada por el usuario",
+            noTrackData: "No hay datos de ruta disponibles para exportar",
+            browserNotSupported: "Grabación de medios no compatible con este navegador",
+            mapNotReady: "Mapa no listo para exportar",
+            exportError: "Error de exportación: {error}",
+            mp4NotSupported: "MP4 no directamente compatible, usando formato WebM en su lugar",
+            mp4ExportFailed: "Error en exportación MP4: {error}",
+            exportComplete: "¡Exportación completa!",
+            mp4ExportSuccess: "Video MP4 exportado exitosamente: {filename} ({size})",
+            downloadFailed: "Error al descargar archivo MP4",
+            manualRecordingActive: "🎥 Grabación manual activa - Presiona Escape o Reset para salir en cualquier momento",
+            manualRecordingFailed: "Error en configuración de grabación manual: {error}",
+            cannotResizeWindow: "No se puede redimensionar la ventana durante la exportación de video",
+            warningBeforeClose: "Exportación de video en progreso. ¿Estás seguro de que quieres salir?",
+            keepWindowVisible: "Mantén esta ventana visible para la mejor calidad de exportación de video",
+            
+            // Diálogo de confirmación
+            beforeExporting: "Antes de exportar",
+            ensurePerformance: "Asegura un buen rendimiento del sistema",
+            closeUnnecessaryApps: "Cierra aplicaciones innecesarias",
+            keepTabActiveDuringExport: "Mantén esta pestaña del navegador activa durante la exportación",
+            doNotResizeWindowConfirm: "No redimensiones ni minimices esta ventana durante la exportación",
+            cancel: "Cancelar",
+            startExport: "Iniciar Exportación",
+            
+            // Diálogo de grabación manual
+            manualRecordingInstructions: "Instrucciones de Grabación Manual",
+            howToRecord: "Cómo grabar",
+            highlightOrange: "El área de grabación se resaltará en naranja",
+            useSystemRecorder: "Usa la grabadora de pantalla de tu sistema para capturar el área resaltada",
+            animationAutoStart: "La animación iniciará automáticamente con todas las estadísticas visibles",
+            recordUntilComplete: "Graba hasta que la animación se complete",
+            escapeToExit: "Presiona Escape o Reset para salir del modo de grabación en cualquier momento",
+            screenRecordingShortcuts: "Atajos de grabación de pantalla",
+            useFullscreen: "Usa el modo de pantalla completa para la mejor calidad",
+            ensureGoodPerformance: "Asegura un buen rendimiento del sistema",
+            startPreparation: "Iniciar Preparación",
+            manualRecordingExited: "Modo de grabación manual finalizado"
         }
     }
 };

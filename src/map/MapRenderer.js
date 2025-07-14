@@ -1964,6 +1964,16 @@ export class MapRenderer {
             }
             
             console.log('🎬 Follow-behind mode initialized as default');
+        } else {
+            // Standard mode - ensure map interactions are enabled
+            this.enableMapInteractions();
+            
+            const autoFollowToggle = document.getElementById('autoZoom');
+            if (autoFollowToggle) {
+                autoFollowToggle.disabled = false;
+            }
+            
+            console.log('🎬 Standard camera mode initialized as default');
         }
     }
 

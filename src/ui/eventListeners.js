@@ -101,16 +101,34 @@ export function setupEventListeners(app) {
     const cameraModeSelect = byId('cameraMode');
     if (cameraModeSelect) {
         console.log('🎬 Setting up camera mode event listener');
+        
+        // Function to update UI based on camera mode
+        const updateCameraModeUI = (mode) => {
+            // Show/hide follow-behind zoom preset dropdown
+            const followBehindZoomGroup = byId('followBehindZoomGroup');
+            if (followBehindZoomGroup) {
+                followBehindZoomGroup.style.display = mode === 'followBehind' ? 'block' : 'none';
+            }
+            
+            // Show/hide camera controls info tooltip (only for standard mode)
+            const cameraControlsInfo = byId('cameraControlsInfo');
+            if (cameraControlsInfo) {
+                cameraControlsInfo.style.display = mode === 'standard' ? 'inline-block' : 'none';
+            }
+        };
+        
         cameraModeSelect.addEventListener('change', (e) => {
             console.log('🎬 Camera mode changed to:', e.target.value);
             app.map.setCameraMode(e.target.value);
             
-            // Show/hide follow-behind zoom preset dropdown
-            const followBehindZoomGroup = byId('followBehindZoomGroup');
-            if (followBehindZoomGroup) {
-                followBehindZoomGroup.style.display = e.target.value === 'followBehind' ? 'block' : 'none';
-            }
+            // Update UI elements
+            updateCameraModeUI(e.target.value);
         });
+        
+        // Set initial state based on default selection
+        const initialValue = cameraModeSelect.value;
+        updateCameraModeUI(initialValue);
+        
         console.log('🎬 Camera mode event listener set up successfully');
     } else {
         console.warn('🎬 Camera mode dropdown not found in DOM');
@@ -135,6 +153,24 @@ export function setupEventListeners(app) {
                 app.map.enable3DTerrain();
             } else {
                 app.map.disable3DTerrain();
+            }
+        });
+    }
+
+    // Camera controls info tooltip
+    const cameraControlsInfo = byId('cameraControlsInfo');
+    if (cameraControlsInfo) {
+        // Mobile/touch behavior - toggle tooltip on click
+        cameraControlsInfo.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            cameraControlsInfo.classList.toggle('active');
+        });
+
+        // Close tooltip when clicking outside on mobile
+        document.addEventListener('click', (e) => {
+            if (!cameraControlsInfo.contains(e.target)) {
+                cameraControlsInfo.classList.remove('active');
             }
         });
     }

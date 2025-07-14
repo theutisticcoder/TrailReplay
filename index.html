@@ -169,6 +169,29 @@
                                 <option value="standard" data-i18n="controls.cameraStandard">🎥 Standard</option>
                                 <option value="followBehind" data-i18n="controls.cameraFollowBehind" selected>🎬 Follow Behind</option>
                             </select>
+                            <div class="camera-info-section">
+                                <div class="camera-info-button" id="cameraControlsInfo">
+                                    <span class="camera-info-text" data-i18n="cameraInfo.buttonText">ℹ️ Camera Controls</span>
+                                    <div class="camera-info-tooltip">
+                                        <div class="camera-info-content">
+                                            <div class="camera-controls-section">
+                                                <h5 data-i18n="cameraInfo.desktop.title">💻 Desktop Controls</h5>
+                                                <p data-i18n="cameraInfo.desktop.pan">Pan: Click and drag to move the map</p>
+                                                <p data-i18n="cameraInfo.desktop.zoom">Zoom: Use mouse wheel or +/- keys</p>
+                                                <p data-i18n="cameraInfo.desktop.rotate">Rotate: Right-click and drag, or Shift + click and drag</p>
+                                                <p data-i18n="cameraInfo.desktop.tilt">Tilt: Ctrl + click and drag (3D mode)</p>
+                                            </div>
+                                            <div class="camera-controls-section">
+                                                <h5 data-i18n="cameraInfo.mobile.title">📱 Mobile Controls</h5>
+                                                <p data-i18n="cameraInfo.mobile.pan">Pan: Touch and drag with one finger</p>
+                                                <p data-i18n="cameraInfo.mobile.zoom">Zoom: Pinch with two fingers to zoom in/out</p>
+                                                <p data-i18n="cameraInfo.mobile.rotate">Rotate: Touch and drag with two fingers</p>
+                                                <p data-i18n="cameraInfo.mobile.tilt">Tilt: Touch with two fingers and move up/down (3D mode)</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Follow-Behind Zoom Preset (shown when Follow Behind is selected) -->
@@ -228,10 +251,7 @@
                             <div id="map" class="map"></div>
                             <div id="threeContainer" class="three-container"></div>
                             
-                            <!-- Logo Watermark -->
-                            <div class="map-watermark">
-                                <img src="media/images/logohorizontalfondo.svg" alt="TrailReplay" class="watermark-logo" />
-                            </div>
+                            <!-- Logo Watermark - removed DOM element, using programmatic drawing only -->
                             
                             <!-- Elevation Profile (stays in map) -->
                             <div class="elevation-profile-container">

@@ -28,8 +28,21 @@ const FOLLOW_BEHIND_SETTINGS = {
     CAMERA_UPDATE_DURATION: 100,  // Duration for smooth camera updates during animation (ms)
     BEARING_SMOOTHING: 0.15,      // Bearing smoothing factor (0-1, lower = smoother)
     BEARING_LOOK_AHEAD: 0.05,     // How far ahead to look for bearing calculation
+    
+    // Terrain-aware settings
+    BASE_ZOOM: 14,
+    BASE_PITCH: 35,
+    MIN_ZOOM: 10,
+    MAX_ZOOM: 18,
+    ELEVATION_SENSITIVITY: 0.001,
+    SMOOTHING: 0.1
 };
 
+// Terrain constants for calculations
+const TERRAIN_CONSTANTS = {
+    ELEVATION_FACTOR_MAX: 2.0,
+    EARTH_RADIUS_METERS: 6371000
+};
 
 
 export class FollowBehindCamera {

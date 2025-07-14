@@ -134,14 +134,10 @@ export class MP4Utils {
     static createMediaRecorderOptions(codec, settings) {
         const options = {
             mimeType: codec.mime,
-            bitsPerSecond: settings.bitrate
+            bitsPerSecond: settings.bitrate,
+            videoBitsPerSecond: settings.bitrate // Use full bitrate for video only
+            // No audioBitsPerSecond property - completely exclude audio
         };
-
-        // Add video-specific options if supported
-        if (codec.mime.includes('avc1')) {
-            options.videoBitsPerSecond = Math.round(settings.bitrate * 0.9); // 90% for video
-            options.audioBitsPerSecond = Math.round(settings.bitrate * 0.1); // 10% for audio
-        }
 
         return options;
     }
