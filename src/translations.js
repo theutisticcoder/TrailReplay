@@ -1,4 +1,6 @@
 // Simple translation system
+import { AnalyticsTracker } from './utils/analytics.js';
+
 export const translations = {
     en: {
         subtitle: "Replay the story your trails told",
@@ -929,11 +931,21 @@ let currentLanguage = 'en';
 
 export function setLanguage(lang) {
     if (translations[lang]) {
+        const previousLanguage = currentLanguage;
         currentLanguage = lang;
         try {
             localStorage.setItem('trailReplayLang', lang);
         } catch (e) {}
         updatePageTranslations();
+
+        // Track language change (only if it's actually a change)
+        if (previousLanguage !== lang) {
+            try {
+                AnalyticsTracker.trackLanguageChange(lang);
+            } catch (e) {
+                // Silently fail if analytics not available
+            }
+        }
     }
 }
 

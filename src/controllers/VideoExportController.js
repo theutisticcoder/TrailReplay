@@ -1,5 +1,6 @@
 import { t } from '../translations.js';
 import { MP4Utils } from '../utils/MP4Utils.js';
+import { AnalyticsTracker } from '../utils/analytics.js';
 
 export class VideoExportController {
     constructor(app) {
@@ -42,41 +43,111 @@ export class VideoExportController {
         this.createExportUI();
         this.setupEventListeners();
         
-        // Ensure aspect ratio is applied after everything is set up
-        setTimeout(() => {
-            this.ensureInitialAspectRatio();
-        }, 1000); // Increased delay to ensure page is fully rendered
+        // Enable live stats by default
+        if (this.app.stats && this.app.stats.toggleLiveStats) {
+            this.app.stats.toggleLiveStats(true);
+        }
+        
+        // Only try to apply aspect ratio if we're in a browser environment and DOM is ready
+        if (typeof window !== 'undefined' && document.readyState === 'complete') {
+            // Page is already loaded, apply aspect ratio with a delay
+            setTimeout(() => {
+                this.ensureInitialAspectRatio();
+            }, 1500); // Increased delay to ensure page is fully rendered
+        } else if (typeof window !== 'undefined') {
+            // Wait for page to load completely
+            window.addEventListener('load', () => {
+                setTimeout(() => {
+                    this.ensureInitialAspectRatio();
+                }, 1000);
+            });
+        }
+        
+        // Set up additional listeners for track loading events
+        this.setupTrackLoadListeners();
     }
 
     /**
      * Ensure initial aspect ratio is applied
      */
-    ensureInitialAspectRatio() {
-        console.log('🔄 Ensuring initial aspect ratio is applied...');
+    ensureInitialAspectRatio(retryCount = 0) {
+        const maxRetries = 10; // Maximum 10 retries to prevent infinite loop
+        
+        if (retryCount === 0) {
+            console.log('🔄 Ensuring initial aspect ratio is applied...');
+        }
+        
+        // Stop retrying after max attempts
+        if (retryCount >= maxRetries) {
+            console.warn('❌ Gave up applying initial aspect ratio after maximum retries');
+            // Apply default aspect ratio even if container isn't ready
+            this.applyDefaultAspectRatio();
+            return;
+        }
         
         // Check if the map container is ready
         const mapContainer = document.querySelector('.map-container');
         if (!mapContainer) {
-            console.warn('⚠️ Map container not ready, retrying in 1 second...');
+            if (retryCount < 3) { // Only log for first few attempts
+                console.warn('⚠️ Map container not ready, retrying...');
+            }
             setTimeout(() => {
-                this.ensureInitialAspectRatio();
+                this.ensureInitialAspectRatio(retryCount + 1);
             }, 1000);
             return;
         }
 
         const containerRect = mapContainer.getBoundingClientRect();
         if (containerRect.width === 0 || containerRect.height === 0) {
-            console.warn('⚠️ Map container has no dimensions, retrying in 1 second...');
+            if (retryCount < 3) { // Only log for first few attempts
+                console.warn('⚠️ Map container has no dimensions, retrying...');
+            }
             setTimeout(() => {
-                this.ensureInitialAspectRatio();
+                this.ensureInitialAspectRatio(retryCount + 1);
             }, 1000);
             return;
         }
 
+        // Success! Apply the aspect ratio
+        console.log(`✅ Map container ready with dimensions: ${containerRect.width}x${containerRect.height}`);
+        
+        // Ensure live stats are visible
+        const liveStatsOverlay = document.getElementById('liveStatsOverlay');
+        if (liveStatsOverlay) {
+            liveStatsOverlay.style.display = 'block';
+        }
+
         const selectedAspect = this.getSelectedAspectRatio();
         console.log(`📐 Applying initial aspect ratio: ${selectedAspect}`);
-        console.log(`Map container ready with dimensions: ${containerRect.width}x${containerRect.height}`);
         this.resizeContainerForAspectRatio(selectedAspect);
+        
+        // Additional delay to ensure stats visibility after container resize
+        setTimeout(() => {
+            this.ensureStatsVisibility();
+        }, 200);
+    }
+
+    /**
+     * Apply default aspect ratio when container isn't ready
+     */
+    applyDefaultAspectRatio() {
+        console.log('📐 Applying default aspect ratio (fallback)');
+        const selectedAspect = this.getSelectedAspectRatio();
+        
+        // Try to apply anyway - sometimes the container becomes ready after this
+        setTimeout(() => {
+            const mapContainer = document.querySelector('.map-container');
+            if (mapContainer) {
+                const containerRect = mapContainer.getBoundingClientRect();
+                if (containerRect.width > 0 && containerRect.height > 0) {
+                    console.log('✅ Container became ready, applying aspect ratio');
+                    this.resizeContainerForAspectRatio(selectedAspect);
+                    setTimeout(() => {
+                        this.ensureStatsVisibility();
+                    }, 200);
+                }
+            }
+        }, 2000); // Wait 2 seconds and try once more
     }
 
     /**
@@ -305,12 +376,19 @@ export class VideoExportController {
         }, 100);
 
         // Also listen for track load events to apply aspect ratio when map is ready
-        if (this.app) {
+        if (this.app && this.app.addEventListener) {
             this.app.addEventListener('journeyDataLoaded', () => {
                 console.log('🎯 Track loaded, applying aspect ratio...');
                 setTimeout(() => {
                     this.ensureInitialAspectRatio();
                 }, 500);
+            });
+        } else {
+            // Fallback: listen for DOM events or use alternative approach
+            document.addEventListener('DOMContentLoaded', () => {
+                setTimeout(() => {
+                    this.ensureInitialAspectRatio();
+                }, 1000);
             });
         }
     }
@@ -348,6 +426,10 @@ export class VideoExportController {
                 if (input.checked) {
                     console.log(`📐 Aspect ratio changed to: ${input.value}`);
                     this.resizeContainerForAspectRatio(input.value);
+                    // Force stats visibility after aspect ratio change
+                    setTimeout(() => {
+                        this.ensureStatsVisibility();
+                    }, 300);
                 }
             });
         });
@@ -360,6 +442,52 @@ export class VideoExportController {
         this.resizeContainerForAspectRatio(selectedAspect);
         
         console.log('✅ Aspect ratio handlers setup complete');
+    }
+
+    /**
+     * Setup listeners for track loading events to ensure stats visibility
+     */
+    setupTrackLoadListeners() {
+        console.log('🔧 Setting up track load listeners for stats visibility...');
+        
+        // Listen for file input changes (when user loads a track)
+        const fileInput = document.getElementById('upload');
+        if (fileInput) {
+            fileInput.addEventListener('change', () => {
+                console.log('📂 File loaded, ensuring stats visibility...');
+                setTimeout(() => {
+                    this.ensureStatsVisibility();
+                }, 1500); // Wait for track to be fully loaded
+            });
+        }
+        
+        // Listen for any journey updates
+        document.addEventListener('journeyDataLoaded', () => {
+            console.log('🎯 Journey data loaded, ensuring stats visibility...');
+            // Only try to ensure stats visibility if container is ready
+            const mapContainer = document.querySelector('.map-container');
+            if (mapContainer) {
+                const containerRect = mapContainer.getBoundingClientRect();
+                if (containerRect.width > 0 && containerRect.height > 0) {
+                    setTimeout(() => {
+                        this.ensureStatsVisibility();
+                    }, 1000);
+                } else {
+                    console.log('📦 Map container not ready yet, skipping stats visibility check');
+                }
+            }
+        });
+        
+        // Also listen for window resize to adjust stats positioning
+        window.addEventListener('resize', () => {
+            console.log('📏 Window resized, adjusting stats positioning...');
+            setTimeout(() => {
+                const selectedAspect = this.getSelectedAspectRatio();
+                this.resizeContainerForAspectRatio(selectedAspect);
+            }, 200);
+        });
+        
+        console.log('✅ Track load listeners setup complete');
     }
 
     /**
@@ -459,9 +587,10 @@ export class VideoExportController {
         console.log(`✅ Container resized to: ${targetWidth}x${targetHeight}`);
         console.log(`Container positioned with offset: ${offsetX}x${offsetY}`);
 
-        // Trigger map resize to fit new container
+        // Trigger map resize to fit new container and ensure stats are visible
         setTimeout(() => {
             this.resizeMapToContainer();
+            this.ensureStatsVisibility();
         }, 100);
     }
 
@@ -485,6 +614,95 @@ export class VideoExportController {
         } catch (error) {
             console.warn('Failed to resize map:', error);
         }
+    }
+
+    /**
+     * Ensure stats overlay is visible within the container
+     */
+    ensureStatsVisibility(retryCount = 0) {
+        const maxRetries = 5; // Maximum 5 retries to prevent infinite loop
+        
+        if (retryCount === 0) {
+            console.log('🔧 Ensuring stats visibility...');
+        }
+        
+        if (retryCount >= maxRetries) {
+            console.warn('❌ Gave up ensuring stats visibility after maximum retries');
+            return;
+        }
+        
+        const videoCaptureContainer = document.getElementById('videoCaptureContainer');
+        const liveStatsOverlay = document.getElementById('liveStatsOverlay');
+        
+        if (!videoCaptureContainer || !liveStatsOverlay) {
+            if (retryCount < 2) { // Only log for first few attempts
+                console.warn('Container or stats overlay not found, retrying...');
+            }
+            setTimeout(() => this.ensureStatsVisibility(retryCount + 1), 500);
+            return;
+        }
+
+        // Make sure live stats are visible
+        liveStatsOverlay.style.display = 'block';
+        
+        // Force positioning regardless of current state to ensure visibility
+        console.log('📍 Positioning stats in top-right corner of the map...');
+        
+        // Clear any existing positioning styles first
+        liveStatsOverlay.style.position = '';
+        liveStatsOverlay.style.left = '';
+        liveStatsOverlay.style.right = '';
+        liveStatsOverlay.style.top = '';
+        liveStatsOverlay.style.bottom = '';
+        liveStatsOverlay.style.transform = '';
+        
+        // Set the video capture container as the positioning context
+        videoCaptureContainer.style.position = 'relative';
+        
+        // Position stats in the top-right corner of the video capture container
+        const padding = 20;
+        liveStatsOverlay.style.position = 'absolute';
+        liveStatsOverlay.style.right = `${padding}px`;
+        liveStatsOverlay.style.top = `${padding}px`;
+        liveStatsOverlay.style.zIndex = '1000';
+        
+        // Ensure stats have proper styling for visibility
+        liveStatsOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+        liveStatsOverlay.style.color = 'white';
+        liveStatsOverlay.style.padding = '12px 16px';
+        liveStatsOverlay.style.borderRadius = '8px';
+        liveStatsOverlay.style.fontSize = '14px';
+        liveStatsOverlay.style.fontWeight = 'bold';
+        liveStatsOverlay.style.maxWidth = '200px';
+        liveStatsOverlay.style.wordWrap = 'break-word';
+        liveStatsOverlay.style.textAlign = 'right';
+        liveStatsOverlay.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.3)';
+        
+        // Move the stats element inside the video capture container if it's not already there
+        if (liveStatsOverlay.parentElement !== videoCaptureContainer) {
+            console.log('📦 Moving stats overlay into video capture container...');
+            videoCaptureContainer.appendChild(liveStatsOverlay);
+        }
+        
+        // Wait a moment and verify positioning worked
+        setTimeout(() => {
+            const containerRect = videoCaptureContainer.getBoundingClientRect();
+            const statsRect = liveStatsOverlay.getBoundingClientRect();
+            
+            console.log(`Container final: ${containerRect.width}x${containerRect.height} at (${containerRect.left}, ${containerRect.top})`);
+            console.log(`Stats final position: ${statsRect.left}, ${statsRect.top} (${statsRect.width}x${statsRect.height})`);
+            
+            // Verify stats are in the top-right area
+            const isInTopRight = statsRect.right <= containerRect.right && 
+                               statsRect.top >= containerRect.top && 
+                               statsRect.top <= containerRect.top + 100; // Within 100px of top
+            
+            if (isInTopRight) {
+                console.log('✅ Stats successfully positioned in top-right corner');
+            } else {
+                console.warn('⚠️ Stats may not be in the correct position');
+            }
+        }, 100);
     }
 
     /**
@@ -547,6 +765,10 @@ export class VideoExportController {
         try {
             this.isExporting = true;
             this.currentExportMode = mode;
+            
+            // Track video export attempt
+            const selectedAspect = this.getSelectedAspectRatio();
+            AnalyticsTracker.trackVideoExport(mode, selectedAspect);
             
             console.log(`🎬 Starting ${this.exportModes[mode].name} export`);
             
@@ -1540,14 +1762,42 @@ export class VideoExportController {
         const x = rect.left - containerRect.left;
         const y = rect.top - containerRect.top;
 
-        const progress = this.getAnimationProgress();
+        // Get current progress - try multiple sources for accuracy
+        let progress = this.getAnimationProgress();
+        
+        // Additional check: try to get progress directly from playback controller during export
+        if (this.isExporting) {
+            // Try multiple sources for playback progress
+            if (this.app.playback && this.app.playback.getProgress) {
+                const playbackProgress = this.app.playback.getProgress();
+                if (playbackProgress >= 0 && playbackProgress <= 1) {
+                    progress = playbackProgress;
+                    console.log(`High-quality: Using playback controller progress: ${progress.toFixed(3)}`);
+                }
+            } else if (this.app.playback && this.app.playback.getCurrentProgress) {
+                const playbackProgress = this.app.playback.getCurrentProgress();
+                if (playbackProgress >= 0 && playbackProgress <= 1) {
+                    progress = playbackProgress;
+                    console.log(`High-quality: Using playback getCurrentProgress: ${progress.toFixed(3)}`);
+                }
+            } else if (this.app.progressController && this.app.progressController.getProgress) {
+                const progressControllerProgress = this.app.progressController.getProgress();
+                if (progressControllerProgress >= 0 && progressControllerProgress <= 1) {
+                    progress = progressControllerProgress;
+                    console.log(`High-quality: Using progress controller: ${progress.toFixed(3)}`);
+                }
+            }
+        }
+
         const { width, height } = this.recordingDimensions;
 
-        if (progress > 0) {
+        console.log(`Drawing high-quality elevation profile with progress: ${progress.toFixed(3)}`);
+
+        if (progress >= 0) { // Show even at start
             const barWidth = Math.min(rect.width, width * 0.9);
-            const barHeight = 8; // Slightly thicker for better visibility
+            const barHeight = 10; // Thicker for high quality
             const barX = x;
-            const barY = y + rect.height - 25;
+            const barY = y + rect.height - 30;
 
             // Background with gradient
             const gradient = context.createLinearGradient(0, barY, 0, barY + barHeight);
@@ -1556,17 +1806,46 @@ export class VideoExportController {
             context.fillStyle = gradient;
             context.fillRect(barX, barY, barWidth, barHeight);
 
-            // Progress with gradient
+            // Progress with gradient - always draw something even at 0 progress
             const progressGradient = context.createLinearGradient(0, barY, 0, barY + barHeight);
             progressGradient.addColorStop(0, 'rgba(193, 101, 47, 0.9)');
             progressGradient.addColorStop(1, 'rgba(193, 101, 47, 0.7)');
             context.fillStyle = progressGradient;
-            context.fillRect(barX, barY, barWidth * progress, barHeight);
+            const progressWidth = Math.max(3, barWidth * progress); // Minimum 3px width for high quality
+            context.fillRect(barX, barY, progressWidth, barHeight);
 
             // Add border
             context.strokeStyle = '#4CAF50';
             context.lineWidth = 1;
             context.strokeRect(barX, barY, barWidth, barHeight);
+
+            // Draw high-quality progress marker - always visible
+            const markerX = barX + (barWidth * progress);
+            const markerY = barY + (barHeight / 2);
+            const markerRadius = 6; // Larger for high quality
+
+            // Draw marker with shadow effect
+            context.shadowColor = 'rgba(0, 0, 0, 0.3)';
+            context.shadowBlur = 3;
+            context.shadowOffsetX = 1;
+            context.shadowOffsetY = 1;
+
+            // Draw marker circle
+            context.beginPath();
+            context.arc(markerX, markerY, markerRadius, 0, 2 * Math.PI);
+            context.fillStyle = '#FFFFFF';
+            context.fill();
+            
+            // Reset shadow
+            context.shadowColor = 'transparent';
+            context.shadowBlur = 0;
+            context.shadowOffsetX = 0;
+            context.shadowOffsetY = 0;
+            
+            // Draw marker outline
+            context.strokeStyle = '#C1652F';
+            context.lineWidth = 3;
+            context.stroke();
         }
     }
 
@@ -1698,24 +1977,71 @@ export class VideoExportController {
         const x = rect.left - containerRect.left;
         const y = rect.top - containerRect.top;
 
-        // Get current progress for the progress bar
-        const progress = this.getAnimationProgress();
+        // Get current progress for the progress bar - try multiple sources for accuracy
+        let progress = this.getAnimationProgress();
+        
+        // Additional check: try to get progress directly from playback controller during export
+        if (this.isExporting) {
+            // Try multiple sources for playback progress
+            if (this.app.playback && this.app.playback.getProgress) {
+                const playbackProgress = this.app.playback.getProgress();
+                if (playbackProgress >= 0 && playbackProgress <= 1) {
+                    progress = playbackProgress;
+                    console.log(`Using playback controller progress: ${progress.toFixed(3)}`);
+                }
+            } else if (this.app.playback && this.app.playback.getCurrentProgress) {
+                const playbackProgress = this.app.playback.getCurrentProgress();
+                if (playbackProgress >= 0 && playbackProgress <= 1) {
+                    progress = playbackProgress;
+                    console.log(`Using playback getCurrentProgress: ${progress.toFixed(3)}`);
+                }
+            } else if (this.app.progressController && this.app.progressController.getProgress) {
+                const progressControllerProgress = this.app.progressController.getProgress();
+                if (progressControllerProgress >= 0 && progressControllerProgress <= 1) {
+                    progress = progressControllerProgress;
+                    console.log(`Using progress controller: ${progress.toFixed(3)}`);
+                }
+            }
+        }
+
         const { width, height } = this.recordingDimensions;
 
-        if (progress > 0) {
+        console.log(`Drawing elevation profile with progress: ${progress.toFixed(3)}`);
+
+        if (progress >= 0) { // Show even at start
             const ctx = this.recordingContext;
             const barWidth = Math.min(rect.width, width * 0.9);
-            const barHeight = 6;
+            const barHeight = 8; // Slightly thicker for better visibility
             const barX = x;
-            const barY = y + rect.height - 20;
+            const barY = y + rect.height - 25; // Adjusted position
 
-            // Background
+            // Draw elevation profile background
             ctx.fillStyle = 'rgba(76, 175, 80, 0.3)';
             ctx.fillRect(barX, barY, barWidth, barHeight);
 
-            // Progress
+            // Draw border for the elevation profile
+            ctx.strokeStyle = 'rgba(76, 175, 80, 0.6)';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(barX, barY, barWidth, barHeight);
+
+            // Draw progress fill - always draw something even at 0 progress
             ctx.fillStyle = '#C1652F';
-            ctx.fillRect(barX, barY, barWidth * progress, barHeight);
+            const progressWidth = Math.max(2, barWidth * progress); // Minimum 2px width
+            ctx.fillRect(barX, barY, progressWidth, barHeight);
+
+            // Draw progress marker (circle) at current position - always visible
+            const markerX = barX + (barWidth * progress);
+            const markerY = barY + (barHeight / 2);
+            const markerRadius = 4;
+
+            // Draw marker circle with outline
+            ctx.beginPath();
+            ctx.arc(markerX, markerY, markerRadius, 0, 2 * Math.PI);
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fill();
+            ctx.strokeStyle = '#C1652F';
+            ctx.lineWidth = 2;
+            ctx.stroke();
         }
     }
 
@@ -1727,27 +2053,131 @@ export class VideoExportController {
         if (!logoElement || logoElement.style.display === 'none') return;
 
         try {
-            // Create an image element and draw it
+            const rect = logoElement.getBoundingClientRect();
+            const containerRect = this.videoCaptureContainer.getBoundingClientRect();
+            
+            const x = rect.left - containerRect.left;
+            const y = rect.top - containerRect.top;
+            
+            console.log(`Drawing logo at position: ${x}, ${y} (${rect.width}x${rect.height})`);
+            console.log(`Logo element src: ${logoElement.src}`);
+            console.log(`Logo element loaded: ${logoElement.complete}, natural dimensions: ${logoElement.naturalWidth}x${logoElement.naturalHeight}`);
+            
+            // First try to draw the existing loaded image directly
+            if (logoElement.complete && logoElement.naturalWidth > 0) {
+                console.log('Drawing logo directly from loaded DOM element');
+                try {
+                    // Enable high-quality image rendering
+                    this.recordingContext.imageSmoothingEnabled = true;
+                    this.recordingContext.imageSmoothingQuality = 'high';
+                    this.recordingContext.drawImage(logoElement, x, y, rect.width, rect.height);
+                    console.log('✅ Logo drawn successfully from DOM element');
+                    return;
+                } catch (drawError) {
+                    console.warn('Failed to draw DOM logo, trying alternative method:', drawError);
+                }
+            }
+            
+            // If DOM image isn't ready, try to get it from the SVG content
+            if (logoElement.src.includes('.svg')) {
+                console.log('Drawing SVG logo as fallback');
+                this.drawLogoFallback(x, y, rect.width, rect.height);
+                return;
+            }
+            
+            // For non-SVG images, try loading a fresh copy
+            console.log('Loading fresh copy of logo image...');
             const img = new Image();
-            img.crossOrigin = 'anonymous';
             
             return new Promise((resolve) => {
                 img.onload = () => {
-                    const rect = logoElement.getBoundingClientRect();
-                    const containerRect = this.videoCaptureContainer.getBoundingClientRect();
-                    
-                    const x = rect.left - containerRect.left;
-                    const y = rect.top - containerRect.top;
-                    
-                    this.recordingContext.drawImage(img, x, y, rect.width, rect.height);
+                    console.log('Fresh logo loaded successfully for canvas');
+                    try {
+                        // Enable high-quality image rendering
+                        this.recordingContext.imageSmoothingEnabled = true;
+                        this.recordingContext.imageSmoothingQuality = 'high';
+                        this.recordingContext.drawImage(img, x, y, rect.width, rect.height);
+                        console.log('✅ Logo drawn successfully from fresh image');
+                    } catch (drawError) {
+                        console.warn('Failed to draw fresh logo:', drawError);
+                        this.drawLogoFallback(x, y, rect.width, rect.height);
+                    }
                     resolve();
                 };
-                img.onerror = () => resolve(); // Continue even if logo fails to load
-                img.src = logoElement.src;
+                
+                img.onerror = (error) => {
+                    console.warn('Fresh logo loading failed:', error);
+                    // Fallback: draw a placeholder or text
+                    this.drawLogoFallback(x, y, rect.width, rect.height);
+                    resolve();
+                };
+                
+                // Load with absolute URL to avoid relative path issues
+                const absoluteUrl = new URL(logoElement.src, window.location.href).href;
+                img.src = absoluteUrl;
+                console.log(`Loading logo from: ${absoluteUrl}`);
+                
+                // Timeout fallback
+                setTimeout(() => {
+                    if (!img.complete) {
+                        console.warn('Fresh logo loading timeout, using fallback');
+                        this.drawLogoFallback(x, y, rect.width, rect.height);
+                        resolve();
+                    }
+                }, 3000); // 3 second timeout
             });
         } catch (error) {
             console.warn('Failed to draw logo watermark:', error);
+            // Draw fallback if available
+            try {
+                const rect = logoElement.getBoundingClientRect();
+                const containerRect = this.videoCaptureContainer.getBoundingClientRect();
+                const x = rect.left - containerRect.left;
+                const y = rect.top - containerRect.top;
+                this.drawLogoFallback(x, y, rect.width, rect.height);
+            } catch (fallbackError) {
+                console.warn('Fallback logo drawing also failed:', fallbackError);
+            }
         }
+    }
+
+    /**
+     * Draw a fallback logo when the actual logo can't be loaded
+     */
+    drawLogoFallback(x, y, width, height) {
+        const ctx = this.recordingContext;
+        
+        console.log(`Drawing fallback logo at ${x}, ${y} (${width}x${height})`);
+        
+        // Calculate appropriate sizes
+        const logoWidth = Math.max(120, width);
+        const logoHeight = Math.max(30, height);
+        const padding = 8;
+        
+        // Draw background with rounded corners effect
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+        ctx.fillRect(x, y, logoWidth, logoHeight);
+        
+        // Draw subtle border
+        ctx.strokeStyle = 'rgba(46, 125, 50, 0.3)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x, y, logoWidth, logoHeight);
+        
+        // Draw trail icon (mountain symbol)
+        ctx.fillStyle = '#2E7D32';
+        ctx.font = 'bold 16px Arial';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🥾', x + padding, y + logoHeight/2);
+        
+        // Draw text
+        ctx.fillStyle = '#2E7D32';
+        ctx.font = 'bold 14px Arial';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('TrailReplay', x + padding + 20, y + logoHeight/2);
+        
+        console.log('✅ Drew professional fallback logo');
     }
 
     /**
@@ -1828,11 +2258,44 @@ export class VideoExportController {
      */
     getAnimationProgress() {
         try {
+            console.log(`🎯 Getting animation progress - isExporting: ${this.isExporting}`);
+            
+            // Always try to get the actual animation progress from the map renderer first
+            // This ensures the visual elements show the correct progress
             if (this.app.mapRenderer && this.app.mapRenderer.getAnimationProgress) {
-                return this.app.mapRenderer.getAnimationProgress();
-            } else if (this.app.map && this.app.map.getCurrentProgress) {
-                return this.app.map.getCurrentProgress();
+                const progress = this.app.mapRenderer.getAnimationProgress();
+                console.log(`✅ Map renderer progress: ${progress.toFixed(3)}`);
+                return progress;
+            } else {
+                console.log(`❌ Map renderer getAnimationProgress not available`);
             }
+            
+            if (this.app.map && this.app.map.getCurrentProgress) {
+                const progress = this.app.map.getCurrentProgress();
+                console.log(`✅ Map controller progress: ${progress.toFixed(3)}`);
+                return progress;
+            } else {
+                console.log(`❌ Map controller getCurrentProgress not available`);
+            }
+
+            // Try additional progress sources
+            if (this.app.playback && this.app.playback.getProgress) {
+                const progress = this.app.playback.getProgress();
+                console.log(`✅ Playback controller progress: ${progress.toFixed(3)}`);
+                return progress;
+            } else {
+                console.log(`❌ Playback controller getProgress not available`);
+            }
+
+            // Fallback: During recording, use frame-based progress if map progress unavailable
+            if (this.isExporting && this.recordingStartTime && this.estimatedDuration) {
+                const elapsedTime = (Date.now() - this.recordingStartTime) / 1000;
+                const frameBasedProgress = Math.min(elapsedTime / this.estimatedDuration, 1);
+                console.log(`⚠️ Fallback frame-based progress: ${frameBasedProgress.toFixed(3)} (${elapsedTime.toFixed(1)}s / ${this.estimatedDuration.toFixed(1)}s)`);
+                return frameBasedProgress;
+            }
+
+            console.log(`❌ No progress source available, returning 0`);
             return 0;
         } catch (error) {
             console.warn('Error getting animation progress:', error);
@@ -2116,6 +2579,11 @@ export class VideoExportController {
         if (!this.mediaRecorder) {
             throw new Error('MediaRecorder not initialized');
         }
+
+        // Set up recording timing
+        this.recordingStartTime = Date.now();
+        this.estimatedDuration = this.estimateAnimationDuration();
+        console.log(`🎬 Recording started at ${this.recordingStartTime}, estimated duration: ${this.estimatedDuration}s`);
 
         // Start MediaRecorder
         this.mediaRecorder.start(1000); // Request data every second
@@ -2533,6 +3001,10 @@ export class VideoExportController {
 
         this.isExporting = false;
         this.currentExportMode = null;
+        
+        // Reset recording timing
+        this.recordingStartTime = null;
+        this.estimatedDuration = null;
 
         // Stop MediaRecorder
         if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {

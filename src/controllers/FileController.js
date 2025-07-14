@@ -1,4 +1,5 @@
 import { GPXParser } from '../gpxParser.js';
+import { AnalyticsTracker } from '../utils/analytics.js';
 
 export class FileController {
     constructor(app) {
@@ -19,6 +20,9 @@ export class FileController {
             this.app.showMessage?.('Please select valid GPX files', 'error');
             return;
         }
+
+        // Track file upload
+        AnalyticsTracker.trackFileUpload(gpxFiles.length, gpxFiles.length === 1 ? 'single' : 'multiple');
 
         try {
             // Show loading state

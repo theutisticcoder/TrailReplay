@@ -1,3 +1,5 @@
+import { AnalyticsTracker } from '../utils/analytics.js';
+
 export class PlaybackController {
     constructor(app) {
         this.app = app;
@@ -17,6 +19,10 @@ export class PlaybackController {
             return;
         }
 
+        // Track playback action
+        const duration = this.getTrackDuration();
+        AnalyticsTracker.trackPlayback('play', duration);
+
         this.app.state.isPlaying = true;
         this.app.isPlaying = true; // Legacy compatibility
         
@@ -34,6 +40,9 @@ export class PlaybackController {
     }
 
     pause() {
+        // Track playback action
+        AnalyticsTracker.trackPlayback('pause');
+
         this.app.state.isPlaying = false;
         this.app.isPlaying = false; // Legacy compatibility
         
@@ -50,6 +59,9 @@ export class PlaybackController {
     }
 
     reset() {
+        // Track playback action
+        AnalyticsTracker.trackPlayback('reset');
+
         this.pause();
         
         // Exit manual recording mode if active
@@ -72,5 +84,24 @@ export class PlaybackController {
         
         // Update elevation progress
         this.app.updateElevationProgress(0);
+    }
+
+    /**
+     * Get track duration for analytics
+     * @returns {number} Duration in seconds
+     */
+    getTrackDuration() {
+        try {
+            if (this.app.currentTrackData && this.app.currentTrackData.stats) {
+                return this.app.currentTrackData.stats.totalTime || 0;
+            }
+            if (this.app.journeyData && this.app.journeyData.stats) {
+                return this.app.journeyData.stats.totalTime || 0;
+            }
+            return 0;
+        } catch (error) {
+            console.warn('Error getting track duration for analytics:', error);
+            return 0;
+        }
     }
 } 

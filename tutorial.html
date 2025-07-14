@@ -839,9 +839,48 @@
     <!-- Include translations -->
     <script type="module">
         import { initializeTranslations, setLanguage } from './src/translations.js';
+        import { inject } from '@vercel/analytics';
         
         // Initialize translations when the page loads
         document.addEventListener('DOMContentLoaded', () => {
+            // Initialize Vercel Analytics
+            inject();
+            
+            // Track tutorial page visit
+            import('./src/utils/analytics.js').then(({ AnalyticsTracker }) => {
+                AnalyticsTracker.trackTutorial('page_visit');
+                
+                // Track when users scroll to different sections
+                const observerOptions = {
+                    threshold: 0.5,
+                    rootMargin: '0px 0px -20% 0px'
+                };
+
+                const sectionObserver = new IntersectionObserver((entries) => {
+                    entries.forEach((entry) => {
+                        if (entry.isIntersecting) {
+                            const sectionId = entry.target.id || entry.target.querySelector('h2, h3')?.textContent || 'unknown';
+                            AnalyticsTracker.trackTutorial('section_view', { section: sectionId });
+                        }
+                    });
+                }, observerOptions);
+
+                // Observe all tutorial sections
+                document.querySelectorAll('.tutorial-section').forEach((section) => {
+                    sectionObserver.observe(section);
+                });
+
+                // Track sample file downloads
+                document.querySelectorAll('a[href$=".gpx"]').forEach((link) => {
+                    link.addEventListener('click', () => {
+                        const fileName = link.href.split('/').pop();
+                        AnalyticsTracker.trackTutorial('sample_download', { file: fileName });
+                    });
+                });
+            }).catch(() => {
+                // Silently fail if analytics not available
+            });
+            
             initializeTranslations();
             
             // Setup language switcher functionality
