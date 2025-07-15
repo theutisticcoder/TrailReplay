@@ -44,6 +44,17 @@ export class StravaController {
         this.createStravaUI();
         this.setupEventListeners();
         this.handleOAuthCallback();
+        // Listen for OAuth code from popup
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.stravaCode) {
+                if (!this.isAuthenticated && event.data.stravaCode) {
+                    this.exchangeCodeForToken(event.data.stravaCode);
+                }
+            }
+            if (event.data && event.data.stravaError) {
+                this.showError('Strava authentication failed: ' + event.data.stravaError);
+            }
+        });
         
         // Check if user is already authenticated
         if (this.isAuthenticated) {
@@ -1003,19 +1014,8 @@ export class StravaController {
      */
     getRedirectUri() {
         const hostname = window.location.hostname;
-        
-        // Production environment (trailreplay.com)
-        if (hostname === 'trailreplay.com') {
-            return 'https://trailreplay.com/strava-callback';
-        }
-        
-        // Development environment (localhost)
-        if (hostname === 'localhost') {
-            return `${window.location.origin}/strava-callback`;
-        }
-        
-        // Fallback for other environments
-        return `${window.location.origin}/strava-callback`;
+        // Always use the static HTML callback for both prod and dev
+        return `${window.location.origin}/strava-callback.html`;
     }
 }
 
