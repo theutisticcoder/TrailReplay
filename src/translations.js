@@ -239,7 +239,9 @@ export const translations = {
             followBehindZoom: "Follow Distance",
             followBehindVeryClose: "🔍 Very Close",
             followBehindMedium: "📍 Medium",
-            followBehindFar: "🌍 Far"
+            followBehindFar: "🌍 Far",
+            cancelIconChange: "Cancel Icon Change"
+
         },
         
         cameraInfo: {
@@ -386,7 +388,9 @@ export const translations = {
             timingTransportation: "Transportation:",
             timingNote: "💡 Adjust individual segment times in the Journey Builder above",
             gpxOnlyStatsEnabled: "Transfer distances excluded from stats",
-            gpxOnlyStatsDisabled: "All distances included in stats"
+            gpxOnlyStatsDisabled: "All distances included in stats",
+            iconChangeMoved: "Icon change marker moved!",
+            annotationMoved: "Annotation marker moved!"
         },
         
         journey: {
@@ -793,7 +797,8 @@ export const translations = {
             followBehindZoom: "Distancia de Seguimiento",
             followBehindVeryClose: "🔍 Muy Cerca",
             followBehindMedium: "📍 Medio",
-            followBehindFar: "🌍 Lejos"
+            followBehindFar: "🌍 Lejos",
+            cancelIconChange: "Cancelar Cambio de Icono"
         },
         
         cameraInfo: {
@@ -933,7 +938,9 @@ export const translations = {
             timingTransportation: "Transporte:",
             timingNote: "💡 Ajusta los tiempos de los segmentos individuales en el Constructor de Viajes arriba",
             gpxOnlyStatsEnabled: "Distancias de transfers excluidas de estadísticas",
-            gpxOnlyStatsDisabled: "Todas las distancias incluidas en estadísticas"
+            gpxOnlyStatsDisabled: "Todas las distancias incluidas en estadísticas",
+            iconChangeMoved: "¡Marcador de cambio de icono movido!",
+            annotationMoved: "¡Marcador de nota movido!"
         },
         
         journey: {

@@ -313,7 +313,6 @@ export class VideoExportController {
 
                 <!-- Aspect Ratio Selection -->
                 <div class="aspect-ratio-section">
-                    <label class="section-label">${t('videoExport.videoRatio')}:</label>
                     <div class="aspect-ratio-options">
                         <label class="aspect-option">
                             <input type="radio" name="aspectRatio" value="16:9">
