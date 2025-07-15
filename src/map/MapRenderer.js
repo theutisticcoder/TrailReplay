@@ -94,6 +94,15 @@ export class MapRenderer {
                         ],
                         tileSize: 256,
                         attribution: '© Esri'
+                    },
+                    // Add CartoDB Positron Only Labels for hybrid (no API key)
+                    'carto-labels': {
+                        type: 'raster',
+                        tiles: [
+                            'https://cartodb-basemaps-a.global.ssl.fastly.net/light_only_labels/{z}/{x}/{y}.png'
+                        ],
+                        tileSize: 256,
+                        attribution: '© CartoDB'
                     }
                 },
                 layers: [
@@ -101,6 +110,13 @@ export class MapRenderer {
                         id: 'background',
                         type: 'raster',
                         source: 'satellite'
+                    },
+                    // Add CartoDB labels layer above satellite (initially hidden)
+                    {
+                        id: 'carto-labels',
+                        type: 'raster',
+                        source: 'carto-labels',
+                        layout: { visibility: 'none' }
                     }
                 ]
             },
@@ -1034,28 +1050,48 @@ export class MapRenderer {
             'street': {
                 source: 'osm',
                 attribution: '© OpenStreetMap contributors'
+            },
+            // New hybrid style: satellite + labels
+            'hybrid': {
+                sources: ['satellite', 'carto-labels'],
+                attribution: '© Esri, © CartoDB'
             }
         };
+
+        if (style === 'hybrid') {
+            // Show both satellite and labels
+            if (this.map.getLayer('background')) {
+                this.map.setLayoutProperty('background', 'visibility', 'visible');
+            }
+            if (this.map.getLayer('carto-labels')) {
+                this.map.setLayoutProperty('carto-labels', 'visibility', 'visible');
+            }
+            // Hide other base layers if present
+            if (this.map.getLayer('terrain')) {
+                this.map.setLayoutProperty('terrain', 'visibility', 'none');
+            }
+            if (this.map.getLayer('street')) {
+                this.map.setLayoutProperty('street', 'visibility', 'none');
+            }
+            // Optionally update attribution UI here
+            return;
+        }
 
         const config = layerConfigs[style] || layerConfigs['satellite'];
         
         if (this.map.getLayer('background')) {
-            this.map.removeLayer('background');
+            this.map.setLayoutProperty('background', 'visibility', style === 'satellite' ? 'visible' : 'none');
         }
-        
-        this.map.addLayer({
-            id: 'background',
-            type: 'raster',
-            source: config.source
-        });
-
-        const layers = this.map.getStyle().layers;
-        if (layers && layers.length > 1) {
-            const firstLayer = layers.find(layer => layer.id !== 'background');
-            if (firstLayer) {
-                this.map.moveLayer('background', firstLayer.id);
-            }
+        if (this.map.getLayer('carto-labels')) {
+            this.map.setLayoutProperty('carto-labels', 'visibility', 'none');
         }
+        if (this.map.getLayer('terrain')) {
+            this.map.setLayoutProperty('terrain', 'visibility', style === 'terrain' ? 'visible' : 'none');
+        }
+        if (this.map.getLayer('street')) {
+            this.map.setLayoutProperty('street', 'visibility', style === 'street' ? 'visible' : 'none');
+        }
+        // Optionally update attribution UI here
     }
 
     // Journey segments handling

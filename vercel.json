@@ -11,6 +11,10 @@
     {
       "source": "/tutorial/",
       "destination": "/tutorial.html"
+    },
+    {
+      "source": "/strava-callback",
+      "destination": "/index.html"
     }
   ],
   "headers": [
