@@ -10,6 +10,7 @@ import { ProgressController } from '../controllers/ProgressController.js';
 import { JourneyController } from '../controllers/JourneyController.js';
 import { IconController } from '../controllers/IconController.js';
 import { TimelineController } from '../controllers/TimelineController.js';
+import { StravaController } from '../controllers/StravaController.js';
 import { setupEventListeners } from '../ui/eventListeners.js';
 import { setupModals } from '../ui/modalController.js';
 import { DEFAULT_SETTINGS, ICON_CATEGORIES, AVAILABLE_ICONS } from '../utils/constants.js';
@@ -59,6 +60,7 @@ export class TrailReplayApp {
         this.exporter = null;
         this.videoExporter = null;
         this.notes = null;
+        this.strava = null; // Initialize StravaController
 
         // Legacy property names for compatibility
         this.mapController = null; // Will point to this.map
@@ -86,6 +88,7 @@ export class TrailReplayApp {
         this.exporter = new ExportController(this);
         this.videoExporter = new VideoExportController(this);
         this.notes = new AnnotationController(this);
+        this.strava = new StravaController(this); // Initialize StravaController
 
         // Set legacy compatibility references
         this.mapController = this.map;
@@ -109,6 +112,12 @@ export class TrailReplayApp {
         
         // Initialize video export functionality
         this.videoExporter.initialize();
+        
+        // Initialize Strava integration
+        this.strava.initialize();
+        
+        // Make strava controller globally accessible
+        window.stravaController = this.strava;
         
         // Set up timing synchronization for journeys
         this.setupTimingSynchronization();
@@ -385,9 +394,21 @@ export class TrailReplayApp {
     // Generate elevation profile SVG path
     generateElevationProfile() {
         if (!this.currentTrackData || !this.currentTrackData.trackPoints) {
-            console.log('No track data available for elevation profile');
+            console.log('❌ No track data available for elevation profile');
             return;
         }
+
+        console.log('🏔️ Generating elevation profile for track with', this.currentTrackData.trackPoints.length, 'points');
+        
+        // Debug elevation data
+        const elevationData = this.currentTrackData.trackPoints.map(point => point.elevation || 0);
+        const hasElevation = elevationData.some(ele => ele > 0);
+        console.log('🏔️ Elevation data check:', {
+            hasElevation,
+            minElevation: Math.min(...elevationData),
+            maxElevation: Math.max(...elevationData),
+            sampleElevations: elevationData.slice(0, 5)
+        });
 
         // Create a unique cache key - for journeys, include segment composition
         let trackId;
@@ -431,7 +452,13 @@ export class TrailReplayApp {
             const flatY = svgHeight / 2;
             const pathData = `M0,${flatY} L${svgWidth},${flatY} L${svgWidth},${svgHeight} L0,${svgHeight} Z`;
             
-            document.getElementById('elevationPath').setAttribute('d', pathData);
+            const elevationPath = document.getElementById('elevationPath');
+            if (elevationPath) {
+                elevationPath.setAttribute('d', pathData);
+                console.log('✅ Flat elevation path updated successfully');
+            } else {
+                console.error('❌ Could not find elevationPath element for flat profile');
+            }
             
             // Cache the flat profile
             this.elevationProfile = {
@@ -444,6 +471,15 @@ export class TrailReplayApp {
                 padding,
                 pathData
             };
+            
+            // Ensure elevation profile container is visible
+            const elevationContainer = document.querySelector('.elevation-profile-container');
+            if (elevationContainer) {
+                elevationContainer.style.display = 'block';
+                console.log('✅ Elevation profile container made visible (flat profile)');
+            } else {
+                console.error('❌ Could not find elevation profile container for flat profile');
+            }
             
             console.log('Generated flat elevation profile (no elevation variation)');
             this.updateElevationLabels();
@@ -469,7 +505,13 @@ export class TrailReplayApp {
         const pathData = `M0,${svgHeight} L${pathPoints.join(' L')} L${svgWidth},${svgHeight} Z`;
         
         // Update the elevation path
-        document.getElementById('elevationPath').setAttribute('d', pathData);
+        const elevationPath = document.getElementById('elevationPath');
+        if (elevationPath) {
+            elevationPath.setAttribute('d', pathData);
+            console.log('✅ Elevation path updated successfully');
+        } else {
+            console.error('❌ Could not find elevationPath element');
+        }
         
         // Store elevation data for progress updates with caching
         this.elevationProfile = {
@@ -490,6 +532,15 @@ export class TrailReplayApp {
         this.cachedElevationProfiles[trackId] = this.elevationProfile;
 
         console.log(`Generated elevation profile: ${elevations.length} points (optimized to ${pathPoints.length}), range: ${elevationRange.toFixed(1)}m`);
+        
+        // Ensure elevation profile container is visible
+        const elevationContainer = document.querySelector('.elevation-profile-container');
+        if (elevationContainer) {
+            elevationContainer.style.display = 'block';
+            console.log('✅ Elevation profile container made visible');
+        } else {
+            console.error('❌ Could not find elevation profile container');
+        }
         
         // Update elevation labels
         this.updateElevationLabels();
@@ -910,7 +961,7 @@ export class TrailReplayApp {
         }
     }
 
-    showVisualizationSection() {
+    async showVisualizationSection() {
         const uploadSection = document.getElementById('uploadSection');
         const visualizationSection = document.getElementById('visualizationSection');
         const statsSection = document.getElementById('statsSection');

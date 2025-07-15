@@ -157,6 +157,26 @@ export const translations = {
             button: "Choose Files"
         },
         
+        strava: {
+            title: 'Strava Integration',
+            description: 'Connect your Strava account to import GPX files from your activities.',
+            connect: 'Connect with Strava',
+            disconnect: 'Disconnect',
+            connected: 'Connected',
+            disconnected: 'Disconnected',
+            loading: 'Loading...',
+            error: 'Error connecting to Strava',
+            noActivities: 'No activities found',
+            loadActivities: 'Load Activities',
+            loadMore: 'Load More Activities',
+            activitiesInfo: 'Activities from the past 2 years with GPS data',
+            activities: 'Activities',
+            importActivity: 'Import Activity',
+            importing: 'Importing...',
+            imported: 'Imported successfully',
+            importError: 'Error importing activity'
+        },
+        
         controls: {
             activity: "Activity Type:",
             terrain: "Terrain Style:",
@@ -688,6 +708,26 @@ export const translations = {
             title: "Subir Archivos GPX",
             description: "Añade múltiples rutas GPX para crear tu viaje",
             button: "Elegir Archivos"
+        },
+        
+        strava: {
+            title: 'Integración con Strava',
+            description: 'Conecta tu cuenta de Strava para importar archivos GPX de tus actividades.',
+            connect: 'Conectar con Strava',
+            disconnect: 'Desconectar',
+            connected: 'Conectado',
+            disconnected: 'Desconectado',
+            loading: 'Cargando...',
+            error: 'Error al conectar con Strava',
+            noActivities: 'No se encontraron actividades',
+            loadActivities: 'Cargar Actividades',
+            loadMore: 'Cargar Más Actividades',
+            activitiesInfo: 'Actividades de los últimos 2 años con datos GPS',
+            activities: 'Actividades',
+            importActivity: 'Importar Actividad',
+            importing: 'Importando...',
+            imported: 'Importado exitosamente',
+            importError: 'Error al importar actividad'
         },
         
         controls: {

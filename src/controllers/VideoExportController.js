@@ -87,9 +87,11 @@ export class VideoExportController {
         
         // Check if the map container is ready
         const mapContainer = document.querySelector('.map-container');
-        if (!mapContainer) {
+        const videoCaptureContainer = document.getElementById('videoCaptureContainer');
+        
+        if (!mapContainer || !videoCaptureContainer) {
             if (retryCount < 3) { // Only log for first few attempts
-                console.warn('⚠️ Map container not ready, retrying...');
+                console.warn('⚠️ Map containers not ready, retrying...');
             }
             setTimeout(() => {
                 this.ensureInitialAspectRatio(retryCount + 1);
@@ -106,6 +108,14 @@ export class VideoExportController {
                 this.ensureInitialAspectRatio(retryCount + 1);
             }, 1000);
             return;
+        }
+
+        // Check if there's actually content to display (track data loaded)
+        if (!this.app.currentTrackData && !this.app.journeyData) {
+            if (retryCount < 3) { // Only log for first few attempts
+                console.warn('⚠️ No track data loaded yet, skipping aspect ratio application...');
+            }
+            return; // Don't retry if there's no data - wait for data to be loaded
         }
 
         // Success! Apply the aspect ratio

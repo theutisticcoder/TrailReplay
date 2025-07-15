@@ -54,6 +54,18 @@ export class MapUtils {
     }
 
     /**
+     * Decode elevation from Terrarium DEM RGB values
+     * @param {number} r - Red channel (0-255)
+     * @param {number} g - Green channel (0-255)
+     * @param {number} b - Blue channel (0-255)
+     * @returns {number} Elevation in meters
+     */
+    static decodeTerrariumElevation(r, g, b) {
+        // Terrarium format: elevation = (Red * 256 + Green + Blue / 256) - 32768
+        return (r * 256 + g + b / 256) - 32768;
+    }
+
+    /**
      * Find the closest point on a track to a given click point
      */
     static findClosestPointProgress(clickPoint, trackPoints) {

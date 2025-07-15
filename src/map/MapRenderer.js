@@ -268,7 +268,7 @@ export class MapRenderer {
         });
 
         // Create and add activity icon layer
-        this.createAndAddActivityIconLayer();
+        this.createAndAddActivityIcon();
 
         // Add annotations layer (hidden initially)
         this.map.addLayer({
@@ -544,15 +544,19 @@ export class MapRenderer {
         // Reset follow-behind camera for new track
         this.followBehindCamera.reset();
         
-        // Set current icon to the base activity icon
-        this.currentIcon = this.getBaseIcon();
+        // Set current icon to the activity icon if present, otherwise base icon
+        if (trackData.activityIcon) {
+            this.setCurrentIcon(trackData.activityIcon);
+        } else {
+            this.currentIcon = this.getBaseIcon();
+        }
         
         // Initialize icon if map is loaded
         if (this.map.loaded()) {
-            this.setActivityType(this.currentActivityType);
+            this.updateActivityIcon();
         } else {
             this.map.once('load', () => {
-                this.setActivityType(this.currentActivityType);
+                this.updateActivityIcon();
             });
         }
         
@@ -810,12 +814,15 @@ export class MapRenderer {
             return;
         }
         
-            this.createAndAddActivityIcon();
+        this.createAndAddActivityIcon();
         
         if (this.map.getLayer('activity-icon')) {
             this.map.setLayoutProperty('activity-icon', 'visibility', 'visible');
             this.map.setLayoutProperty('activity-icon', 'icon-size', this.markerSize);
             this.map.setPaintProperty('activity-icon', 'icon-opacity', 1);
+        } else {
+            // If the layer is missing, recreate it
+            this.createAndAddActivityIconLayer(true);
         }
     }
 

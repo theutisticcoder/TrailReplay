@@ -109,6 +109,27 @@ export class AnalyticsTracker {
             source: terrainSource
         });
     }
+
+    /**
+     * Generic event tracking method
+     * @param {string} event - Event name
+     * @param {Object} properties - Event properties
+     */
+    static trackEvent(event, properties = {}) {
+        track(event, properties);
+    }
+
+    /**
+     * Track Strava integration events
+     * @param {string} action - auth_initiated, auth_success, auth_failed, activities_loaded, activity_imported, logout
+     * @param {Object} properties - Additional properties
+     */
+    static trackStravaEvent(action, properties = {}) {
+        track('strava_integration', {
+            action: action,
+            ...properties
+        });
+    }
 }
 
 // Legacy function export for backwards compatibility

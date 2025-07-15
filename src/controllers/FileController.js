@@ -46,6 +46,7 @@ export class FileController {
                     this.app.updateStats(trackData.stats);
                     
                     // Generate elevation profile after loading track data
+                    console.log('🏔️ Generating elevation profile for track data...');
                     this.app.generateElevationProfile();
                     
                     console.log('GPX file loaded successfully');
