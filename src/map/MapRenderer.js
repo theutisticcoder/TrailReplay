@@ -81,13 +81,14 @@ export class MapRenderer {
                         tileSize: 256,
                         attribution: '© OpenStreetMap contributors'
                     },
-                    'terrain': {
+                    // --- OpenTopoMap (topographic/terrain) ---
+                    'opentopomap': {
                         type: 'raster',
                         tiles: [
-                            'https://tiles.stadiamaps.com/tiles/stamen_terrain/{z}/{x}/{y}.png'
+                            'https://a.tile.opentopomap.org/{z}/{x}/{y}.png'
                         ],
                         tileSize: 256,
-                        attribution: '© Stadia Maps © Stamen Design © OpenMapTiles'
+                        attribution: '© OpenTopoMap (CC-BY-SA)'
                     },
                     'satellite': {
                         type: 'raster',
@@ -97,7 +98,6 @@ export class MapRenderer {
                         tileSize: 256,
                         attribution: '© Esri'
                     },
-                    // Add CartoDB Positron Only Labels for hybrid (no API key)
                     'carto-labels': {
                         type: 'raster',
                         tiles: [
@@ -113,21 +113,21 @@ export class MapRenderer {
                         type: 'raster',
                         source: 'satellite'
                     },
-                    // Add CartoDB labels layer above satellite (initially hidden)
+                    // CartoDB labels above satellite (initially hidden)
                     {
                         id: 'carto-labels',
                         type: 'raster',
                         source: 'carto-labels',
                         layout: { visibility: 'none' }
                     },
-                    // Add terrain layer (initially hidden)
+                    // --- OpenTopoMap layer (initially hidden) ---
                     {
-                        id: 'terrain',
+                        id: 'opentopomap',
                         type: 'raster',
-                        source: 'terrain',
+                        source: 'opentopomap',
                         layout: { visibility: 'none' }
                     },
-                    // Add street (OSM) layer (initially hidden)
+                    // OSM street layer (initially hidden)
                     {
                         id: 'street',
                         type: 'raster',
@@ -1086,9 +1086,9 @@ export class MapRenderer {
                 source: 'satellite',
                 attribution: '© Esri'
             },
-            'terrain': {
-                source: 'terrain',
-                attribution: '© Stadia Maps © Stamen Design'
+            'opentopomap': {
+                source: 'opentopomap',
+                attribution: '© OpenTopoMap (CC-BY-SA)'
             },
             'street': {
                 source: 'osm',
@@ -1111,8 +1111,8 @@ export class MapRenderer {
                 this.map.setLayoutProperty('carto-labels', 'visibility', 'visible');
             }
             // Hide other base layers if present
-            if (this.map.getLayer('terrain')) {
-                this.map.setLayoutProperty('terrain', 'visibility', 'none');
+            if (this.map.getLayer('opentopomap')) {
+                this.map.setLayoutProperty('opentopomap', 'visibility', 'none');
             }
             if (this.map.getLayer('street')) {
                 this.map.setLayoutProperty('street', 'visibility', 'none');
@@ -1131,10 +1131,11 @@ export class MapRenderer {
         if (this.map.getLayer('carto-labels')) {
             this.map.setLayoutProperty('carto-labels', 'visibility', 'none');
         }
-        if (this.map.getLayer('terrain')) {
-            this.map.setLayoutProperty('terrain', 'visibility', style === 'terrain' ? 'visible' : 'none');
+        if (this.map.getLayer('opentopomap')) {
+            this.map.setLayoutProperty('opentopomap', 'visibility', style === 'opentopomap' ? 'visible' : 'none');
         }
         if (this.map.getLayer('street')) {
+            // Show street only if style is street
             this.map.setLayoutProperty('street', 'visibility', style === 'street' ? 'visible' : 'none');
         }
         // Optionally update attribution UI here
@@ -2104,7 +2105,8 @@ export class MapRenderer {
         // Determine tile URL template for the style
         const tileTemplates = {
             satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-            terrain: 'https://tiles.stadiamaps.com/tiles/stamen_terrain/{z}/{x}/{y}.png',
+            opentopomap: 'https://a.tile.opentopomap.org/{z}/{x}/{y}.png',
+            'opensnowmap-pistes': 'https://tiles.opensnowmap.org/pistes/{z}/{x}/{y}.png',
             street: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
         };
         const template = tileTemplates[style] || tileTemplates['satellite'];
