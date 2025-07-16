@@ -874,18 +874,18 @@ input:checked + .toggle-slider:before {
 
 /* Elevation Profile Container (inside map) */
 .elevation-profile-container {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    /* Keep layout and flex properties */
     position: absolute;
     bottom: 0.75rem;
     left: 0.75rem;
     right: 0.75rem;
-    background: rgba(27, 42, 32, 0.9);
-    border-radius: 6px;
-    padding: 0.75rem;
-    backdrop-filter: blur(10px);
-    border: 2px solid var(--evergreen);
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+    border-radius: 0;
+    gap: 0;
 }
 
 .elevation-progress-bar {
@@ -897,6 +897,7 @@ input:checked + .toggle-slider:before {
     transition: transform 200ms ease-out;
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
+    display: block !important; /* Ensure the inner progress bar is visible */
 }
 
 .elevation-progress-bar:hover {
@@ -3267,4 +3268,10 @@ kbd {
         flex-direction: column;
         gap: 0.5rem;
     }
+}
+
+/* Hide MapLibre attribution and logo/info panel by default */
+.maplibregl-ctrl-attrib,
+.maplibregl-ctrl-logo {
+    display: none !important;
 }

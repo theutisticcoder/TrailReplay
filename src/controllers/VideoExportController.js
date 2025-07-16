@@ -1327,16 +1327,18 @@ export class VideoExportController {
                         }
                     }
 
-                    // Continue recording if animation is still playing
-                    if (this.isAnimationPlaying()) {
-                        requestAnimationFrame(renderFrame);
-                    } else {
-                        // Animation complete
-                        console.log(`✅ Recording complete. Captured ${frameCount} frames in ${((Date.now() - startTime) / 1000).toFixed(1)}s`);
+                    // Robust stop condition: only stop when animation is truly finished
+                    const progress = this.getAnimationProgress();
+                    const animationDone = (progress >= 1.0) && !this.isAnimationPlaying();
+                    if (animationDone) {
+                        // Optionally capture one final frame after animation stops
+                        await this.captureFrame(frameCount);
                         this.finishRecording();
                         resolve();
+                    } else {
+                        requestAnimationFrame(renderFrame);
                     }
-        } catch (error) {
+                } catch (error) {
                     console.error('❌ Frame recording error:', error);
                     reject(error);
                 }
@@ -1472,6 +1474,11 @@ export class VideoExportController {
         this.capturedFrames = [];
         this.captureQuality = 2; // Higher quality multiplier
         
+        // Get cinematic durations from FollowBehindCamera
+        const camera = this.app.mapRenderer?.followBehindCamera;
+        const zoomInDuration = camera?.getCinematicDuration ? camera.getCinematicDuration() : 2000; // ms
+        const zoomOutDuration = camera?.getZoomOutDuration ? camera.getZoomOutDuration() : 3000; // ms
+        
         return new Promise((resolve, reject) => {
             let frameCount = 0;
             let lastProgressUpdate = 0;
@@ -1481,10 +1488,10 @@ export class VideoExportController {
             const startTime = Date.now();
             const maxRecordingTime = 600000; // 10 minutes max
 
-            // Simple duration estimation for expected frames
-            const animationDuration = 17; // Fixed reasonable duration
-            const expectedFrames = Math.ceil(animationDuration * targetFPS);
-            
+            let phase = 'zoomIn'; // 'zoomIn', 'main', 'zoomOut'
+            let zoomInStart = null;
+            let zoomOutStart = null;
+
             // Calculate and set animation speed BEFORE starting animation
             let speedMultiplier = 0.25; // Default reasonable speed
             if (this.app.mapRenderer && this.app.mapRenderer.setAnimationSpeed) {
@@ -1497,6 +1504,20 @@ export class VideoExportController {
                     this.app.mapRenderer.setAnimationSpeed(speedMultiplier);
                 }
             }
+
+            // Helper to trigger cinematic zoom-in
+            const startZoomIn = async () => {
+                if (camera && camera.startCinematicSequence) {
+                    await camera.startCinematicSequence();
+                }
+            };
+
+            // Helper to trigger cinematic zoom-out
+            const startZoomOut = async () => {
+                if (camera && camera.zoomOutToWholeTrack) {
+                    camera.zoomOutToWholeTrack();
+                }
+            };
 
             const captureFrame = async (currentTime) => {
                 try {
@@ -1530,15 +1551,55 @@ export class VideoExportController {
                         }
                     }
 
-                    // Simple termination logic - stop when animation is complete
-                    const progress = this.getAnimationProgress();
-                    const hasEnoughFrames = frameCount >= expectedFrames * 0.85; // 85% of expected frames
-                    
-                    // Stop when animation is 99% complete OR we have enough frames
-                    if (progress >= 0.99 || hasEnoughFrames) {
-                        resolve();
-                    } else {
+                    // --- PHASE LOGIC ---
+                    if (phase === 'zoomIn') {
+                        if (!zoomInStart) zoomInStart = performance.now();
+                        // Wait for zoom-in duration
+                        if (performance.now() - zoomInStart >= zoomInDuration) {
+                            // Start main animation
+                            phase = 'main';
+                            // Reset animation first to ensure clean start
+                            if (this.app.playback && this.app.playback.reset) {
+                                this.app.playback.reset();
+                            }
+                            if (this.app.playback && this.app.playback.play) {
+                                this.app.playback.play();
+                            } else if (this.app.map && this.app.map.startAnimation) {
+                                this.app.map.startAnimation();
+                            }
+                        }
                         requestAnimationFrame(captureFrame);
+                        return;
+                    }
+
+                    if (phase === 'main') {
+                        // Robust stop condition: only stop when animation is truly finished
+                        const progress = this.getAnimationProgress();
+                        const animationDone = (progress >= 1.0) && !this.isAnimationPlaying();
+                        if (animationDone) {
+                            // Start zoom-out phase
+                            phase = 'zoomOut';
+                            zoomOutStart = performance.now();
+                            await startZoomOut();
+                            requestAnimationFrame(captureFrame);
+                            return;
+                        } else {
+                            requestAnimationFrame(captureFrame);
+                            return;
+                        }
+                    }
+
+                    if (phase === 'zoomOut') {
+                        // Wait for zoom-out duration
+                        if (performance.now() - zoomOutStart >= zoomOutDuration) {
+                            // Optionally capture one final frame after zoom-out
+                            const frameData = await this.captureHighQualityFrame(frameCount);
+                            this.capturedFrames.push(frameData);
+                            resolve();
+                        } else {
+                            requestAnimationFrame(captureFrame);
+                        }
+                        return;
                     }
                 } catch (error) {
                     console.error('❌ Frame capture error:', error);
@@ -1546,25 +1607,11 @@ export class VideoExportController {
                 }
             };
 
-            // Start animation and capture
-            console.log('🎬 Starting animation playback for frame capture...');
-            
-            // Reset animation first to ensure clean start
-            if (this.app.playback && this.app.playback.reset) {
-                this.app.playback.reset();
-            }
-            
-            // Start animation
-            if (this.app.playback && this.app.playback.play) {
-                this.app.playback.play();
-            } else if (this.app.map && this.app.map.startAnimation) {
-                this.app.map.startAnimation();
-            }
-            
-            // Start frame capture after brief delay
-            setTimeout(() => {
+            // Start cinematic zoom-in and frame capture
+            (async () => {
+                await startZoomIn();
                 requestAnimationFrame(captureFrame);
-            }, 200);
+            })();
         });
     }
 
@@ -2217,8 +2264,8 @@ export class VideoExportController {
      * Draw the actual TrailReplay SVG logo to canvas
      */
     async drawActualSVGLogo(context, x, y, width, height) {
-        const svgUrl = 'media/images/logohorizontal.svg';
-        
+        // Use absolute path for deployment compatibility (works on Vercel/static hosting)
+        const svgUrl = '/media/images/logohorizontal.svg';
         try {
             // Fetch the SVG content
             const response = await fetch(svgUrl);
@@ -2273,6 +2320,10 @@ export class VideoExportController {
      * Draw SVG logo to regular recording canvas
      */
     async drawSVGLogoToRegularCanvas(svgUrl, x, y, width, height) {
+        // Use absolute path for deployment compatibility (works on Vercel/static hosting)
+        if (svgUrl === 'media/images/logohorizontal.svg') {
+            svgUrl = '/media/images/logohorizontal.svg';
+        }
         try {
             // Fetch the SVG content
             const response = await fetch(svgUrl);

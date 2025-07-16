@@ -26,7 +26,7 @@ const FOLLOW_BEHIND_SETTINGS = {
     
     // Camera movement smoothing
     CAMERA_UPDATE_DURATION: 100,  // Duration for smooth camera updates during animation (ms)
-    BEARING_SMOOTHING: 0.15,      // Bearing smoothing factor (0-1, lower = smoother)
+    BEARING_SMOOTHING: 0.01,      // Bearing smoothing factor (0-1, lower = smoother)
     BEARING_LOOK_AHEAD: 0.05,     // How far ahead to look for bearing calculation
     
     // Terrain-aware settings

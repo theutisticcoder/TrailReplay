@@ -62,6 +62,8 @@ export class MapRenderer {
         setTimeout(() => {
             this.initializeCameraMode();
         }, 100);
+        this.preloadedTiles = new Set(); // Track preloaded tile URLs
+        this.currentMapStyle = 'satellite'; // Track current style for preloading
     }
 
     initializeMap() {
@@ -758,6 +760,21 @@ export class MapRenderer {
 
         this.updateCurrentPosition();
 
+        // Preload tiles 2 seconds ahead in follow-behind mode
+        if (this.cameraMode === 'followBehind' && this.autoZoom && this.trackData && this.gpxParser) {
+            const lookAheadSeconds = 2;
+            const totalDuration = this.segmentTimings.totalDuration || 1;
+            const lookAheadProgress = Math.min((this.journeyElapsedTime + lookAheadSeconds) / totalDuration, 1);
+            const lookAheadPoint = this.gpxParser.getInterpolatedPoint(lookAheadProgress);
+            let lookAheadZoom = 14; // Default
+            if (typeof this.followBehindCamera?.getCurrentPresetSettings === 'function') {
+                lookAheadZoom = this.followBehindCamera.getCurrentPresetSettings().ZOOM || 14;
+            }
+            if (lookAheadPoint && lookAheadPoint.lat && lookAheadPoint.lon) {
+                this.preloadTilesAtPosition(lookAheadPoint.lat, lookAheadPoint.lon, Math.round(lookAheadZoom), this.currentMapStyle);
+            }
+        }
+
         if (this.isAnimating) {
             requestAnimationFrame(() => this.animate());
         }
@@ -1121,6 +1138,7 @@ export class MapRenderer {
             this.map.setLayoutProperty('street', 'visibility', style === 'street' ? 'visible' : 'none');
         }
         // Optionally update attribution UI here
+        this.currentMapStyle = style; // Track current style for preloading
     }
 
     // Journey segments handling
@@ -2077,5 +2095,62 @@ export class MapRenderer {
 
     get isIconChangeMode() {
         return this.iconChanges.isIconChangeMode;
+    }
+
+    /**
+     * Preload all tiles covering the viewport at a given lat/lon/zoom for the current style
+     */
+    preloadTilesAtPosition(lat, lon, zoom, style) {
+        // Determine tile URL template for the style
+        const tileTemplates = {
+            satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+            terrain: 'https://tiles.stadiamaps.com/tiles/stamen_terrain/{z}/{x}/{y}.png',
+            street: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+        };
+        const template = tileTemplates[style] || tileTemplates['satellite'];
+        if (!template) return;
+
+        // Get viewport bounds in lat/lon
+        if (!this.map) return;
+        const map = this.map;
+        const canvas = map.getCanvas();
+        const width = canvas.width;
+        const height = canvas.height;
+
+        // Calculate bounds in lat/lon for the viewport at the given center/zoom
+        // Use maplibre's projection utilities
+        const center = [lon, lat];
+        const originalZoom = map.getZoom();
+        const originalCenter = map.getCenter();
+        // Project corners at the given zoom/center
+        const project = (lng, lat) => map.project([lng, lat]);
+        const unproject = (x, y) => map.unproject([x, y]);
+        // Calculate pixel offsets for corners
+        const halfW = width / 2;
+        const halfH = height / 2;
+        // Center in screen pixels
+        const centerPx = map.project(center);
+        // Corners in screen pixels
+        const nwPx = { x: centerPx.x - halfW, y: centerPx.y - halfH };
+        const sePx = { x: centerPx.x + halfW, y: centerPx.y + halfH };
+        // Unproject to lat/lon
+        const nw = map.unproject([nwPx.x, nwPx.y]);
+        const se = map.unproject([sePx.x, sePx.y]);
+        // Calculate tile x/y ranges
+        const minX = MapUtils.lngToTile(nw.lng, zoom);
+        const maxX = MapUtils.lngToTile(se.lng, zoom);
+        const minY = MapUtils.latToTile(se.lat, zoom);
+        const maxY = MapUtils.latToTile(nw.lat, zoom);
+        // Preload all tiles in the range
+        for (let x = minX; x <= maxX; x++) {
+            for (let y = minY; y <= maxY; y++) {
+                const url = template.replace('{z}', zoom).replace('{x}', x).replace('{y}', y);
+                if (!this.preloadedTiles.has(url)) {
+                    this.preloadedTiles.add(url);
+                    const img = new window.Image();
+                    img.src = url;
+                }
+            }
+        }
     }
 } 
