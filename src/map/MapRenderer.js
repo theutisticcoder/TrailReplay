@@ -117,6 +117,20 @@ export class MapRenderer {
                         type: 'raster',
                         source: 'carto-labels',
                         layout: { visibility: 'none' }
+                    },
+                    // Add terrain layer (initially hidden)
+                    {
+                        id: 'terrain',
+                        type: 'raster',
+                        source: 'terrain',
+                        layout: { visibility: 'none' }
+                    },
+                    // Add street (OSM) layer (initially hidden)
+                    {
+                        id: 'street',
+                        type: 'raster',
+                        source: 'osm',
+                        layout: { visibility: 'none' }
                     }
                 ]
             },
@@ -131,6 +145,10 @@ export class MapRenderer {
 
         this.map.on('load', () => {
             this.setupMapLayers();
+            // Allow zooming before animation starts in follow-behind mode
+            if (this.cameraMode === 'followBehind' && !this.isAnimating) {
+                this.enableZoomOnlyInteractions();
+            }
         });
 
         // Add click handler for annotations and icon changes
@@ -697,6 +715,10 @@ export class MapRenderer {
         
         // Now start the actual trail animation
         this.isAnimating = true;
+        // If in follow-behind mode, disable all map interactions during animation
+        if (this.cameraMode === 'followBehind') {
+            this.disableMapInteractions();
+        }
         this.lastAnimationTime = 0;
         this.updateCurrentPosition();
         this.animate();
@@ -743,6 +765,10 @@ export class MapRenderer {
 
     stopAnimation() {
         this.isAnimating = false;
+        // If in follow-behind mode, allow zooming when paused
+        if (this.cameraMode === 'followBehind') {
+            this.enableZoomOnlyInteractions();
+        }
     }
 
     resetAnimation() {
@@ -1058,6 +1084,7 @@ export class MapRenderer {
             }
         };
 
+        // --- Handle hybrid style ---
         if (style === 'hybrid') {
             // Show both satellite and labels
             if (this.map.getLayer('background')) {
@@ -1073,12 +1100,14 @@ export class MapRenderer {
             if (this.map.getLayer('street')) {
                 this.map.setLayoutProperty('street', 'visibility', 'none');
             }
+            // Always disable 3D terrain in hybrid mode
+            this.disable3DTerrain();
             // Optionally update attribution UI here
             return;
         }
 
+        // --- Handle other styles ---
         const config = layerConfigs[style] || layerConfigs['satellite'];
-        
         if (this.map.getLayer('background')) {
             this.map.setLayoutProperty('background', 'visibility', style === 'satellite' ? 'visible' : 'none');
         }
@@ -1448,6 +1477,10 @@ export class MapRenderer {
             console.log('📹 Initializing follow-behind camera');
             this.followBehindCamera.initialize();
             
+            // If paused, allow zooming
+            if (!this.isAnimating) {
+                this.enableZoomOnlyInteractions();
+            }
         } else {
             console.log('📹 Entering standard camera mode');
             
@@ -1904,6 +1937,23 @@ export class MapRenderer {
         this.map.getCanvas().style.cursor = '';
         
         console.log('🎬 Map interactions re-enabled for standard mode');
+    }
+
+    // Enable only zoom interactions (scroll and double-click) for the map
+    enableZoomOnlyInteractions() {
+        if (!this.map) return;
+        // Disable all interactions first
+        this.map.dragPan.disable();
+        this.map.boxZoom.disable();
+        this.map.dragRotate.disable();
+        this.map.keyboard.disable();
+        this.map.touchZoomRotate.disable();
+        // Enable only zoom interactions
+        this.map.scrollZoom.enable();
+        this.map.doubleClickZoom.enable();
+        // Cursor: default (not crosshair or grab)
+        this.map.getCanvas().style.cursor = '';
+        console.log('🎬 Zoom-only map interactions enabled (paused, follow-behind)');
     }
 
     setFollowBehindStartingPosition(instant = false) {
