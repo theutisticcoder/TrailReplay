@@ -4,6 +4,17 @@ import { AnalyticsTracker } from './utils/analytics.js';
 export const translations = {
     en: {
         subtitle: "Replay the story your trails told",
+        acknowledgments: {
+            title: "Acknowledgments",
+            intro: "TrailReplay is proudly built on the shoulders of open source giants. We thank the following projects and communities:",
+            maplibre: "Open-source JavaScript library for interactive maps and 3D visualization in the browser. Powers all the map rendering and animation in TrailReplay.",
+            osm: "Collaborative project to create a free, editable map of the world. Provides the base map data for TrailReplay.",
+            opentopo: "Open, topographic map tiles based on OSM data. Used for terrain and outdoor visualization.",
+            ors: "Open-source routing engine and API based on OSM. Used for calculating routes between points.",
+            turf: "Advanced geospatial analysis for JavaScript. Used for distance, geometry, and spatial calculations.",
+            langBtn: "Español",
+            back: "← Back to TrailReplay"
+        },
         
         // Tutorial and examples
         tutorial: {
@@ -415,10 +426,10 @@ export const translations = {
         // Footer elements
         footer: {
             copyright: "TrailReplay - Open Source Trail Storytelling",
-            builtWith: "Built with ❤️ for the outdoor community",
-            techStack: "Built with MapLibre GL JS + Three.js + Elevation Data",
+            techStack: "Built with MapLibre GL JS, Three.js, Elevation Data, and many amazing open source projects.",
+            acknowledgments: "See all acknowledgments",
             github: "View on GitHub",
-            coffee: "☕  Buy me a coffee"
+            coffee: "Buy me a coffee"
         },
         
         // Modal buttons
@@ -558,10 +569,32 @@ export const translations = {
             ensureGoodPerformance: "Ensure good system performance",
             startPreparation: "Start Preparation",
             manualRecordingExited: "Manual recording mode exited"
+        },
+        acknowledgments: {
+            title: "Acknowledgments",
+            intro: "TrailReplay is proudly built on the shoulders of open source giants. We thank the following projects and communities:",
+            maplibre: "Open-source JavaScript library for interactive maps and 3D visualization in the browser. Powers all the map rendering and animation in TrailReplay.",
+            osm: "Collaborative project to create a free, editable map of the world. Provides the base map data for TrailReplay.",
+            opentopo: "Open, topographic map tiles based on OSM data. Used for terrain and outdoor visualization.",
+            ors: "Open-source routing engine and API based on OSM. Used for calculating routes between points.",
+            turf: "Advanced geospatial analysis for JavaScript. Used for distance, geometry, and spatial calculations.",
+            langBtn: "Español",
+            back: "← Back to TrailReplay"
         }
     },
     es: {
         subtitle: "Revive la historia que contaron tus senderos",
+        acknowledgments: {
+            title: "Agradecimientos",
+            intro: "TrailReplay está orgullosamente construido sobre los hombros de gigantes del software libre. Agradecemos a los siguientes proyectos y comunidades:",
+            maplibre: "Biblioteca JavaScript de código abierto para mapas interactivos y visualización 3D en el navegador. Potencia todo el renderizado y animación de mapas en TrailReplay.",
+            osm: "Proyecto colaborativo para crear un mapa libre y editable del mundo. Proporciona los datos base de mapas para TrailReplay.",
+            opentopo: "Teselas topográficas abiertas basadas en datos de OSM. Usadas para visualización de terreno y actividades al aire libre.",
+            ors: "Motor y API de rutas de código abierto basado en OSM. Usado para calcular rutas entre puntos.",
+            turf: "Análisis geoespacial avanzado para JavaScript. Usado para cálculos de distancia, geometría y operaciones espaciales.",
+            langBtn: "English",
+            back: "← Volver a TrailReplay"
+        },
         
         // Tutorial and examples
         tutorial: {
@@ -964,11 +997,11 @@ export const translations = {
         
         // Footer elements
         footer: {
-            copyright: "TrailReplay - Narrativa de Senderos de Código Abierto",
-            builtWith: "Construido con ❤️ para la comunidad outdoor",
-            techStack: "Construido con MapLibre GL JS + Three.js + Datos de Elevación",
+            copyright: "TrailReplay - Narración de rutas de código abierto",
+            techStack: "Construido con MapLibre GL JS, Three.js, datos de elevación y muchos proyectos open source increíbles.",
+            acknowledgments: "Ver todos los agradecimientos",
             github: "Ver en GitHub",
-            coffee: "☕ Invítame a un café"
+            coffee: "Invítame a un café"
         },
         
         // Modal buttons
@@ -1108,6 +1141,17 @@ export const translations = {
             ensureGoodPerformance: "Asegura un buen rendimiento del sistema",
             startPreparation: "Iniciar Preparación",
             manualRecordingExited: "Modo de grabación manual finalizado"
+        },
+        acknowledgments: {
+            title: "Agradecimientos",
+            intro: "TrailReplay está orgullosamente construido sobre los hombros de gigantes del software libre. Agradecemos a los siguientes proyectos y comunidades:",
+            maplibre: "Biblioteca JavaScript de código abierto para mapas interactivos y visualización 3D en el navegador. Potencia todo el renderizado y animación de mapas en TrailReplay.",
+            osm: "Proyecto colaborativo para crear un mapa libre y editable del mundo. Proporciona los datos base de mapas para TrailReplay.",
+            opentopo: "Teselas topográficas abiertas basadas en datos de OSM. Usadas para visualización de terreno y actividades al aire libre.",
+            ors: "Motor y API de rutas de código abierto basado en OSM. Usado para calcular rutas entre puntos.",
+            turf: "Análisis geoespacial avanzado para JavaScript. Usado para cálculos de distancia, geometría y operaciones espaciales.",
+            langBtn: "English",
+            back: "← Volver a TrailReplay"
         }
     }
 };
