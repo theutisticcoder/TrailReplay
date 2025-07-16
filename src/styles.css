@@ -2041,42 +2041,33 @@ body.route-drawing-active .transportation-options {
 
 /* Live Stats Overlay - compact single line */
 .live-stats-overlay {
-    position: relative;
-    bottom: auto;
-    left: auto;
-    right: auto;
-    transform: none;
-    background: none;
-    border-radius: 0;
-    padding: 0;
-    color: var(--canvas);
-    backdrop-filter: none;
-    border: none;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    gap: 1.5rem;
-    z-index: auto;
-    white-space: nowrap;
-    margin-bottom: 0.5rem;
-}
-
-.live-stat {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: #fff !important;
+    padding: 0.25rem 0.75rem !important;
+    font-size: 0.92rem !important;
+    border-radius: 0 !important;
+    text-align: left !important;
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+    margin: 0.5rem 0 0 0.5rem !important;
+    max-width: 180px !important;
+    min-width: 0 !important;
 }
 
 .live-stat-label {
-    font-size: 0.8rem;
+    font-size: 0.78rem !important;
     opacity: 0.8;
+    text-align: left !important;
+    color: #fff !important;
 }
 
 .live-stat-value {
-    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.92rem !important;
     font-weight: 600;
-    font-size: 0.9rem;
+    text-align: left !important;
+    color: #fff !important;
 }
 
 /* Progress Container Updates */

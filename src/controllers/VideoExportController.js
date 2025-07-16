@@ -2264,8 +2264,8 @@ export class VideoExportController {
      * Draw the actual TrailReplay SVG logo to canvas
      */
     async drawActualSVGLogo(context, x, y, width, height) {
-        // Use absolute path for deployment compatibility (works on Vercel/static hosting)
-        const svgUrl = '/media/images/logohorizontal.svg';
+        // Use the same relative path as the main app logo for production compatibility
+        const svgUrl = 'media/images/logohorizontal.svg';
         try {
             // Fetch the SVG content
             const response = await fetch(svgUrl);
@@ -2320,9 +2320,9 @@ export class VideoExportController {
      * Draw SVG logo to regular recording canvas
      */
     async drawSVGLogoToRegularCanvas(svgUrl, x, y, width, height) {
-        // Use absolute path for deployment compatibility (works on Vercel/static hosting)
-        if (svgUrl === 'media/images/logohorizontal.svg') {
-            svgUrl = '/media/images/logohorizontal.svg';
+        // Use the same relative path as the main app logo for production compatibility
+        if (svgUrl === '/media/images/logohorizontal.svg') {
+            svgUrl = 'media/images/logohorizontal.svg';
         }
         try {
             // Fetch the SVG content
