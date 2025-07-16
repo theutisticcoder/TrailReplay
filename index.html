@@ -435,10 +435,10 @@
         });
     </script>
     <script>
-      fetch('src/footer.html').then(r => r.text()).then(html => { document.getElementById('footer').innerHTML = html; });
+      fetch('/src/footer.html').then(r => r.text()).then(html => { document.getElementById('footer').innerHTML = html; });
     </script>
     <script>
-      fetch('src/header.html').then(r => r.text()).then(html => { document.getElementById('header').innerHTML = html; });
+      fetch('/src/header.html').then(r => r.text()).then(html => { document.getElementById('header').innerHTML = html; });
     </script>
 </body>
 </html> 
