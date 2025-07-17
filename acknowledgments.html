@@ -69,8 +69,8 @@
         document.addEventListener('DOMContentLoaded', () => {
             // Load header and footer, then initialize translations
             Promise.all([
-                fetch('src/header.html').then(r => r.text()).then(html => { document.getElementById('header').innerHTML = html; }),
-                fetch('src/footer.html').then(r => r.text()).then(html => { document.getElementById('footer').innerHTML = html; })
+                fetch('header.html').then(r => r.text()).then(html => { document.getElementById('header').innerHTML = html; }),
+                fetch('footer.html').then(r => r.text()).then(html => { document.getElementById('footer').innerHTML = html; })
             ]).then(() => {
                 initializeTranslations();
                 // Setup language switcher functionality

@@ -855,10 +855,14 @@
         });
     </script>
     <script>
-      fetch('src/header.html').then(r => r.text()).then(html => { document.getElementById('header').innerHTML = html; });
-    </script>
-    <script>
-      fetch('src/footer.html').then(r => r.text()).then(html => { document.getElementById('footer').innerHTML = html; });
+      Promise.all([
+          fetch('header.html').then(r => r.text()).then(html => { document.getElementById('header').innerHTML = html; }),
+          fetch('footer.html').then(r => r.text()).then(html => { document.getElementById('footer').innerHTML = html; })
+      ]).then(() => {
+          // All fetch operations completed
+      }).catch(error => {
+          console.error('Error fetching header or footer:', error);
+      });
     </script>
 </body>
 </html> 
