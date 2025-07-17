@@ -42,25 +42,34 @@ export class ProgressController {
     // Helper function to calculate progress from mouse/touch position
     getProgressFromEvent(e) {
         if (!this.progressBar) return 0;
-        
         const rect = this.progressBar.getBoundingClientRect();
         const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
         const x = clientX - rect.left;
-        const progress = x / rect.width;
-        
-        // Ensure progress is within bounds
-        const boundedProgress = Math.max(0, Math.min(1, progress));
-        
-        console.log('Progress calculation:', {
-            clientX,
-            rectLeft: rect.left,
-            rectWidth: rect.width,
-            x,
-            rawProgress: progress,
-            boundedProgress: boundedProgress.toFixed(3)
-        });
-        
-        return boundedProgress;
+        const actualWidth = rect.width; // Use actual rendered width
+
+        // For journeys, map x to time, then to closest point index, then to progress
+        if (this.app.currentTrackData?.isJourney && this.app.elevationProfile && this.app.currentTrackData.segmentTiming) {
+            const totalDuration = this.app.currentTrackData.segmentTiming.totalDuration;
+            const timeAtPoint = this.app.elevationProfile.timeAtPoint;
+            const trackPoints = this.app.currentTrackData.trackPoints;
+            if (Array.isArray(timeAtPoint) && timeAtPoint.length > 0 && Array.isArray(trackPoints)) {
+                const clickedTime = Math.max(0, Math.min(totalDuration, (x / actualWidth) * totalDuration));
+                // Find the closest index in timeAtPoint
+                let closestIdx = 0, minDiff = Infinity;
+                for (let i = 0; i < timeAtPoint.length; i++) {
+                    const diff = Math.abs(timeAtPoint[i] - clickedTime);
+                    if (diff < minDiff) {
+                        minDiff = diff;
+                        closestIdx = i;
+                    }
+                }
+                // Progress is index / (trackPoints.length - 1)
+                const progress = closestIdx / (trackPoints.length - 1);
+                return progress;
+            }
+        }
+        // Default: linear mapping
+        return Math.max(0, Math.min(1, x / actualWidth));
     }
 
     // Helper function to handle seeking to a specific progress
@@ -86,36 +95,35 @@ export class ProgressController {
             return;
         }
         
-        // Normal seeking - set the animation progress first
-        this.app.mapRenderer.setAnimationProgress(progress);
+        // --- For journeys, map progress to time, then to correct animation state ---
+        if (this.app.currentTrackData.isJourney && this.app.currentTrackData.segmentTiming) {
+            const segmentTime = this.app.convertLinearProgressToSegmentTime(progress);
+            if (this.app.mapRenderer.setJourneyElapsedTime && segmentTime !== null && !isNaN(segmentTime)) {
+                this.app.mapRenderer.setJourneyElapsedTime(segmentTime);
+                // Also update animation progress to match the time (for elevation profile, etc.)
+                const timeToProgress = this.app.convertSegmentTimeToLinearProgress(segmentTime);
+                this.app.mapRenderer.setAnimationProgress(timeToProgress);
+                console.log(`Journey seeking: progress ${progress.toFixed(3)} → time ${segmentTime.toFixed(1)}s → progress ${timeToProgress.toFixed(3)}`);
+            } else {
+                // Fallback: use proportional time mapping
+                const totalDuration = this.app.currentTrackData.segmentTiming.totalDuration || this.app.state.totalAnimationTime;
+                const fallbackTime = progress * totalDuration;
+                if (this.app.mapRenderer.setJourneyElapsedTime) {
+                    this.app.mapRenderer.setJourneyElapsedTime(fallbackTime);
+                    this.app.mapRenderer.setAnimationProgress(progress);
+                    console.log(`Journey seeking fallback: progress ${progress.toFixed(3)} → time ${fallbackTime.toFixed(1)}s`);
+                }
+            }
+        } else {
+            // Normal seeking - set the animation progress first
+            this.app.mapRenderer.setAnimationProgress(progress);
+        }
         
         // Emit progress seek event for timing synchronization
         const progressSeekEvent = new CustomEvent('progressSeek', {
             detail: { progress }
         });
         document.dispatchEvent(progressSeekEvent);
-        
-        // For journeys, synchronize the segment timing with error handling
-        if (this.app.currentTrackData.isJourney && this.app.currentTrackData.segmentTiming) {
-            try {
-                const segmentTime = this.app.convertLinearProgressToSegmentTime(progress);
-                if (this.app.mapRenderer.setJourneyElapsedTime && segmentTime !== null && !isNaN(segmentTime)) {
-                    this.app.mapRenderer.setJourneyElapsedTime(segmentTime);
-                    console.log(`Journey seeking: progress ${progress.toFixed(3)} → time ${segmentTime.toFixed(1)}s`);
-                } else {
-                    // Fallback: use proportional time mapping
-                    const totalDuration = this.app.currentTrackData.segmentTiming.totalDuration || this.app.state.totalAnimationTime;
-                    const fallbackTime = progress * totalDuration;
-                    if (this.app.mapRenderer.setJourneyElapsedTime) {
-                        this.app.mapRenderer.setJourneyElapsedTime(fallbackTime);
-                        console.log(`Journey seeking fallback: progress ${progress.toFixed(3)} → time ${fallbackTime.toFixed(1)}s`);
-                    }
-                }
-            } catch (error) {
-                console.warn('Error during journey seeking, using simple progress:', error);
-                // Continue with simple progress-based seeking
-            }
-        }
         
         // Update the current position to match the new progress
         this.app.mapRenderer.updateCurrentPosition();
@@ -130,7 +138,13 @@ export class ProgressController {
         
         // Auto-center view on new position if enabled
         if (this.app.currentTrackData?.trackPoints) {
-            const currentPoint = this.app.mapRenderer.gpxParser.getInterpolatedPoint(progress);
+            // For journeys, use the correct time-based progress
+            let seekProgress = progress;
+            if (this.app.currentTrackData.isJourney && this.app.currentTrackData.segmentTiming) {
+                const segmentTime = this.app.convertLinearProgressToSegmentTime(progress);
+                seekProgress = this.app.convertSegmentTimeToLinearProgress(segmentTime);
+            }
+            const currentPoint = this.app.mapRenderer.gpxParser.getInterpolatedPoint(seekProgress);
             if (currentPoint && this.app.mapRenderer.map) {
                 this.app.mapRenderer.map.easeTo({
                     center: [currentPoint.lon, currentPoint.lat],

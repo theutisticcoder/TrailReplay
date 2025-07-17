@@ -617,83 +617,94 @@ export class MapRenderer {
         if (!this.ensureGPXParserReady()) {
             return;
         }
-        
-        const currentPoint = this.gpxParser.getInterpolatedPoint(this.animationProgress);
-        
-        if (currentPoint) {
-            if (isNaN(currentPoint.lat) || isNaN(currentPoint.lon)) {
-                console.error('NaN coordinates from interpolated point:', currentPoint, 'Progress:', this.animationProgress);
-                return;
-        }
-            
-            // Update current position marker
-            this.map.getSource('current-position').setData({
-                type: 'Feature',
-                geometry: {
-                    type: 'Point',
-                    coordinates: [currentPoint.lon, currentPoint.lat]
-                },
-                properties: {
-                    elevation: currentPoint.elevation,
-                    speed: currentPoint.speed,
-                    distance: currentPoint.distance
-                }
-            });
-
-            // Update completed trail
-            const completedCoordinates = this.trackData.trackPoints
-                .slice(0, Math.floor(currentPoint.index) + 1)
-                .map(point => [point.lon, point.lat]);
-
-            this.map.getSource('trail-completed').setData({
-                type: 'Feature',
-                geometry: {
-                    type: 'LineString',
-                    coordinates: completedCoordinates
-                }
-            });
-
-            // Check for icon changes - ensure method is properly bound
-            if (this.iconChanges && typeof this.iconChanges.checkIconChanges === 'function') {
-                try {
-                    this.iconChanges.checkIconChanges(this.animationProgress);
-                    } catch (error) {
-                    console.error('Error calling checkIconChanges:', error);
-                }
+        // --- Per-segment progress calculation ---
+        let globalProgress = 0;
+        if (this.segmentTimings && this.segmentTimings.segments && this.segmentTimings.segments.length > 0) {
+            const { segmentIndex, segmentProgress } = this.getSegmentAndLocalProgress(this.journeyElapsedTime);
+            const seg = this.segmentTimings.segments[segmentIndex];
+            if (this.trackData && this.trackData.trackPoints && typeof seg.startIndex === 'number' && typeof seg.endIndex === 'number') {
+                const segStart = seg.startIndex;
+                const segEnd = seg.endIndex;
+                const segLength = segEnd - segStart;
+                globalProgress = (segStart + segmentProgress * segLength) / (this.trackData.trackPoints.length - 1);
+            } else {
+                globalProgress = Math.min(this.journeyElapsedTime / this.segmentTimings.totalDuration, 1);
             }
-
-            // Check for annotations
-            if (this.annotations && typeof this.annotations.checkAnnotations === 'function') {
-            this.annotations.checkAnnotations(this.animationProgress);
-            }
-
-            // Auto zoom to follow the marker (always if auto zoom is enabled and we're animating)
-            if (this.autoZoom && this.isAnimating) {
-                                if (this.cameraMode === 'followBehind') {
-                    // Follow-behind camera mode: delegate to FollowBehindCamera
-                    this.followBehindCamera.updateCameraPosition();
-                } else if (this.is3DMode) {
-                    // Standard 3D mode, maintain the camera angle while following
-                    this.map.easeTo({
-                        center: [currentPoint.lon, currentPoint.lat],
-                        duration: this.performanceMode ? 50 : 100, // Faster transitions during recording
-                        pitch: this.map.getPitch(), // Maintain current pitch
-                        bearing: this.map.getBearing() // Maintain current bearing
-                    });
-                } else {
-                    // Normal 2D following
-                    this.map.easeTo({
-                        center: [currentPoint.lon, currentPoint.lat],
-                        duration: this.performanceMode ? 50 : 100 // Faster transitions during recording
-                    });
-                }
-            }
-
-            // Ensure activity icon layer exists and is visible
-            this.ensureActivityIconLayer();
         } else {
-            console.error('Could not get interpolated point for progress:', this.animationProgress);
+            globalProgress = this.animationProgress;
         }
+        const currentPoint = this.gpxParser.getInterpolatedPoint(globalProgress);
+        
+        if (isNaN(currentPoint.lat) || isNaN(currentPoint.lon)) {
+            console.error('NaN coordinates from interpolated point:', currentPoint, 'Progress:', globalProgress);
+            return;
+        }
+        
+        // Update current position marker
+        this.map.getSource('current-position').setData({
+            type: 'Feature',
+            geometry: {
+                type: 'Point',
+                coordinates: [currentPoint.lon, currentPoint.lat]
+            },
+            properties: {
+                elevation: currentPoint.elevation,
+                speed: currentPoint.speed,
+                distance: currentPoint.distance
+            }
+        });
+
+        // Update completed trail
+        const completedCoordinates = this.trackData.trackPoints
+            .slice(0, Math.floor(currentPoint.index) + 1)
+            .map(point => [point.lon, point.lat]);
+
+        this.map.getSource('trail-completed').setData({
+            type: 'Feature',
+            geometry: {
+                type: 'LineString',
+                coordinates: completedCoordinates
+            }
+        });
+
+        // Check for icon changes - ensure method is properly bound
+        if (this.iconChanges && typeof this.iconChanges.checkIconChanges === 'function') {
+            try {
+                this.iconChanges.checkIconChanges(globalProgress);
+                } catch (error) {
+                console.error('Error calling checkIconChanges:', error);
+            }
+        }
+
+        // Check for annotations
+        if (this.annotations && typeof this.annotations.checkAnnotations === 'function') {
+        this.annotations.checkAnnotations(globalProgress);
+        }
+
+        // Auto zoom to follow the marker (always if auto zoom is enabled and we're animating)
+        if (this.autoZoom && this.isAnimating) {
+            if (this.cameraMode === 'followBehind') {
+                // Follow-behind camera mode: delegate to FollowBehindCamera
+                this.followBehindCamera.updateCameraPosition();
+            } else if (this.is3DMode) {
+                // Standard 3D mode, maintain the camera angle while following
+                this.map.easeTo({
+                    center: [currentPoint.lon, currentPoint.lat],
+                    duration: this.performanceMode ? 50 : 100, // Faster transitions during recording
+                    pitch: this.map.getPitch(), // Maintain current pitch
+                    bearing: this.map.getBearing() // Maintain current bearing
+                });
+            } else {
+                // Normal 2D following
+                this.map.easeTo({
+                    center: [currentPoint.lon, currentPoint.lat],
+                    duration: this.performanceMode ? 50 : 100 // Faster transitions during recording
+                });
+            }
+        }
+
+        // Ensure activity icon layer exists and is visible
+        this.ensureActivityIconLayer();
     }
 
     async startAnimation() {
@@ -701,7 +712,7 @@ export class MapRenderer {
             return;
         }
         
-        if (this.segmentTimings && this.segmentTimings.totalDuration) {
+        if (this.segmentTimings && this.segmentTimings.totalDuration && this.journeyElapsedTime === 0) {
             this.journeyElapsedTime = this.animationProgress * this.segmentTimings.totalDuration;
         }
         
@@ -739,16 +750,32 @@ export class MapRenderer {
 
         const timeIncrement = deltaTime * this.animationSpeed;
         this.journeyElapsedTime += timeIncrement;
-        
-        if (this.segmentTimings.totalDuration > 0) {
-            this.animationProgress = Math.min(this.journeyElapsedTime / this.segmentTimings.totalDuration, 1);
+
+        // --- Per-segment progress calculation ---
+        let globalProgress = 0;
+        if (this.segmentTimings.segments && this.segmentTimings.segments.length > 0) {
+            const { segmentIndex, segmentProgress } = this.getSegmentAndLocalProgress(this.journeyElapsedTime);
+            const seg = this.segmentTimings.segments[segmentIndex];
+            // Map to global progress (index in trackPoints)
+            if (this.trackData && this.trackData.trackPoints && typeof seg.startIndex === 'number' && typeof seg.endIndex === 'number') {
+                const segStart = seg.startIndex;
+                const segEnd = seg.endIndex;
+                const segLength = segEnd - segStart;
+                globalProgress = (segStart + segmentProgress * segLength) / (this.trackData.trackPoints.length - 1);
+            } else {
+                // Fallback: use time proportion
+                globalProgress = Math.min(this.journeyElapsedTime / this.segmentTimings.totalDuration, 1);
+            }
+        } else if (this.segmentTimings.totalDuration > 0) {
+            // Single GPX fallback
+            globalProgress = Math.min(this.journeyElapsedTime / this.segmentTimings.totalDuration, 1);
         }
-        
-        if (this.animationProgress >= 1) {
+        this.animationProgress = globalProgress;
+
+        if (this.journeyElapsedTime >= this.segmentTimings.totalDuration) {
             this.animationProgress = 1;
             this.journeyElapsedTime = this.segmentTimings.totalDuration;
             this.isAnimating = false;
-            
             // If in follow-behind mode, trigger zoom-out to show whole track after a brief pause
             if (this.cameraMode === 'followBehind') {
                 console.log('🎬 Animation complete, starting zoom-out sequence');
@@ -764,7 +791,22 @@ export class MapRenderer {
         if (this.cameraMode === 'followBehind' && this.autoZoom && this.trackData && this.gpxParser) {
             const lookAheadSeconds = 2;
             const totalDuration = this.segmentTimings.totalDuration || 1;
-            const lookAheadProgress = Math.min((this.journeyElapsedTime + lookAheadSeconds) / totalDuration, 1);
+            const lookAheadTime = Math.min(this.journeyElapsedTime + lookAheadSeconds, totalDuration);
+            let lookAheadProgress = 0;
+            if (this.segmentTimings.segments && this.segmentTimings.segments.length > 0) {
+                const { segmentIndex, segmentProgress } = this.getSegmentAndLocalProgress(lookAheadTime);
+                const seg = this.segmentTimings.segments[segmentIndex];
+                if (this.trackData && this.trackData.trackPoints && typeof seg.startIndex === 'number' && typeof seg.endIndex === 'number') {
+                    const segStart = seg.startIndex;
+                    const segEnd = seg.endIndex;
+                    const segLength = segEnd - segStart;
+                    lookAheadProgress = (segStart + segmentProgress * segLength) / (this.trackData.trackPoints.length - 1);
+                } else {
+                    lookAheadProgress = lookAheadTime / totalDuration;
+                }
+            } else {
+                lookAheadProgress = lookAheadTime / totalDuration;
+            }
             const lookAheadPoint = this.gpxParser.getInterpolatedPoint(lookAheadProgress);
             let lookAheadZoom = 14; // Default
             if (typeof this.followBehindCamera?.getCurrentPresetSettings === 'function') {
@@ -1035,24 +1077,68 @@ export class MapRenderer {
 
     setAnimationProgress(progress) {
         this.animationProgress = Math.max(0, Math.min(1, progress));
-        
-        if (this.segmentTimings && this.segmentTimings.totalDuration) {
+        // --- Per-segment time calculation ---
+        if (this.segmentTimings && this.segmentTimings.segments && this.segmentTimings.segments.length > 0) {
+            // Map global progress to journeyElapsedTime
+            const totalPoints = this.trackData.trackPoints.length - 1;
+            const targetIndex = progress * totalPoints;
+            let found = false;
+            for (let i = 0; i < this.segmentTimings.segments.length; i++) {
+                const seg = this.segmentTimings.segments[i];
+                if (typeof seg.startIndex === 'number' && typeof seg.endIndex === 'number') {
+                    if (targetIndex >= seg.startIndex && targetIndex <= seg.endIndex) {
+                        const segLength = seg.endIndex - seg.startIndex;
+                        const segmentProgress = segLength > 0 ? (targetIndex - seg.startIndex) / segLength : 0;
+                        this.journeyElapsedTime = seg.startTime + segmentProgress * seg.duration;
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            if (!found) {
+                // Fallback: use total duration
+                this.journeyElapsedTime = progress * this.segmentTimings.totalDuration;
+            }
+        } else if (this.segmentTimings && this.segmentTimings.totalDuration) {
             this.journeyElapsedTime = progress * this.segmentTimings.totalDuration;
         }
-        
         if (this.segmentTimings && this.segmentTimings.segments) {
             this.updateSegmentProgress(progress);
         }
-        
         this.lastAnimationTime = 0;
         this.updateCurrentPosition();
     }
 
     setJourneyElapsedTime(timeInSeconds) {
         if (!this.segmentTimings) return;
-        
         this.journeyElapsedTime = Math.max(0, Math.min(timeInSeconds, this.segmentTimings.totalDuration));
+        // --- Synchronize animationProgress for journeys ---
+        if (this.segmentTimings.segments && this.segmentTimings.segments.length > 0) {
+            // Find which segment this time falls into
+            let found = false;
+            for (let i = 0; i < this.segmentTimings.segments.length; i++) {
+                const seg = this.segmentTimings.segments[i];
+                if (timeInSeconds >= seg.startTime && timeInSeconds <= seg.endTime) {
+                    const relativeTimeInSegment = timeInSeconds - seg.startTime;
+                    const segmentProgress = seg.duration > 0 ? relativeTimeInSegment / seg.duration : 0;
+                    const segStart = seg.startIndex;
+                    const segEnd = seg.endIndex;
+                    const segLength = segEnd - segStart;
+                    const globalIndex = segStart + segmentProgress * segLength;
+                    this.animationProgress = globalIndex / (this.trackData.trackPoints.length - 1);
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                // Fallback: proportional
+                this.animationProgress = timeInSeconds / this.segmentTimings.totalDuration;
+            }
+        } else if (this.segmentTimings.totalDuration) {
+            this.animationProgress = timeInSeconds / this.segmentTimings.totalDuration;
+        }
         this.lastAnimationTime = 0;
+        this.updateCurrentPosition();
     }
 
     getJourneyElapsedTime() {
@@ -2154,5 +2240,21 @@ export class MapRenderer {
                 }
             }
         }
+    }
+
+    // Helper: Map journeyElapsedTime to segment and local progress (for journeys)
+    getSegmentAndLocalProgress(journeyElapsedTime) {
+        if (!this.segmentTimings || !this.segmentTimings.segments) return { segmentIndex: 0, segmentProgress: 0 };
+        const segments = this.segmentTimings.segments;
+        for (let i = 0; i < segments.length; i++) {
+            const seg = segments[i];
+            if (journeyElapsedTime >= seg.startTime && journeyElapsedTime < seg.endTime) {
+                const segmentProgress = (journeyElapsedTime - seg.startTime) / seg.duration;
+                return { segmentIndex: i, segmentProgress };
+            }
+        }
+        // If at or past the end, return last segment at 1
+        const last = segments.length - 1;
+        return { segmentIndex: last, segmentProgress: 1 };
     }
 } 

@@ -306,13 +306,27 @@ export class IconController {
         const iconChanges = this.app.mapRenderer.getIconChanges();
         if (!iconChanges) return;
 
+        const elevationProfile = this.app.elevationProfile;
+        const points = elevationProfile?.points;
+        const pointsLength = points?.length;
+        const svgWidth = elevationProfile?.svgWidth || 800;
+        const renderedWidth = iconChangeMarkers.offsetWidth || svgWidth;
+
         iconChanges.forEach(change => {
             const marker = document.createElement('div');
             marker.className = 'progress-marker icon-change-marker';
-            marker.style.left = `${change.progress * 100}%`;
+            let leftPx = 0;
+            if (points && pointsLength > 0) {
+                // Place marker by track point index (distance-based), scaled to rendered width
+                const index = Math.round(change.progress * (pointsLength - 1));
+                const [x] = points[index].split(',').map(Number);
+                leftPx = (x / svgWidth) * renderedWidth;
+                marker.style.left = `${leftPx}px`;
+            } else {
+                marker.style.left = `${change.progress * 100}%`;
+            }
             marker.title = `Icon change to ${change.icon} at ${(change.progress * 100).toFixed(1)}%`;
             marker.textContent = change.icon;
-            
             iconChangeMarkers.appendChild(marker);
         });
     }
@@ -324,9 +338,7 @@ export class IconController {
         }
 
         console.log('Adding segment icon changes for journey with coordinate-based calculation');
-        
-        // Clear existing icon changes
-        this.app.mapRenderer.clearIconChanges();
+        // Do NOT clear existing icon changes here; preserve user-added icon changes
 
         const totalCoordinates = trackData.trackPoints.length;
         let currentIndex = 0;
@@ -346,17 +358,21 @@ export class IconController {
             }
 
             if (icon && segmentIndex > 0) { // Don't add for first segment (it starts with default)
-                const iconChange = this.app.mapRenderer.addIconChange(progress, icon);
-                if (iconChange) {
-                    // Add to unified timeline
-                    this.app.timeline.addTimelineEvent({
-                        id: iconChange.id,
-                        type: 'iconChange',
-                        progress: iconChange.progress,
-                        timestamp: iconChange.timestamp,
-                        icon: iconChange.icon
-                    });
-                    console.log(`Added automatic icon change at progress ${progress.toFixed(3)}: ${icon} for ${segment.type} (${segment.mode || segment.data?.data?.activityType || segment.data?.activityType})`);
+                // Only add if not already present at this progress
+                const existing = this.app.mapRenderer.getIconChanges().find(c => Math.abs(c.progress - progress) < 1e-6 && c.icon === icon);
+                if (!existing) {
+                    const iconChange = this.app.mapRenderer.addIconChange(progress, icon);
+                    if (iconChange) {
+                        // Add to unified timeline
+                        this.app.timeline.addTimelineEvent({
+                            id: iconChange.id,
+                            type: 'iconChange',
+                            progress: iconChange.progress,
+                            timestamp: iconChange.timestamp,
+                            icon: iconChange.icon
+                        });
+                        console.log(`Added automatic icon change at progress ${progress.toFixed(3)}: ${icon} for ${segment.type} (${segment.mode || segment.data?.data?.activityType || segment.data?.activityType})`);
+                    }
                 }
             }
 

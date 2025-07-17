@@ -343,20 +343,37 @@ export class TrailReplayApp {
             return;
         }
 
-        const { points, svgWidth, svgHeight } = this.elevationProfile;
-        const progressIndex = Math.floor(progress * (points.length - 1));
-        const currentPointIndex = Math.min(progressIndex, points.length - 1);
-
-        // Get current position along the elevation profile
+        const { points, svgWidth, svgHeight, timeAtPoint } = this.elevationProfile;
         let currentX = 0;
         let currentY = svgHeight / 2; // Default middle
-
-        if (points.length > 0) {
-            if (currentPointIndex < points.length) {
+        let currentPointIndex = 0;
+        // --- Time-based progress for journeys ---
+        if (this.currentTrackData && this.currentTrackData.isJourney && timeAtPoint && timeAtPoint.length === points.length) {
+            // Get current journey time
+            const journeyTime = this.mapRenderer?.getJourneyElapsedTime?.() ?? (progress * (this.currentTrackData.segmentTiming?.totalDuration || 1));
+            // Find the closest point index for this time
+            let minDiff = Infinity;
+            for (let i = 0; i < timeAtPoint.length; i++) {
+                const diff = Math.abs(timeAtPoint[i] - journeyTime);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    currentPointIndex = i;
+                }
+            }
+            // Use the x/y from the SVG points
+            if (points.length > 0 && currentPointIndex < points.length) {
                 const [x, y] = points[currentPointIndex].split(',').map(Number);
                 currentX = x;
                 currentY = y;
-
+            }
+        } else {
+            // Fallback: linear progress
+            const progressIndex = Math.floor(progress * (points.length - 1));
+            currentPointIndex = Math.min(progressIndex, points.length - 1);
+            if (points.length > 0 && currentPointIndex < points.length) {
+                const [x, y] = points[currentPointIndex].split(',').map(Number);
+                currentX = x;
+                currentY = y;
                 // Interpolate between points if we're between indices
                 const fraction = (progress * (points.length - 1)) - currentPointIndex;
                 if (fraction > 0 && currentPointIndex < points.length - 1) {
@@ -486,6 +503,27 @@ export class TrailReplayApp {
             return;
         }
 
+        // --- Time-based elevation profile for journeys ---
+        let timeAtPoint = [];
+        if (this.currentTrackData.isJourney && this.currentTrackData.segmentTiming && this.currentTrackData.segmentTiming.segments) {
+            // Build a lookup: for each track point, what is its cumulative time?
+            const segments = this.currentTrackData.segmentTiming.segments;
+            timeAtPoint = new Array(trackPoints.length).fill(0);
+            segments.forEach(seg => {
+                const segStart = seg.startIndex ?? seg.startCoordIndex;
+                const segEnd = seg.endIndex ?? seg.endCoordIndex;
+                const segLen = segEnd - segStart;
+                for (let i = segStart; i <= segEnd; i++) {
+                    // Progress within this segment
+                    const segProgress = segLen > 0 ? (i - segStart) / segLen : 0;
+                    timeAtPoint[i] = seg.startTime + segProgress * seg.duration;
+                }
+            });
+        } else {
+            // Single GPX fallback: time is proportional to index
+            timeAtPoint = trackPoints.map((_, i) => (i / (trackPoints.length - 1)) * (this.currentTrackData.segmentTiming?.totalDuration || 1));
+        }
+
         // Generate path points with optimization for large datasets
         const pathPoints = [];
         const pointCount = trackPoints.length;
@@ -495,7 +533,13 @@ export class TrailReplayApp {
         
         for (let i = 0; i < pointCount; i += step) {
             const actualIndex = Math.min(i, pointCount - 1);
-            const x = (actualIndex / (pointCount - 1)) * svgWidth;
+            // --- Use time-based x for journeys ---
+            let x = 0;
+            if (timeAtPoint.length === pointCount && this.currentTrackData.segmentTiming?.totalDuration) {
+                x = (timeAtPoint[actualIndex] / this.currentTrackData.segmentTiming.totalDuration) * svgWidth;
+            } else {
+                x = (actualIndex / (pointCount - 1)) * svgWidth;
+            }
             const normalizedElevation = (elevations[actualIndex] - minElevation) / elevationRange;
             const y = svgHeight - (normalizedElevation * (svgHeight - padding * 2)) - padding;
             pathPoints.push(`${x.toFixed(2)},${y.toFixed(2)}`);
@@ -522,7 +566,9 @@ export class TrailReplayApp {
             svgWidth,
             svgHeight,
             padding,
-            pathData
+            pathData,
+            // --- Store time mapping for use in progress/seek logic ---
+            timeAtPoint: timeAtPoint,
         };
 
         // Cache the profile for future use
@@ -1037,10 +1083,39 @@ export class TrailReplayApp {
     }
 
     updateProgressBarMarkers() {
-        // Delegate to icon controller
-        if (this.icon) {
-            this.icon.updateProgressBarMarkers();
-        }
+        // Icon change markers (already fixed)
+        if (this.icon) this.icon.updateProgressBarMarkers();
+
+        // --- Annotation markers ---
+        const annotationMarkers = document.getElementById('annotationMarkers');
+        if (!annotationMarkers || !this.mapRenderer) return;
+        annotationMarkers.innerHTML = '';
+        const annotations = this.mapRenderer.getAnnotations();
+        if (!annotations) return;
+
+        const elevationProfile = this.elevationProfile;
+        const points = elevationProfile?.points;
+        const pointsLength = points?.length;
+        const svgWidth = elevationProfile?.svgWidth || 800;
+        const renderedWidth = annotationMarkers.offsetWidth || svgWidth;
+
+        annotations.forEach(annotation => {
+            const marker = document.createElement('div');
+            marker.className = 'progress-marker annotation-marker';
+            let leftPx = 0;
+            if (points && pointsLength > 0) {
+                // Place marker by track point index (distance-based), scaled to rendered width
+                const index = Math.round(annotation.progress * (pointsLength - 1));
+                const [x] = points[index].split(',').map(Number);
+                leftPx = (x / svgWidth) * renderedWidth;
+                marker.style.left = `${leftPx}px`;
+            } else {
+                marker.style.left = `${annotation.progress * 100}%`;
+            }
+            marker.title = annotation.title || '';
+            marker.textContent = annotation.icon || '📍';
+            annotationMarkers.appendChild(marker);
+        });
     }
 
     setupTimingSynchronization() {
