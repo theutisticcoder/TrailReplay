@@ -2265,7 +2265,7 @@ export class VideoExportController {
      */
     async drawActualSVGLogo(context, x, y, width, height) {
         // Use the same relative path as the main app logo for production compatibility
-        const svgUrl = 'media/images/logohorizontal.svg';
+        const svgUrl = 'public/media/images/logohorizontal.svg';
         try {
             // Fetch the SVG content
             const response = await fetch(svgUrl);
@@ -2322,7 +2322,7 @@ export class VideoExportController {
     async drawSVGLogoToRegularCanvas(svgUrl, x, y, width, height) {
         // Use the same relative path as the main app logo for production compatibility
         if (svgUrl === '/media/images/logohorizontal.svg') {
-            svgUrl = 'media/images/logohorizontal.svg';
+            svgUrl = 'public/media/images/logohorizontal.svg';
         }
         try {
             // Fetch the SVG content
