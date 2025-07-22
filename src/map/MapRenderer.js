@@ -6,6 +6,7 @@ import { GPXParser } from '../gpxParser.js';
 import { MapUtils } from './MapUtils.js';
 import { MapAnnotations } from './MapAnnotations.js';
 import { MapIconChanges } from './MapIconChanges.js';
+import { MapPictureAnnotations } from './MapPictureAnnotations.js';
 import { FollowBehindCamera } from './FollowBehindCamera.js';
 import { DEFAULT_SETTINGS } from '../utils/constants.js';
 // TODO: Import other modules as they are created
@@ -48,6 +49,7 @@ export class MapRenderer {
         // Initialize modular components AFTER other properties are set
         this.annotations = new MapAnnotations(this);
         this.iconChanges = new MapIconChanges(this);
+        this.pictureAnnotations = new MapPictureAnnotations(this);
         this.followBehindCamera = new FollowBehindCamera(this);
         
         // Ensure proper method binding for icon changes
@@ -361,6 +363,33 @@ export class MapRenderer {
         } else {
             console.error('annotations.getAnnotations not available');
             return [];
+        }
+    }
+
+    // Picture annotation methods
+    addPictureAnnotation(progress, title, description, imageData, displayDuration = 3000) {
+        if (this.pictureAnnotations && typeof this.pictureAnnotations.addPictureAnnotation === 'function') {
+            return this.pictureAnnotations.addPictureAnnotation(progress, title, description, imageData, displayDuration);
+        } else {
+            console.error('pictureAnnotations.addPictureAnnotation not available');
+            return null;
+        }
+    }
+
+    getPictureAnnotations() {
+        if (this.pictureAnnotations && typeof this.pictureAnnotations.getPictureAnnotations === 'function') {
+            return this.pictureAnnotations.getPictureAnnotations();
+        } else {
+            console.error('pictureAnnotations.getPictureAnnotations not available');
+            return [];
+        }
+    }
+
+    removePictureAnnotation(id) {
+        if (this.pictureAnnotations && typeof this.pictureAnnotations.removePictureAnnotation === 'function') {
+            return this.pictureAnnotations.removePictureAnnotation(id);
+        } else {
+            console.error('pictureAnnotations.removePictureAnnotation not available');
         }
     }
 
@@ -681,6 +710,11 @@ export class MapRenderer {
         this.annotations.checkAnnotations(globalProgress);
         }
 
+        // Check for picture annotations
+        if (this.pictureAnnotations && typeof this.pictureAnnotations.checkPictureAnnotations === 'function') {
+            this.pictureAnnotations.checkPictureAnnotations(globalProgress);
+        }
+
         // Auto zoom to follow the marker (always if auto zoom is enabled and we're animating)
         if (this.autoZoom && this.isAnimating) {
             if (this.cameraMode === 'followBehind') {
@@ -714,6 +748,11 @@ export class MapRenderer {
         
         if (this.segmentTimings && this.segmentTimings.totalDuration && this.journeyElapsedTime === 0) {
             this.journeyElapsedTime = this.animationProgress * this.segmentTimings.totalDuration;
+        }
+        
+        // Reset picture annotation triggered states for a clean start
+        if (this.pictureAnnotations && this.pictureAnnotations.resetTriggeredStates) {
+            this.pictureAnnotations.resetTriggeredStates();
         }
         
         // If in follow-behind mode and should trigger cinematic start
@@ -838,6 +877,11 @@ export class MapRenderer {
         this.lastAnimationTime = 0;
         this.journeyElapsedTime = 0;
         this.annotations.hideActiveAnnotation();
+        
+        // Reset picture annotation triggered states
+        if (this.pictureAnnotations && this.pictureAnnotations.resetTriggeredStates) {
+            this.pictureAnnotations.resetTriggeredStates();
+        }
         
         // Reset follow-behind specific flags for next animation
         this.followBehindCamera.setCinematicStart(true);

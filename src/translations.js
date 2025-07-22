@@ -163,8 +163,8 @@ export const translations = {
         },
         
         upload: {
-            title: "Upload GPX Files",
-            description: "Add multiple GPX tracks to create your journey",
+            title: "Upload GPX Files & Pictures",
+            description: "Add multiple GPX tracks and images to create your journey",
             button: "Choose Files"
         },
         
@@ -320,6 +320,7 @@ export const translations = {
             exportStarted: "Starting video export...",
             exportComplete: "Video export complete!",
             annotationAdded: "Trail annotation added",
+            pictureAnnotationAdded: "Picture annotation added",
             iconChangeAdded: "Icon change added",
             clickMapToAnnotate: "Click on the map to add an annotation",
             clickMapForIconChange: "Click on the map to add an icon change",
@@ -406,7 +407,7 @@ export const translations = {
         
         journey: {
             title: "Journey Builder",
-            tracks: "Uploaded Tracks",
+            tracks: "Uploaded Tracks & Images",
             segments: "Journey Segments",
             autoUpdating: "Auto-updating journey...",
             journeyUpdated: "Journey updated!",
@@ -452,7 +453,7 @@ export const translations = {
         // Journey Builder UI
         journeyBuilder: {
             addMoreTracks: "Add More Tracks",
-            clickToUploadAdditionalGPXFiles: "Click to upload additional GPX files",
+            clickToUploadAdditionalGPXFiles: "Click to upload additional GPX files & images",
             moveUp: "Move Up",
             moveDown: "Move Down",
             remove: "Remove",
@@ -743,8 +744,8 @@ export const translations = {
         },
         
         upload: {
-            title: "Subir Archivos GPX",
-            description: "Añade múltiples rutas GPX para crear tu viaje",
+            title: "Subir Archivos GPX y Fotos",
+            description: "Añade múltiples rutas GPX e imágenes para crear tu viaje",
             button: "Elegir Archivos"
         },
         
@@ -892,6 +893,7 @@ export const translations = {
             exportStarted: "Iniciando exportación de video...",
             exportComplete: "¡Exportación de video completada!",
             annotationAdded: "Anotación del sendero añadida",
+            pictureAnnotationAdded: "Anotación de imagen añadida",
             iconChangeAdded: "Cambio de icono añadido",
             clickMapToAnnotate: "Haz clic en el mapa para añadir una anotación",
             clickMapForIconChange: "Haz clic en el mapa para añadir un cambio de icono",
@@ -978,7 +980,7 @@ export const translations = {
         
         journey: {
             title: "Constructor de Viajes",
-            tracks: "Rutas Subidas",
+            tracks: "Rutas e Imágenes Subidas",
             segments: "Segmentos del Viaje",
             autoUpdating: "Actualizando viaje automáticamente...",
             journeyUpdated: "¡Viaje actualizado!",
@@ -1024,7 +1026,7 @@ export const translations = {
         // Journey Builder UI
         journeyBuilder: {
             addMoreTracks: "Añadir Más Rutas",
-            clickToUploadAdditionalGPXFiles: "Haga clic para subir archivos GPX adicionales",
+            clickToUploadAdditionalGPXFiles: "Haga clic para subir archivos GPX e imágenes adicionales",
             moveUp: "Mover Arriba",
             moveDown: "Mover Abajo",
             remove: "Eliminar",

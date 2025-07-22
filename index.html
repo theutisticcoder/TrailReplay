@@ -27,9 +27,12 @@
                 <section class="upload-section" id="uploadSection">
                     <div class="upload-card">
                         <div class="upload-icon">📁</div>
-                        <h2 data-i18n="upload.title">Upload GPX Files</h2>
-                        <p data-i18n="upload.description">Add multiple GPX tracks to create your journey</p>
-                        <input type="file" id="gpxFileInput" accept=".gpx" class="file-input" multiple>
+                        <h2 data-i18n="upload.title">Upload GPX Files & Pictures</h2>
+                        <p data-i18n="upload.description">Add multiple GPX tracks and images to create your journey</p>
+                        <p class="upload-formats-info">
+                            <small>Supported formats: <strong>GPX files</strong> (.gpx) and <strong>Images</strong> (.jpg, .jpeg, .png, .gif, .webp)</small>
+                        </p>
+                        <input type="file" id="gpxFileInput" accept=".gpx,image/*" class="file-input" multiple>
                         <button class="upload-btn" onclick="console.log('Upload button clicked!'); document.getElementById('gpxFileInput').click()">
                             <span data-i18n="upload.button">Choose Files</span>
                         </button>

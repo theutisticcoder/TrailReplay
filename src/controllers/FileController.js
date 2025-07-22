@@ -10,17 +10,34 @@ export class FileController {
     async handleFiles(files) {
         if (!files || files.length === 0) return;
         
-        // Filter GPX files
+        // Separate GPX files and image files
         const gpxFiles = Array.from(files).filter(file => 
             file.name.toLowerCase().endsWith('.gpx')
         );
         
-        if (gpxFiles.length === 0) {
-            console.error('Please select GPX files');
-            this.app.showMessage?.('Please select valid GPX files', 'error');
+        const imageFiles = Array.from(files).filter(file => 
+            file.type.startsWith('image/')
+        );
+        
+        // Handle GPX files first
+        if (gpxFiles.length > 0) {
+            await this.handleGPXFiles(gpxFiles);
+        }
+        
+        // Handle image files for annotations
+        if (imageFiles.length > 0) {
+            await this.handleImageFiles(imageFiles);
+        }
+        
+        // If no valid files
+        if (gpxFiles.length === 0 && imageFiles.length === 0) {
+            console.error('Please select GPX or image files');
+            this.app.showMessage?.('Please select valid GPX or image files', 'error');
             return;
         }
+    }
 
+    async handleGPXFiles(gpxFiles) {
         // Track file upload
         AnalyticsTracker.trackFileUpload(gpxFiles.length, gpxFiles.length === 1 ? 'single' : 'multiple');
 
@@ -91,6 +108,46 @@ export class FileController {
             this.app.showLoading(false);
         }
     }
+
+    async handleImageFiles(imageFiles) {
+        try {
+            console.log(`Processing ${imageFiles.length} image files for annotations...`);
+            
+            // Store images for later use in annotations
+            if (!this.app.uploadedImages) {
+                this.app.uploadedImages = [];
+            }
+            
+            for (const file of imageFiles) {
+                // Create object URL for the image
+                const imageUrl = URL.createObjectURL(file);
+                const imageData = {
+                    id: Date.now() + Math.random(),
+                    file: file,
+                    url: imageUrl,
+                    name: file.name,
+                    type: file.type,
+                    size: file.size,
+                    uploaded: new Date()
+                };
+                
+                this.app.uploadedImages.push(imageData);
+                console.log('Image processed:', imageData.name);
+            }
+            
+            // Show message about images being ready for annotations
+            this.app.showMessage?.(`${imageFiles.length} images ready for annotation. Click "Add Annotation" to place them on your route.`, 'success');
+            
+            // Update the annotation modal to show available images
+            if (this.app.notes && this.app.notes.updateImageLibrary) {
+                this.app.notes.updateImageLibrary(this.app.uploadedImages);
+            }
+            
+        } catch (error) {
+            console.error('Error processing image files:', error);
+            this.app.showMessage?.('Error processing image files: ' + error.message, 'error');
+        }
+    }
     
     // Show guidance for journey planning
     showJourneyPlanningGuidance() {
@@ -98,12 +155,10 @@ export class FileController {
         this.app.showMessage?.('Multiple GPX files loaded! Use the Journey Planning section below to arrange tracks and add transportation between them.', 'info');
         
         // Auto-scroll to journey builder
-        setTimeout(() => {
-            const journeySection = document.getElementById('journeyPlanningSection');
-            if (journeySection) {
-                journeySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }
-        }, 500);
+        const journeySection = document.getElementById('journeyPlanningSection');
+        if (journeySection) {
+            journeySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
     }
 
     async handleDrop(event) {
@@ -111,8 +166,6 @@ export class FileController {
         const files = event.dataTransfer.files;
         await this.handleFiles(files);
     }
-
-
 
     // Journey building is now handled by JourneyController
     async buildJourney(segments) {

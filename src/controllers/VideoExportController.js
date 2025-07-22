@@ -2674,13 +2674,21 @@ export class VideoExportController {
                 console.log('🎬 Using fallback natural trail animation time: 3.0s');
             }
 
-            // Add cinematic sequences (these run at normal speed regardless of animation speed)
+            // Add cinematic sequences and picture annotations (these run at normal speed regardless of animation speed)
             const cinematicDurations = this.getCinematicDurations();
-            const totalNaturalTime = baseTrailNaturalTime + cinematicDurations.zoomIn + cinematicDurations.zoomOut;
+            
+            // Calculate total picture annotation display time
+            let pictureAnnotationTime = 0;
+            if (this.app.mapRenderer?.pictureAnnotations?.getTotalPictureDisplayTime) {
+                pictureAnnotationTime = this.app.mapRenderer.pictureAnnotations.getTotalPictureDisplayTime();
+            }
+            
+            const totalNaturalTime = baseTrailNaturalTime + cinematicDurations.zoomIn + cinematicDurations.zoomOut + pictureAnnotationTime;
             
             console.log(`🎬 Total natural duration calculation:`);
             console.log(`  - Initial zoom-in: ${cinematicDurations.zoomIn}s (fixed speed)`);
             console.log(`  - Trail animation: ${baseTrailNaturalTime}s (at 1.0x speed)`);
+            console.log(`  - Picture annotations: ${pictureAnnotationTime}s (fixed speed)`);
             console.log(`  - Final zoom-out: ${cinematicDurations.zoomOut}s (fixed speed)`);
             console.log(`  - TOTAL NATURAL: ${totalNaturalTime}s`);
             
@@ -2775,13 +2783,21 @@ export class VideoExportController {
                 console.log('Using default trail duration fallback: 120s');
             }
 
-            // Add cinematic sequences to get total video duration
+            // Add cinematic sequences and picture annotation times to get total video duration
             const cinematicDurations = this.getCinematicDurations();
-            const totalVideoDuration = baseTrailDuration + cinematicDurations.zoomIn + cinematicDurations.zoomOut;
+            
+            // Calculate total picture annotation display time
+            let pictureAnnotationTime = 0;
+            if (this.app.mapRenderer?.pictureAnnotations?.getTotalPictureDisplayTime) {
+                pictureAnnotationTime = this.app.mapRenderer.pictureAnnotations.getTotalPictureDisplayTime();
+            }
+            
+            const totalVideoDuration = baseTrailDuration + cinematicDurations.zoomIn + cinematicDurations.zoomOut + pictureAnnotationTime;
             
             console.log(`🎬 Total video duration calculation:`);
             console.log(`  - Initial zoom-in: ${cinematicDurations.zoomIn}s`);
             console.log(`  - Trail animation: ${baseTrailDuration}s`);
+            console.log(`  - Picture annotations: ${pictureAnnotationTime}s`);
             console.log(`  - Final zoom-out: ${cinematicDurations.zoomOut}s`);
             console.log(`  - TOTAL: ${totalVideoDuration}s`);
             

@@ -6,7 +6,7 @@ export class TimelineController {
         this.timelineEvents = []; // Unified list of annotations and icon changes
     }
 
-    // Add a new timeline event (annotation or icon change)
+    // Add a new timeline event (annotation, icon change, or picture annotation)
     addTimelineEvent(event) {
         // Check if event already exists to prevent duplicates
         const existingEvent = this.timelineEvents.find(e => e.id === event.id);
@@ -18,13 +18,15 @@ export class TimelineController {
         // Ensure the event has required properties
         const timelineEvent = {
             id: event.id || Date.now(),
-            type: event.type, // 'annotation' or 'iconChange'
+            type: event.type, // 'annotation', 'iconChange', or 'pictureAnnotation'
             progress: event.progress,
             timestamp: event.timestamp || new Date(),
             icon: event.icon,
             // Annotation-specific properties
             title: event.title || null,
             description: event.description || null,
+            // Picture annotation-specific properties
+            imageData: event.imageData || null,
             // Icon change-specific properties
             // (icon is already included above)
         };
@@ -161,34 +163,25 @@ export class TimelineController {
         eventElement.setAttribute('data-id', event.id);
 
         const progressPercent = (event.progress * 100).toFixed(1);
-        
-        // Try multiple ways to get track duration and format time
         let timeFromStart = `${progressPercent}%`;
-        
-        // Method 1: Use currentTrackData
         if (this.app.currentTrackData?.stats?.totalDuration && this.app.gpxParser?.formatDuration) {
             const totalSeconds = this.app.currentTrackData.stats.totalDuration;
             const eventSeconds = event.progress * totalSeconds;
             timeFromStart = this.app.gpxParser.formatDuration(eventSeconds);
-        }
-        // Method 2: Use mapRenderer trackData
-        else if (this.app.mapRenderer?.trackData?.stats?.totalDuration) {
+        } else if (this.app.mapRenderer?.trackData?.stats?.totalDuration) {
             const totalSeconds = this.app.mapRenderer.trackData.stats.totalDuration;
             const eventSeconds = event.progress * totalSeconds;
             timeFromStart = this.formatDuration(eventSeconds);
-        }
-        // Method 3: Use map.mapRenderer trackData
-        else if (this.app.map?.mapRenderer?.trackData?.stats?.totalDuration) {
+        } else if (this.app.map?.mapRenderer?.trackData?.stats?.totalDuration) {
             const totalSeconds = this.app.map.mapRenderer.trackData.stats.totalDuration;
             const eventSeconds = event.progress * totalSeconds;
             timeFromStart = this.formatDuration(eventSeconds);
         }
 
         let eventContent = '';
-        
         if (event.type === 'annotation') {
             eventContent = `
-                <div class="timeline-event-icon">${event.icon}</div>
+                <div class="timeline-event-icon">${event.icon || '📍'}</div>
                 <div class="timeline-event-content">
                     <div class="timeline-event-title">${event.title}</div>
                     ${event.description ? `<div class="timeline-event-description">${event.description}</div>` : ''}
@@ -200,6 +193,22 @@ export class TimelineController {
                 <div class="timeline-event-icon">${event.icon}</div>
                 <div class="timeline-event-content">
                     <div class="timeline-event-title"><span data-i18n="timeline.iconChangeTo">Change icon to</span> ${event.icon}</div>
+                    <div class="timeline-event-time">At ${timeFromStart}</div>
+                </div>
+            `;
+        } else if (event.type === 'pictureAnnotation') {
+            // Show thumbnail if available, else camera icon
+            let imageThumb = '';
+            if (event.imageData && event.imageData.url) {
+                imageThumb = `<img src="${event.imageData.url}" alt="Image annotation" class="timeline-event-image-thumb" style="width:40px;height:40px;object-fit:cover;border-radius:6px;">`;
+            } else {
+                imageThumb = `<span class="timeline-event-icon">📸</span>`;
+            }
+            eventContent = `
+                <div class="timeline-event-icon">${imageThumb}</div>
+                <div class="timeline-event-content">
+                    <div class="timeline-event-title">${event.title || 'Picture Annotation'}</div>
+                    ${event.description ? `<div class="timeline-event-description">${event.description}</div>` : ''}
                     <div class="timeline-event-time">At ${timeFromStart}</div>
                 </div>
             `;

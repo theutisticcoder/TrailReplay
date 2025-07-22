@@ -664,7 +664,15 @@ export class StravaController {
             );
 
             // Add to existing activities
-            this.activities = [...this.activities, ...gpsActivities];
+            if (reset) {
+                // On first load, show latest activities first
+                this.activities = [...gpsActivities];
+            } else {
+                // On load more, append older activities at the end
+                this.activities = [...this.activities, ...gpsActivities];
+            }
+            // Always keep latest activity at the top
+            this.activities.sort((a, b) => new Date(b.start_date) - new Date(a.start_date));
 
             // Check if there are more activities to load
             this.hasMoreActivities = newActivities.length === perPage;

@@ -1090,7 +1090,11 @@ export class TrailReplayApp {
         const annotationMarkers = document.getElementById('annotationMarkers');
         if (!annotationMarkers || !this.mapRenderer) return;
         annotationMarkers.innerHTML = '';
-        const annotations = this.mapRenderer.getAnnotations();
+        // Combine normal and picture annotations
+        const annotations = [
+            ...(this.mapRenderer.getAnnotations() || []),
+            ...(this.mapRenderer.getPictureAnnotations ? this.mapRenderer.getPictureAnnotations() : [])
+        ];
         if (!annotations) return;
 
         const elevationProfile = this.elevationProfile;
@@ -1113,7 +1117,7 @@ export class TrailReplayApp {
                 marker.style.left = `${annotation.progress * 100}%`;
             }
             marker.title = annotation.title || '';
-            marker.textContent = annotation.icon || '📍';
+            marker.textContent = annotation.icon || (annotation.type === 'picture' ? '📸' : '📍');
             annotationMarkers.appendChild(marker);
         });
     }
