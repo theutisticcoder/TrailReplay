@@ -2253,10 +2253,13 @@ export class VideoExportController {
         
         // Try to load and draw the actual SVG logo
         try {
+            console.log('🎨 Attempting to load TrailReplay SVG logo for video export...');
             await this.drawActualSVGLogo(this.recordingContext, x, y, logoWidth, logoHeight);
+            console.log('✅ Successfully loaded and drew SVG logo');
         } catch (error) {
-            console.warn('Failed to draw SVG logo, using fallback:', error);
+            console.warn('⚠️ Failed to draw SVG logo, using fallback text logo:', error);
             this.drawProfessionalLogo(x, y, logoWidth, logoHeight);
+            console.log('✅ Fallback text logo drawn successfully');
         }
     }
 
@@ -2265,18 +2268,21 @@ export class VideoExportController {
      */
     async drawActualSVGLogo(context, x, y, width, height) {
         // Use the same relative path as the main app logo for production compatibility
-        const svgUrl = 'public/media/images/logohorizontal.svg';
+        const svgUrl = 'media/images/logohorizontal.svg';
         try {
+            console.log(`🔄 Fetching SVG logo from: ${svgUrl}`);
             // Fetch the SVG content
             const response = await fetch(svgUrl);
             if (!response.ok) {
-                throw new Error(`Failed to fetch SVG: ${response.status}`);
+                throw new Error(`Failed to fetch SVG: ${response.status} ${response.statusText}`);
             }
+            console.log('✅ SVG content fetched successfully');
             const svgText = await response.text();
             
             // Create a data URL from the SVG
             const svgBlob = new Blob([svgText], { type: 'image/svg+xml;charset=utf-8' });
             const svgObjectUrl = URL.createObjectURL(svgBlob);
+            console.log(`📄 SVG content length: ${svgText.length} chars, created blob URL`);
             
             // Create an image from the SVG
             const img = new Image();
@@ -2284,12 +2290,14 @@ export class VideoExportController {
             return new Promise((resolve, reject) => {
                 img.onload = () => {
                     try {
+                        console.log(`🖼️ SVG image loaded successfully (${img.width}x${img.height}), drawing to canvas at (${x},${y}) size ${width}x${height}`);
                         context.imageSmoothingEnabled = true;
                         context.imageSmoothingQuality = 'high';
                         context.drawImage(img, x, y, width, height);
                         URL.revokeObjectURL(svgObjectUrl);
                         resolve();
                     } catch (drawError) {
+                        console.error('❌ Error drawing SVG to canvas:', drawError);
                         URL.revokeObjectURL(svgObjectUrl);
                         reject(drawError);
                     }
@@ -2322,7 +2330,7 @@ export class VideoExportController {
     async drawSVGLogoToRegularCanvas(svgUrl, x, y, width, height) {
         // Use the same relative path as the main app logo for production compatibility
         if (svgUrl === '/media/images/logohorizontal.svg') {
-            svgUrl = 'public/media/images/logohorizontal.svg';
+            svgUrl = 'media/images/logohorizontal.svg';
         }
         try {
             // Fetch the SVG content
