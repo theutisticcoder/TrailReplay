@@ -95,12 +95,12 @@ export class StravaController {
                 <h3 data-i18n="strava.title">Import from Strava</h3>
                 <p data-i18n="strava.description">Connect your Strava account to import your activities</p>
                 <button class="strava-auth-btn official-strava-btn" id="stravaAuthBtn">
-                    <img src="public/media/stravaResources/1.1 Connect with Strava Buttons/Connect with Strava Orange/btn_strava_connect_with_orange.svg" alt="Connect with Strava" class="strava-connect-logo">
+                    <img src="media/stravaResources/1.1 Connect with Strava Buttons/Connect with Strava Orange/btn_strava_connect_with_orange.svg" alt="Connect with Strava" class="strava-connect-logo">
                 </button>
             </div>
             <div class="strava-authenticated-section" id="stravaAuthenticatedSection" style="display: none;">
                 <div class="strava-branding">
-                    <img src="public/media/stravaResources/1.2-Strava-API-Logos/Powered by Strava/pwrdBy_strava_orange/api_logo_pwrdBy_strava_horiz_orange.svg" alt="Powered by Strava" class="powered-by-strava-logo">
+                    <img src="media/stravaResources/1.2-Strava-API-Logos/Powered by Strava/pwrdBy_strava_orange/api_logo_pwrdBy_strava_horiz_orange.svg" alt="Powered by Strava" class="powered-by-strava-logo">
                 </div>
                 <div class="strava-user-info" id="stravaUserInfo">
                     <div class="strava-user-avatar">
