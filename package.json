@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "postbuild": "cp strava-callback.html app.html dist/"
+    "postbuild": "cp strava-callback.html dist/"
   },
   "dependencies": {
     "@turf/turf": "^6.5.0",
