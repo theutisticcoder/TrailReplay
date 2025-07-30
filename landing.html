@@ -235,45 +235,6 @@
         <div id="footer"></div>
     </div>
 
-    <!-- SEO-Friendly User Redirect -->
-    <script>
-        // Smart redirect: Only redirect real users, not search engine bots
-        function isSearchBot() {
-            const userAgent = navigator.userAgent.toLowerCase();
-            const botPatterns = [
-                'googlebot', 'bingbot', 'slurp', 'duckduckbot', 'baiduspider',
-                'yandexbot', 'facebookexternalhit', 'twitterbot', 'rogerbot',
-                'linkedinbot', 'embedly', 'quora link preview', 'showyoubot',
-                'outbrain', 'pinterest/0.', 'developers.google.com/+/web/snippet',
-                'slackbot', 'vkshare', 'w3c_validator', 'redditbot', 'applebot',
-                'whatsapp', 'flipboard', 'tumblr', 'bitlybot', 'skypeuripreview',
-                'nuzzel', 'discordbot', 'google page speed', 'qwantify',
-                'lighthouse', 'chrome-lighthouse', 'headlesschrome', 'phantomjs'
-            ];
-            
-            return botPatterns.some(pattern => userAgent.includes(pattern));
-        }
-        
-        // Check if user wants to stay on landing page
-        function shouldRedirect() {
-            const urlParams = new URLSearchParams(window.location.search);
-            
-            // Don't redirect if explicitly staying on landing page
-            if (urlParams.has('landing') || urlParams.has('stay')) return false;
-            
-            // Redirect all human users (regardless of referrer)
-            return true;
-        }
-        
-        // Only redirect real users (not search engine bots)
-        if (!isSearchBot() && shouldRedirect()) {
-            // Small delay to ensure page loads for analytics/tracking
-            setTimeout(() => {
-                window.location.href = '/app';
-            }, 100);
-        }
-    </script>
-
     <script type="module" src="./src/index.js"></script>
     
     <!-- Language Switcher Initialization -->

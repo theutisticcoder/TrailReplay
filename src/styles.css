@@ -3691,3 +3691,372 @@ select.footer-link:hover {
     margin: 0.7rem 0 0 0;
   }
 }
+
+
+/* SEO Hero Section */
+.hero-section {
+    text-align: center;
+    padding: 3rem 2rem;
+    background: linear-gradient(135deg, var(--canvas) 0%, rgba(193, 101, 47, 0.05) 100%);
+    border-radius: 16px;
+    margin-bottom: 3rem;
+    border: 1px solid rgba(193, 101, 47, 0.1);
+}
+
+.hero-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--evergreen);
+    margin-bottom: 1.5rem;
+    line-height: 1.2;
+}
+
+.hero-description {
+    font-size: 1.2rem;
+    color: var(--evergreen);
+    margin-bottom: 2rem;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.6;
+}
+
+.hero-features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.feature-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid rgba(193, 101, 47, 0.2);
+    font-weight: 600;
+    color: var(--evergreen);
+    transition: all 0.2s ease;
+}
+
+.feature-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(193, 101, 47, 0.15);
+}
+
+.feature-icon {
+    font-size: 1.2rem;
+}
+
+/* Hero CTA Buttons */
+.hero-cta {
+    margin-top: 2.5rem;
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.cta-button {
+    background: var(--trail-orange);
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+    display: inline-block;
+    border: 2px solid var(--trail-orange);
+}
+
+.cta-button:hover {
+    background: #a55425;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(193, 101, 47, 0.3);
+}
+
+.cta-button-secondary {
+    background: transparent;
+    color: var(--trail-orange);
+    padding: 1rem 2rem;
+    border: 2px solid var(--trail-orange);
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1.1rem;
+    transition: all 0.3s ease;
+    display: inline-block;
+}
+
+.cta-button-secondary:hover {
+    background: var(--trail-orange);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(193, 101, 47, 0.3);
+}
+
+/* How It Works Section */
+.how-it-works-section {
+    margin: 4rem 0;
+    padding: 3rem 2rem;
+    background: var(--canvas);
+    border-radius: 16px;
+    border: 1px solid rgba(193, 101, 47, 0.1);
+}
+
+.how-it-works-content h2 {
+    text-align: center;
+    font-size: 2.2rem;
+    color: var(--evergreen);
+    margin-bottom: 3rem;
+    font-weight: 700;
+}
+
+.steps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.step-card {
+    text-align: center;
+    padding: 2rem;
+    background: white;
+    border-radius: 12px;
+    border: 1px solid rgba(193, 101, 47, 0.15);
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.step-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(193, 101, 47, 0.12);
+}
+
+.step-number {
+    width: 50px;
+    height: 50px;
+    background: var(--trail-orange);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 auto 1.5rem auto;
+}
+
+.step-card h3 {
+    color: var(--evergreen);
+    margin-bottom: 1rem;
+    font-size: 1.3rem;
+    font-weight: 600;
+}
+
+.step-card p {
+    color: var(--evergreen);
+    line-height: 1.6;
+    font-size: 1rem;
+}
+
+/* Responsive hero section */
+@media (max-width: 768px) {
+    .hero-section {
+        padding: 2rem 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .hero-title {
+        font-size: 2rem;
+    }
+    
+    .hero-description {
+        font-size: 1.1rem;
+    }
+    
+    .hero-features {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .hero-cta {
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .cta-button,
+    .cta-button-secondary {
+        width: 100%;
+        max-width: 300px;
+        text-align: center;
+    }
+}
+
+/* Responsive how it works section */
+@media (max-width: 768px) {
+    .how-it-works-section {
+        margin: 2rem 0;
+        padding: 2rem 1rem;
+    }
+    
+    .how-it-works-content h2 {
+        font-size: 1.8rem;
+        margin-bottom: 2rem;
+    }
+    
+    .steps-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .step-card {
+        padding: 1.5rem;
+    }
+}
+
+
+
+/* SEO Benefits Section */
+.benefits-section {
+    margin: 4rem 0;
+    padding: 3rem 2rem;
+    background: white;
+    border-radius: 16px;
+    border: 1px solid rgba(193, 101, 47, 0.1);
+}
+
+.benefits-content h2 {
+    text-align: center;
+    font-size: 2.2rem;
+    color: var(--evergreen);
+    margin-bottom: 3rem;
+    font-weight: 700;
+}
+
+.benefits-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+.benefit-card {
+    padding: 2rem;
+    background: var(--canvas);
+    border-radius: 12px;
+    border: 1px solid rgba(193, 101, 47, 0.15);
+    transition: all 0.3s ease;
+}
+
+.benefit-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(193, 101, 47, 0.12);
+}
+
+.benefit-card h3 {
+    color: var(--evergreen);
+    margin-bottom: 1rem;
+    font-size: 1.3rem;
+    font-weight: 600;
+}
+
+.benefit-card p {
+    color: var(--evergreen);
+    line-height: 1.6;
+    font-size: 1rem;
+}
+
+.use-cases {
+    text-align: center;
+    padding-top: 2rem;
+    border-top: 1px solid rgba(193, 101, 47, 0.15);
+}
+
+.use-cases h3 {
+    color: var(--evergreen);
+    margin-bottom: 1.5rem;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.use-case-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    justify-content: center;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.tag {
+    background: var(--trail-orange);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.tag:hover {
+    background: #a55425;
+    transform: scale(1.05);
+}
+
+/* Responsive benefits section */
+@media (max-width: 768px) {
+    .benefits-section {
+        margin: 2rem 0;
+        padding: 2rem 1rem;
+    }
+    
+    .benefits-content h2 {
+        font-size: 1.8rem;
+        margin-bottom: 2rem;
+    }
+    
+    .benefits-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .benefit-card {
+        padding: 1.5rem;
+    }
+    
+    .use-case-tags {
+        gap: 0.5rem;
+    }
+    
+    .tag {
+        font-size: 0.8rem;
+        padding: 0.4rem 0.8rem;
+    }
+}
+
+/* Strava Footer Attribution */
+.strava-attribution {
+    text-align: center;
+    margin: 1rem 0;
+}
+
+.footer-strava-logo {
+    height: 20px;
+    width: auto;
+    opacity: 0.8;
+    transition: opacity 0.2s ease;
+}
+
+.footer-strava-logo:hover {
+    opacity: 1;
+}

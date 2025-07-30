@@ -169,7 +169,7 @@ export const translations = {
         },
         
         strava: {
-            title: 'Strava Integration',
+            title: 'Compatible with Strava',
             description: 'Connect your Strava account to import GPX files from your activities.',
             connect: 'Connect with Strava',
             disconnect: 'Disconnect',
@@ -186,7 +186,69 @@ export const translations = {
             importActivity: 'Import Activity',
             importing: 'Importing...',
             imported: 'Imported successfully',
-            importError: 'Error importing activity'
+            importError: 'Error importing activity',
+            viewOnStrava: 'View on Strava',
+            or: 'or'
+        },
+
+        landing: {
+            hero: {
+                title: 'Convert GPX Files to Stunning Animated Videos',
+                description: 'Transform your GPX files into beautiful animated trail videos online. Free GPX to video converter perfect for runners, cyclists, and hikers. Create professional animated maps from your GPS tracks with 3D terrain, custom styles, and smooth animations - no software download required.'
+            },
+            features: {
+                conversion: 'GPX to Video Conversion',
+                maps: '3D Animated Maps',
+                strava: 'Strava Integration',
+                free: '100% Free'
+            },
+            cta: {
+                start: 'Start Converting Your GPX Files',
+                tutorial: 'View Tutorial & Examples'
+            },
+            benefits: {
+                title: 'Why Choose Our GPX to Video Converter?',
+                athletes: {
+                    title: 'Perfect for Athletes',
+                    description: 'Create stunning running videos, cycling videos, and hiking videos from your GPS tracks. Share your training routes and race experiences with beautiful animated visualizations.'
+                },
+                quality: {
+                    title: 'Professional Quality',
+                    description: 'Generate high-quality animated trail videos with 3D terrain, multiple map styles, and smooth camera movements. Perfect for social media, presentations, or personal memories.'
+                },
+                easy: {
+                    title: 'Easy to Use',
+                    description: 'Simply upload your GPX files and watch them transform into engaging videos. No technical knowledge required - our online GPX converter does all the work.'
+                },
+                integration: {
+                    title: 'Strava Integration',
+                    description: 'Connect directly with Strava to import your activities. Turn your Strava routes into shareable video content effortlessly.'
+                }
+            },
+            useCases: {
+                title: 'Perfect for:',
+                marathon: 'Marathon Training Videos',
+                cycling: 'Cycling Route Visualization',
+                hiking: 'Hiking Trail Documentation',
+                race: 'Race Replay Videos',
+                travel: 'Travel Route Stories',
+                fitness: 'Fitness Progress Tracking'
+            },
+            howItWorks: {
+                title: 'How It Works',
+                step1: {
+                    title: 'Upload GPX Files',
+                    description: 'Upload your GPX files from your GPS watch, phone, or download from Strava. Supports multiple tracks and image annotations.'
+                },
+                step2: {
+                    title: 'Customize & Preview',
+                    description: 'Choose map styles, adjust camera modes, add annotations, and preview your animated trail in real-time with 3D terrain.'
+                },
+                step3: {
+                    title: 'Export & Share',
+                    description: 'Export your animated trail as a high-quality video and share it on social media, with friends, or use it for presentations.'
+                }
+            }
         },
         
         controls: {
@@ -430,6 +492,7 @@ export const translations = {
             techStack: "Built with MapLibre GL JS, Three.js, Elevation Data, and many amazing open source projects.",
             acknowledgments: "See all acknowledgments",
             github: "View on GitHub",
+            instagram: "Follow on Instagram",
             coffee: "Buy me a coffee"
         },
         
@@ -750,7 +813,7 @@ export const translations = {
         },
         
         strava: {
-            title: 'Integración con Strava',
+            title: 'Compatible con Strava',
             description: 'Conecta tu cuenta de Strava para importar archivos GPX de tus actividades.',
             connect: 'Conectar con Strava',
             disconnect: 'Desconectar',
@@ -767,7 +830,69 @@ export const translations = {
             importActivity: 'Importar Actividad',
             importing: 'Importando...',
             imported: 'Importado exitosamente',
-            importError: 'Error al importar actividad'
+            importError: 'Error al importar actividad',
+            viewOnStrava: 'Ver en Strava',
+            or: 'o'
+        },
+
+        landing: {
+            hero: {
+                title: 'Convierte Archivos GPX en Videos Animados Impresionantes',
+                description: 'Transforma tus archivos GPX en hermosos videos de senderos animados en línea. Conversor gratuito de GPX a video perfecto para corredores, ciclistas y excursionistas. Crea mapas animados profesionales de tus tracks GPS con terreno 3D, estilos personalizados y animaciones fluidas - no requiere descarga de software.'
+            },
+            features: {
+                conversion: 'Conversión GPX a Video',
+                maps: 'Mapas Animados 3D',
+                strava: 'Integración con Strava',
+                free: '100% Gratuito'
+            },
+            cta: {
+                start: 'Comienza a Convertir tus Archivos GPX',
+                tutorial: 'Ver Tutorial y Ejemplos'
+            },
+            benefits: {
+                title: '¿Por Qué Elegir Nuestro Conversor de GPX a Video?',
+                athletes: {
+                    title: 'Perfecto para Atletas',
+                    description: 'Crea increíbles videos de running, videos de ciclismo y videos de senderismo desde tus tracks GPS. Comparte tus rutas de entrenamiento y experiencias de carreras con hermosas visualizaciones animadas.'
+                },
+                quality: {
+                    title: 'Calidad Profesional',
+                    description: 'Genera videos de senderos animados de alta calidad con terreno 3D, múltiples estilos de mapa y movimientos de cámara suaves. Perfecto para redes sociales, presentaciones o recuerdos personales.'
+                },
+                easy: {
+                    title: 'Fácil de Usar',
+                    description: 'Simplemente sube tus archivos GPX y míralos transformarse en videos atractivos. No se requiere conocimiento técnico - nuestro conversor GPX en línea hace todo el trabajo.'
+                },
+                integration: {
+                    title: 'Integración con Strava',
+                    description: 'Conéctate directamente con Strava para importar tus actividades. Convierte tus rutas de Strava en contenido de video compartible sin esfuerzo.'
+                }
+            },
+            useCases: {
+                title: 'Perfecto para:',
+                marathon: 'Videos de Entrenamiento de Maratón',
+                cycling: 'Visualización de Rutas de Ciclismo',
+                hiking: 'Documentación de Senderos',
+                race: 'Videos de Repetición de Carreras',
+                travel: 'Historias de Rutas de Viaje',
+                fitness: 'Seguimiento de Progreso Fitness'
+            },
+            howItWorks: {
+                title: 'Cómo Funciona',
+                step1: {
+                    title: 'Sube Archivos GPX',
+                    description: 'Sube tus archivos GPX desde tu reloj GPS, teléfono, o descárgalos de Strava. Soporta múltiples tracks y anotaciones de imágenes.'
+                },
+                step2: {
+                    title: 'Personaliza y Previsualiza',
+                    description: 'Elige estilos de mapa, ajusta modos de cámara, añade anotaciones, y previsualiza tu sendero animado en tiempo real con terreno 3D.'
+                },
+                step3: {
+                    title: 'Exporta y Comparte',
+                    description: 'Exporta tu sendero animado como un video de alta calidad y compártelo en redes sociales, con amigos, o úsalo para presentaciones.'
+                }
+            }
         },
         
         controls: {
@@ -1003,6 +1128,7 @@ export const translations = {
             techStack: "Construido con MapLibre GL JS, Three.js, datos de elevación y muchos proyectos open source increíbles.",
             acknowledgments: "Ver todos los agradecimientos",
             github: "Ver en GitHub",
+            instagram: "Seguir en Instagram",
             coffee: "Invítame a un café"
         },
         

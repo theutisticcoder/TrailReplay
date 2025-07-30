@@ -94,11 +94,14 @@ export class StravaController {
                 <div class="strava-icon">🚴</div>
                 <h3 data-i18n="strava.title">Import from Strava</h3>
                 <p data-i18n="strava.description">Connect your Strava account to import your activities</p>
-                <button class="strava-auth-btn" id="stravaAuthBtn">
-                    <span data-i18n="strava.connect">Connect to Strava</span>
+                <button class="strava-auth-btn official-strava-btn" id="stravaAuthBtn">
+                    <img src="public/media/stravaResources/1.1 Connect with Strava Buttons/Connect with Strava Orange/btn_strava_connect_with_orange.svg" alt="Connect with Strava" class="strava-connect-logo">
                 </button>
             </div>
             <div class="strava-authenticated-section" id="stravaAuthenticatedSection" style="display: none;">
+                <div class="strava-branding">
+                    <img src="public/media/stravaResources/1.2-Strava-API-Logos/Powered by Strava/pwrdBy_strava_orange/api_logo_pwrdBy_strava_horiz_orange.svg" alt="Powered by Strava" class="powered-by-strava-logo">
+                </div>
                 <div class="strava-user-info" id="stravaUserInfo">
                     <div class="strava-user-avatar">
                         <img id="stravaUserAvatar" src="" alt="Profile">
@@ -180,19 +183,30 @@ export class StravaController {
                 }
                 
                 .strava-auth-btn {
-                    background: #FC4C02;
-                    color: white;
+                    background: transparent;
                     border: none;
-                    padding: 0.75rem 2rem;
-                    border-radius: 6px;
-                    font-weight: 600;
+                    padding: 0;
                     cursor: pointer;
                     transition: all 0.2s ease;
                 }
                 
                 .strava-auth-btn:hover {
-                    background: #e63900;
                     transform: translateY(-1px);
+                }
+                
+                .strava-connect-logo {
+                    height: 48px;
+                    width: auto;
+                }
+                
+                .strava-branding {
+                    text-align: center;
+                    margin-bottom: 1rem;
+                }
+                
+                .powered-by-strava-logo {
+                    height: 20px;
+                    width: auto;
                 }
                 
                 .strava-authenticated-section {
@@ -303,6 +317,28 @@ export class StravaController {
                     display: flex;
                     align-items: center;
                     gap: 0.25rem;
+                }
+                
+                .strava-activity-links {
+                    margin-top: 0.5rem;
+                }
+                
+                .view-on-strava-link {
+                    color: #FC5200;
+                    text-decoration: none;
+                    font-weight: 600;
+                    font-size: 0.9rem;
+                    border: 1px solid #FC5200;
+                    padding: 0.25rem 0.5rem;
+                    border-radius: 4px;
+                    display: inline-block;
+                    transition: all 0.2s ease;
+                }
+                
+                .view-on-strava-link:hover {
+                    background: #FC5200;
+                    color: white;
+                    text-decoration: underline;
                 }
                 
                 .strava-activity-actions {
@@ -739,6 +775,11 @@ export class StravaController {
                             <span>📏 ${distance} km</span>
                             <span>⏱️ ${movingTime}</span>
                             <span>⬆️ ${elevationGain.toFixed(0)} m</span>
+                        </div>
+                        <div class="strava-activity-links">
+                            <a href="https://www.strava.com/activities/${activity.id}" target="_blank" rel="noopener noreferrer" class="view-on-strava-link">
+                                <span data-i18n="strava.viewOnStrava">View on Strava</span>
+                            </a>
                         </div>
                     </div>
                     <div class="strava-activity-actions">
