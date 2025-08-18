@@ -16,8 +16,9 @@ export default async function handler(req, res) {
         if (!code) {
             return res.status(400).json({ error: 'Missing code' });
         }
-        const client_id = process.env.STRAVA_CLIENT_ID;
-        const client_secret = process.env.STRAVA_CLIENT_SECRET;
+        // Support user's configured env vars (Vercel): prefer VITE_*; fallback to STRAVA_*
+        const client_id = process.env.VITE_STRAVA_CLIENT_ID || process.env.STRAVA_CLIENT_ID;
+        const client_secret = process.env.VITE_STRAVA_CLIENT_SECRET || process.env.STRAVA_CLIENT_SECRET;
         if (!client_id || !client_secret) {
             console.error('[api] STRAVA env missing');
             return res.status(500).json({ error: 'Server not configured' });
