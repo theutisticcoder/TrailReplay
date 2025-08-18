@@ -63,14 +63,19 @@ export default async function handler(req, res) {
             trimmedMessage
         ].join('\n');
 
-        await resend.emails.send({
+        const { data, error } = await resend.emails.send({
             from: FROM_EMAIL,
-            to: [TO_EMAIL],
+            to: TO_EMAIL,
             reply_to: safeEmail || undefined,
             subject,
             text
         });
-        return res.status(200).json({ ok: true });
+
+        if (error) {
+            console.error('Resend send error:', error);
+            return res.status(502).json({ error: error?.message || 'Email provider error' });
+        }
+        return res.status(200).json({ ok: true, id: data?.id });
     } catch (err) {
         console.error('Feedback send error:', err);
         return res.status(500).json({ error: 'Failed to send' });
