@@ -25,6 +25,14 @@
       "destination": "/app.html"
     },
     {
+      "source": "/privacy",
+      "destination": "/privacy.html"
+    },
+    {
+      "source": "/terms",
+      "destination": "/terms.html"
+    },
+    {
       "source": "/robots.txt",
       "destination": "/public/robots.txt"
     },
@@ -78,4 +86,13 @@
       ]
     }
   ]
+  ,
+  "functions": {
+    "api/contact.js": {
+      "runtime": "nodejs18.x"
+    },
+    "api/strava/*.js": {
+      "runtime": "nodejs18.x"
+    }
+  }
 } 

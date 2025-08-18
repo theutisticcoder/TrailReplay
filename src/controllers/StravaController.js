@@ -16,16 +16,15 @@ export class StravaController {
         // Strava OAuth configuration from environment variables
         this.stravaConfig = {
             clientId: import.meta.env.VITE_STRAVA_CLIENT_ID,
-            clientSecret: import.meta.env.VITE_STRAVA_CLIENT_SECRET,
             redirectUri: this.getRedirectUri(),
-            scope: 'activity:read_all',
+            scope: 'read,activity:read',
             apiBaseUrl: 'https://www.strava.com/api/v3',
             authUrl: 'https://www.strava.com/oauth/authorize',
             tokenUrl: 'https://www.strava.com/oauth/token'
         };
         
         // Validate configuration
-        if (!this.stravaConfig.clientId || !this.stravaConfig.clientSecret) {
+        if (!this.stravaConfig.clientId) {
             console.warn('🚨 Strava integration not configured. Please set up your .env file with VITE_STRAVA_CLIENT_ID and VITE_STRAVA_CLIENT_SECRET');
         }
         
@@ -97,6 +96,9 @@ export class StravaController {
                 <button class="strava-auth-btn official-strava-btn" id="stravaAuthBtn">
                     <img src="media/stravaResources/1.1 Connect with Strava Buttons/Connect with Strava Orange/btn_strava_connect_with_orange.svg" alt="Connect with Strava" class="strava-connect-logo">
                 </button>
+                <p style="margin-top:0.75rem; font-size:0.85rem; color:#666;">
+                    By connecting, you agree to our <a href="/terms" style="color:#FC5200;">Terms</a> and <a href="/privacy" style="color:#FC5200;">Privacy Policy</a>.
+                </p>
             </div>
             <div class="strava-authenticated-section" id="stravaAuthenticatedSection" style="display: none;">
                 <div class="strava-branding">
@@ -515,17 +517,10 @@ export class StravaController {
      */
     async exchangeCodeForToken(code) {
         try {
-            const response = await fetch('https://www.strava.com/oauth/token', {
+            const response = await fetch('/api/strava/token', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    client_id: this.stravaConfig.clientId,
-                    client_secret: this.stravaConfig.clientSecret,
-                    code: code,
-                    grant_type: 'authorization_code'
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code, redirectUri: this.stravaConfig.redirectUri })
             });
 
             if (!response.ok) {
@@ -567,17 +562,10 @@ export class StravaController {
      */
     async refreshToken(refreshToken) {
         try {
-            const response = await fetch('https://www.strava.com/oauth/token', {
+            const response = await fetch('/api/strava/refresh', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    client_id: this.stravaConfig.clientId,
-                    client_secret: this.stravaConfig.clientSecret,
-                    refresh_token: refreshToken,
-                    grant_type: 'refresh_token'
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ refresh_token: refreshToken })
             });
 
             if (!response.ok) {
@@ -1033,6 +1021,16 @@ export class StravaController {
             if (section) section.style.display = 'none';
         });
         
+        try {
+            // Best-effort deauthorization call
+            if (this.accessToken) {
+                fetch('/api/strava/deauthorize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ access_token: this.accessToken })
+                }).catch(() => {});
+            }
+        } catch (_) {}
         console.log('✅ Strava: Logged out');
         AnalyticsTracker.trackStravaEvent('logout');
     }

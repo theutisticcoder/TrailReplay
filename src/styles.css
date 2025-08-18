@@ -1251,7 +1251,7 @@ input:checked + .toggle-slider:before {
     background: var(--canvas);
     border-radius: 6px;
     width: 90%;
-    max-width: 500px;
+    max-width: 520px;
     max-width: calc(100vw - 2rem);
     max-height: 80vh;
     overflow: hidden;

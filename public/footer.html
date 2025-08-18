@@ -20,6 +20,15 @@
                 </svg>
                 <span data-i18n="footer.instagram">Follow on Instagram</span>
             </a>
+            <a href="#" id="feedbackLink" class="footer-link">
+                <span data-i18n="feedback.link">Feedback</span>
+            </a>
+            <a href="/privacy" class="footer-link" rel="noopener">
+                <span>Privacy</span>
+            </a>
+            <a href="/terms" class="footer-link" rel="noopener">
+                <span>Terms</span>
+            </a>
             <a href="https://ko-fi.com/alexalmansa" target="_blank" rel="noopener noreferrer" class="footer-link coffee-link">
                 <span data-i18n="footer.coffee">Buy me a coffee</span>
             </a>
@@ -27,6 +36,29 @@
                 <option value="en">English</option>
                 <option value="es">Español</option>
             </select>
+        </div>
+    </div>
+
+    <!-- Feedback Modal -->
+    <div id="feedbackModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 data-i18n="feedback.title">Send Feedback</h3>
+                <button class="modal-close" id="feedbackCloseBtn">✕</button>
+            </div>
+            <div class="modal-body">
+                <form id="feedbackForm">
+                    <input id="feedbackName" name="name" type="text" data-i18n-placeholder="feedback.name" placeholder="Your name">
+                    <input id="feedbackEmail" name="email" type="email" data-i18n-placeholder="feedback.email" placeholder="Email (optional)">
+                    <textarea id="feedbackMessage" name="message" rows="5" data-i18n-placeholder="feedback.message" placeholder="Your message"></textarea>
+                    <input id="feedbackWebsite" name="website" type="text" style="display:none" tabindex="-1" autocomplete="off">
+                    <div id="feedbackStatus" class="small" aria-live="polite"></div>
+                    <div class="modal-footer" style="padding: 0; margin-top: 0.75rem; border-top: none; justify-content: flex-end; gap: 0.5rem;">
+                        <button id="cancelFeedbackBtn" class="control-btn" type="button" data-i18n="buttons.cancel">Cancel</button>
+                        <button id="sendFeedbackBtn" class="control-btn primary" type="submit" data-i18n="feedback.send">Send</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </footer> 

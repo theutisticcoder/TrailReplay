@@ -496,6 +496,22 @@ export const translations = {
             coffee: "Buy me a coffee"
         },
         
+        // Feedback
+        feedback: {
+            link: "Feedback",
+            title: "Send Feedback",
+            name: "Your name",
+            email: "Email (optional)",
+            message: "Your message",
+            send: "Send",
+            sending: "Sending...",
+            success: "Thanks for your feedback!",
+            error: "Something went wrong. Please try again later.",
+            validation: {
+                messageShort: "Message too short"
+            }
+        },
+        
         // Modal buttons
         buttons: {
             save: "Save",
@@ -644,6 +660,33 @@ export const translations = {
             turf: "Advanced geospatial analysis for JavaScript. Used for distance, geometry, and spatial calculations.",
             langBtn: "Español",
             back: "← Back to TrailReplay"
+        }
+        ,
+        legal: {
+            privacy: {
+                title: "Privacy Policy",
+                updated: "Last updated: 2025-01-01",
+                intro: "TrailReplay processes GPX files entirely in your browser. Files are not uploaded to any server unless explicitly stated. Strava connection is optional and only used to import your own activities when you authorize it.",
+                data1: "GPX files: processed locally in your browser; not uploaded by default.",
+                data2: "Strava data: when you connect, we request read access to your activities to import routes. Tokens are stored in your browser and can be revoked at any time by logging out or via Strava settings.",
+                data3: "Feedback messages: if you submit feedback, we process the message content and optional email to respond.",
+                thirdPartiesTitle: "Third Parties",
+                third1: "Strava: used for OAuth and activity data import according to your consent.",
+                third2: "Resend: used to send feedback emails.",
+                choicesTitle: "Your Choices",
+                choice1: "You can disconnect Strava at any time within the app (Logout) or in your Strava account settings.",
+                choice2: "You can submit feedback without providing an email; if provided, it’s used only to reply."
+            },
+            terms: {
+                title: "Terms of Use",
+                updated: "Last updated: 2025-01-01",
+                useTitle: "Use of Service",
+                useDesc: "TrailReplay lets you visualize GPX data and create animations. You must own or have rights to any data you import. The service is provided “as is”, without warranties.",
+                stravaTitle: "Strava Integration",
+                stravaDesc: "By connecting your Strava account you grant read access to your activities to import GPS data. We do not modify your Strava content. You can revoke access at any time.",
+                privacyTitle: "Privacy",
+                privacyDesc: "See our Privacy Policy for details about what data we process."
+            }
         }
     },
     es: {
@@ -1132,6 +1175,22 @@ export const translations = {
             coffee: "Invítame a un café"
         },
         
+        // Feedback
+        feedback: {
+            link: "Comentarios",
+            title: "Enviar Comentarios",
+            name: "Tu nombre",
+            email: "Email (opcional)",
+            message: "Tu mensaje",
+            send: "Enviar",
+            sending: "Enviando...",
+            success: "¡Gracias por tus comentarios!",
+            error: "Algo salió mal. Intenta de nuevo más tarde.",
+            validation: {
+                messageShort: "Mensaje demasiado corto"
+            }
+        },
+        
         // Modal buttons
         buttons: {
             save: "Guardar",
@@ -1280,6 +1339,33 @@ export const translations = {
             turf: "Análisis geoespacial avanzado para JavaScript. Usado para cálculos de distancia, geometría y operaciones espaciales.",
             langBtn: "English",
             back: "← Volver a TrailReplay"
+        }
+        ,
+        legal: {
+            privacy: {
+                title: "Política de Privacidad",
+                updated: "Última actualización: 2025-01-01",
+                intro: "TrailReplay procesa los archivos GPX íntegramente en tu navegador. No se suben archivos al servidor salvo indicación expresa. La conexión con Strava es opcional y solo se usa para importar tus actividades cuando la autorizas.",
+                data1: "Archivos GPX: procesados localmente en tu navegador; no se suben por defecto.",
+                data2: "Datos de Strava: al conectar, solicitamos acceso de lectura a tus actividades para importar rutas. Los tokens se guardan en tu navegador y puedes revocar el acceso en cualquier momento cerrando sesión o desde tu cuenta de Strava.",
+                data3: "Mensajes de comentarios: si envías comentarios, procesamos el contenido del mensaje y el email opcional para responder.",
+                thirdPartiesTitle: "Terceros",
+                third1: "Strava: usado para OAuth e importación de actividades según tu consentimiento.",
+                third2: "Resend: usado para enviar emails de comentarios.",
+                choicesTitle: "Tus Opciones",
+                choice1: "Puedes desconectar Strava en cualquier momento desde la app (Cerrar sesión) o en tu cuenta de Strava.",
+                choice2: "Puedes enviar comentarios sin proporcionar email; si lo proporcionas, solo se usa para responder."
+            },
+            terms: {
+                title: "Términos de Uso",
+                updated: "Última actualización: 2025-01-01",
+                useTitle: "Uso del Servicio",
+                useDesc: "TrailReplay te permite visualizar datos GPX y crear animaciones. Debes ser titular o tener derechos sobre los datos que importes. El servicio se ofrece “tal cual”, sin garantías.",
+                stravaTitle: "Integración con Strava",
+                stravaDesc: "Al conectar tu cuenta de Strava concedes acceso de lectura a tus actividades para importar datos GPS. No modificamos tu contenido de Strava. Puedes revocar el acceso en cualquier momento.",
+                privacyTitle: "Privacidad",
+                privacyDesc: "Consulta nuestra Política de Privacidad para más detalles sobre los datos que procesamos."
+            }
         }
     }
 };
