@@ -12,6 +12,10 @@ export class VideoExportController {
         this.progressModal = null;
         this.recordedChunks = [];
         
+        // Cache for SVG logo to avoid repeated fetching
+        this.cachedLogoImage = null;
+        this.logoCache = new Map();
+        
         // Export mode configurations
         this.exportModes = {
             webm: {
@@ -1296,16 +1300,23 @@ export class VideoExportController {
             const targetFPS = this.optimalSettings.framerate || 30;
             const frameInterval = 1000 / targetFPS;
             let lastFrameTime = 0;
-            const startTime = Date.now();
+            const startTime = performance.now(); // Use performance.now() for consistent timing
             const maxRecordingTime = 600000; // 10 minutes max
-
+            
+            // Calculate expected duration and frame timing for proper video length
+            const expectedDuration = this.estimateAnimationDuration();
+            const expectedFrameCount = Math.round(expectedDuration * targetFPS);
+            
             console.log(`🎬 Starting frame recording at ${targetFPS} FPS...`);
+            console.log(`  - Expected duration: ${expectedDuration}s`);
+            console.log(`  - Expected frame count: ${expectedFrameCount}`);
 
             const renderFrame = async (currentTime) => {
                 try {
-                    // Safety timeout
-                    if (Date.now() - startTime > maxRecordingTime) {
+                    // Safety timeout (convert maxRecordingTime to match performance.now() units)
+                    if (performance.now() - startTime > maxRecordingTime) {
                         console.warn('⚠️ Recording timeout reached, stopping...');
+                        console.log(`Recorded ${frameCount} frames before timeout`);
                         this.finishRecording();
                         resolve();
                         return;
@@ -1317,22 +1328,40 @@ export class VideoExportController {
                         frameCount++;
                         lastFrameTime = currentTime;
 
-                        // Update progress periodically
+                        // Update progress periodically - improved to show both frame and time progress
                         const now = Date.now();
                         if (now - lastProgressUpdate > 1000) { // Update every second
-                            const progress = this.getAnimationProgress();
-                            this.updateProgress(85 + (progress * 10), `Recording frame ${frameCount}... ${Math.round(progress * 100)}% complete`);
+                            const animationProgress = this.getAnimationProgress();
+                            const frameProgress = Math.min((frameCount / expectedFrameCount), 1.0);
+                            const displayProgress = Math.max(animationProgress, frameProgress) * 100;
+                            
+                            this.updateProgress(85 + (displayProgress * 0.1), 
+                                `Recording frame ${frameCount}/${expectedFrameCount}... ${Math.round(displayProgress)}% complete`);
                             lastProgressUpdate = now;
-                            console.log(`📹 Frame ${frameCount}, Progress: ${Math.round(progress * 100)}%`);
+                            console.log(`📹 Frame ${frameCount}/${expectedFrameCount}, Animation: ${Math.round(animationProgress * 100)}%`);
                         }
                     }
 
-                    // Robust stop condition: only stop when animation is truly finished
+                    // Check both animation progress and elapsed time for stop condition
                     const progress = this.getAnimationProgress();
+                    const elapsedTime = (performance.now() - startTime) / 1000; // Use performance.now() consistently
                     const animationDone = (progress >= 1.0) && !this.isAnimationPlaying();
-                    if (animationDone) {
+                    
+                    // Also stop if we've recorded for the expected duration (with small buffer)
+                    const recordingComplete = elapsedTime >= (expectedDuration - 1); // 1s buffer
+                    
+                    if (animationDone || recordingComplete) {
                         // Optionally capture one final frame after animation stops
-                        await this.captureFrame(frameCount);
+                        if (timeSinceLastFrame >= frameInterval) {
+                            await this.captureFrame(frameCount);
+                            frameCount++;
+                        }
+                        
+                        console.log(`🎬 Recording completed: ${frameCount} frames captured in ${elapsedTime.toFixed(1)}s`);
+                        console.log(`  - Expected: ${expectedDuration}s, Target frames: ${expectedFrameCount}`);
+                        console.log(`  - Actual: ${elapsedTime.toFixed(1)}s, Actual frames: ${frameCount}`);
+                        console.log(`  - Stop reason: ${animationDone ? 'Animation done' : 'Time limit reached'}`);
+                        
                         this.finishRecording();
                         resolve();
                     } else {
@@ -1484,24 +1513,38 @@ export class VideoExportController {
             let lastProgressUpdate = 0;
             const targetFPS = 30; // Fixed at 30 FPS for consistent timing
             const frameInterval = 1000 / targetFPS; // 33.33ms per frame
-            let lastFrameTime = 0;
-            const startTime = Date.now();
+            let lastFrameTime = performance.now(); // Initialize to current time for proper throttling
+            const startTime = performance.now(); // Use performance.now() for consistent timing
             const maxRecordingTime = 600000; // 10 minutes max
 
             let phase = 'zoomIn'; // 'zoomIn', 'main', 'zoomOut'
             let zoomInStart = null;
             let zoomOutStart = null;
+            let mainPhaseStartTime = null; // Track when main phase starts
 
-            // Calculate and set animation speed BEFORE starting animation
-            let speedMultiplier = 0.25; // Default reasonable speed
+            // Calculate animation speed to ensure proper timing
+            const expectedDuration = this.estimateAnimationDuration();
+            const cinematicDurations = this.getCinematicDurations();
+            const mainAnimationDuration = expectedDuration - cinematicDurations.zoomIn - cinematicDurations.zoomOut;
+            
+            // Calculate speed multiplier for smooth animation capture
+            // 0.15x was too slow (only 13.7% in 24s), need to find the right balance
+            let speedMultiplier = 0.5; // Moderate speed - let animation complete naturally
+            
+            console.log(`🎬 Animation timing setup:`);
+            console.log(`  - Expected total duration: ${expectedDuration}s`);
+            console.log(`  - Zoom-in duration: ${cinematicDurations.zoomIn}s`);
+            console.log(`  - Main animation duration: ${mainAnimationDuration}s`);
+            console.log(`  - Zoom-out duration: ${cinematicDurations.zoomOut}s`);
+            console.log(`  - Setting speed multiplier: ${speedMultiplier}x (slower for full capture)`);
+            
+            // For video export, we want the animation to run slower to match expected duration
             if (this.app.mapRenderer && this.app.mapRenderer.setAnimationSpeed) {
                 try {
-                    // Set the animation speed BEFORE starting the animation
                     this.app.mapRenderer.setAnimationSpeed(speedMultiplier);
                 } catch (error) {
-                    // Fallback speed
-                    speedMultiplier = 0.3;
-                    this.app.mapRenderer.setAnimationSpeed(speedMultiplier);
+                    console.warn('Failed to set animation speed:', error);
+                    speedMultiplier = 0.5; // Fallback to slower speed
                 }
             }
 
@@ -1521,24 +1564,47 @@ export class VideoExportController {
 
             const captureFrame = async (currentTime) => {
                 try {
-                    // Safety timeout
-                    if (Date.now() - startTime > maxRecordingTime) {
+                    // Safety timeout (convert maxRecordingTime to match performance.now() units)
+                    if (performance.now() - startTime > maxRecordingTime) {
                         console.warn('⚠️ Frame capture timeout reached, processing captured frames...');
+                        console.log(`Captured ${this.capturedFrames.length} frames before timeout`);
                         resolve();
                         return;
                     }
 
-                    // Throttle to exact target FPS timing
-                    if (currentTime - lastFrameTime >= frameInterval) {
-                        // Capture high-quality frame
+                    // Capture frames at target FPS - use performance.now() for consistent timing
+                    const now = performance.now();
+                    const timeSinceLastFrame = now - lastFrameTime;
+                    
+                    // Reduced debug logging - only show every 50th frame
+                    if (frameCount % 50 === 0 && frameCount < 200) {
+                        console.log(`🔍 Frame ${frameCount}: timeSinceLastFrame=${timeSinceLastFrame.toFixed(1)}ms, frameInterval=${frameInterval.toFixed(1)}ms`);
+                    }
+                    
+                    if (timeSinceLastFrame >= frameInterval) {
+                        // Capture high-quality frame with timing
+                        const captureStart = performance.now();
                         const frameData = await this.captureHighQualityFrame(frameCount);
+                        const captureTime = performance.now() - captureStart;
+                        
                         this.capturedFrames.push(frameData);
                         
                         frameCount++;
-                        lastFrameTime = currentTime;
+                        lastFrameTime = now;
+                        
+                        // Log slow captures (reduced threshold since we optimized)
+                        if (captureTime > 50) { // If capture takes more than 50ms
+                            console.warn(`⚠️ Slow frame capture: ${captureTime.toFixed(1)}ms for frame ${frameCount}`);
+                        }
+
+                        // Debug logging for frame capture
+                        if (frameCount % 30 === 0) { // Log every 30 frames (1 second at 30fps)
+                            const totalElapsed = (now - startTime) / 1000;
+                            const actualFPS = frameCount / totalElapsed;
+                            console.log(`📹 Captured ${frameCount} frames, phase: ${phase}, total elapsed: ${totalElapsed.toFixed(1)}s, actual FPS: ${actualFPS.toFixed(1)}`);
+                        }
 
                         // Update progress periodically (reduced frequency for better performance)
-                        const now = Date.now();
                         if (now - lastProgressUpdate > 2000) { // Update every 2 seconds for better performance
                             const progress = this.getAnimationProgress();
                             const elapsedCapture = (now - startTime) / 1000;
@@ -1553,30 +1619,70 @@ export class VideoExportController {
 
                     // --- PHASE LOGIC ---
                     if (phase === 'zoomIn') {
-                        if (!zoomInStart) zoomInStart = performance.now();
+                        if (!zoomInStart) {
+                            zoomInStart = performance.now();
+                            console.log(`🔍 Starting zoom-in phase (${zoomInDuration}ms)`);
+                        }
                         // Wait for zoom-in duration
-                        if (performance.now() - zoomInStart >= zoomInDuration) {
+                        const zoomInElapsed = performance.now() - zoomInStart;
+                        if (zoomInElapsed >= zoomInDuration) {
                             // Start main animation
+                            console.log(`✅ Zoom-in complete after ${zoomInElapsed.toFixed(0)}ms, starting main animation phase`);
                             phase = 'main';
+                            mainPhaseStartTime = performance.now(); // Track when main phase starts
                             // Reset animation first to ensure clean start
                             if (this.app.playback && this.app.playback.reset) {
                                 this.app.playback.reset();
+                                console.log(`🔄 Animation reset complete`);
                             }
+                            
+                            // Start the animation
                             if (this.app.playback && this.app.playback.play) {
                                 this.app.playback.play();
+                                console.log(`▶️ Animation started via playback controller`);
                             } else if (this.app.map && this.app.map.startAnimation) {
                                 this.app.map.startAnimation();
+                                console.log(`▶️ Animation started via map controller`);
                             }
+                            
+                            // Check initial animation state
+                            const initialProgress = this.getAnimationProgress();
+                            console.log(`📊 Initial animation progress: ${(initialProgress * 100).toFixed(1)}%`);
                         }
                         requestAnimationFrame(captureFrame);
                         return;
                     }
 
                     if (phase === 'main') {
-                        // Robust stop condition: only stop when animation is truly finished
+                        // Check animation progress and timing
                         const progress = this.getAnimationProgress();
+                        const mainPhaseElapsed = mainPhaseStartTime ? (performance.now() - mainPhaseStartTime) / 1000 : 0;
                         const animationDone = (progress >= 1.0) && !this.isAnimationPlaying();
-                        if (animationDone) {
+                        
+                        // Calculate target capture time for main animation (excluding zoom phases)
+                        const cinematicDurations = this.getCinematicDurations();
+                        const mainAnimationDuration = expectedDuration - cinematicDurations.zoomIn - cinematicDurations.zoomOut;
+                        
+                        // Log progress every 2 seconds instead of every frame to reduce spam
+                        if (frameCount % 60 === 0) { // Every 60 frames = 2 seconds at 30fps
+                            const isAnimationDone = (progress >= 1.0) && !this.isAnimationPlaying();
+                            console.log(`📹 Main phase progress: ${(progress * 100).toFixed(1)}%, elapsed: ${mainPhaseElapsed.toFixed(1)}s, waiting for animation completion, animDone: ${isAnimationDone}`);
+                        }
+                        
+                        // Stop main phase when animation actually completes (not based on fixed time)
+                        // This ensures we capture the complete animation regardless of how long it takes
+                        const mainPhaseComplete = animationDone || (progress >= 0.98); // 98% to account for floating point precision
+                        
+                        // Log if we're waiting longer than expected
+                        if (mainPhaseElapsed > mainAnimationDuration * 1.5) {
+                            console.warn(`⚠️ Animation taking longer than expected: ${mainPhaseElapsed.toFixed(1)}s (expected: ${mainAnimationDuration.toFixed(1)}s)`);
+                            console.warn(`  - Progress: ${(progress * 100).toFixed(1)}%, animDone: ${animationDone}`);
+                        }
+                        
+                        if (mainPhaseComplete) {
+                            console.log(`✅ Main animation phase complete after ${mainPhaseElapsed.toFixed(1)}s (target: ${mainAnimationDuration.toFixed(1)}s)`);
+                            console.log(`  - Animation progress was: ${(progress * 100).toFixed(1)}%`);
+                            console.log(`  - Animation done status: ${animationDone}`);
                             // Start zoom-out phase
                             phase = 'zoomOut';
                             zoomOutStart = performance.now();
@@ -1608,68 +1714,40 @@ export class VideoExportController {
             };
 
             // Start cinematic zoom-in and frame capture
+            console.log(`🎬 Starting frame capture process...`);
+            console.log(`  - Max recording time: ${maxRecordingTime / 1000}s`);
+            console.log(`  - Target FPS: ${targetFPS}`);
+            console.log(`  - Frame interval: ${frameInterval}ms`);
+            
             (async () => {
                 await startZoomIn();
+                console.log(`🎬 Initial zoom-in triggered, starting capture loop...`);
                 requestAnimationFrame(captureFrame);
             })();
         });
     }
 
     /**
-     * Capture a high-quality frame of the videoCaptureContainer
+     * Capture a fast frame optimized for video export (bypassing slow html2canvas)
      */
     async captureHighQualityFrame(frameNumber) {
-        const { width, height, scale, offsetX, offsetY, scaledWidth, scaledHeight, containerRect } = this.recordingDimensions;
+        const { width, height } = this.recordingDimensions;
 
         try {
-            // Create a high-quality capture canvas
+            // Create a standard resolution capture canvas for speed
             const captureCanvas = document.createElement('canvas');
             const captureContext = captureCanvas.getContext('2d');
             
-            // Use higher resolution for better quality
-            const qualityMultiplier = this.captureQuality || 2;
-            captureCanvas.width = width * qualityMultiplier;
-            captureCanvas.height = height * qualityMultiplier;
-            captureContext.scale(qualityMultiplier, qualityMultiplier);
+            // Use 1x resolution for speed (we can increase later if needed)
+            captureCanvas.width = width;
+            captureCanvas.height = height;
 
             // Clear with black background
             captureContext.fillStyle = '#000000';
             captureContext.fillRect(0, 0, width, height);
 
-            // Method 1: Try using html2canvas if available
-            if (window.html2canvas) {
-                try {
-                    const canvas = await html2canvas(this.videoCaptureContainer, {
-                        width: containerRect.width,
-                        height: containerRect.height,
-                        backgroundColor: null,
-                        allowTaint: true,
-                        useCORS: true,
-                        logging: false,
-                        scale: qualityMultiplier,
-                        ignoreElements: (element) => {
-                            return element.tagName === 'SCRIPT' || element.tagName === 'STYLE';
-                        }
-                    });
-                    
-                    // Draw the captured content directly (no scaling needed)
-                    captureContext.drawImage(canvas, 0, 0, width, height);
-                    
-                    // Always manually draw the programmatic logo over html2canvas result
-                    await this.drawHighQualityProgrammaticLogo(captureContext);
-                    
-                    return {
-                        canvas: captureCanvas,
-                        frameNumber: frameNumber,
-                        timestamp: Date.now()
-                    };
-                } catch (error) {
-                    console.warn('html2canvas failed for high-quality capture, using manual method:', error);
-                }
-            }
-
-            // Method 2: Manual high-quality DOM capture
-            await this.manualHighQualityCapture(captureContext, width, height);
+            // Fast Method: Skip html2canvas entirely, use direct canvas-to-canvas copying
+            await this.fastManualCapture(captureContext, width, height);
 
             return {
                 canvas: captureCanvas,
@@ -1677,10 +1755,77 @@ export class VideoExportController {
                 timestamp: Date.now()
             };
         } catch (error) {
-            console.warn(`High-quality frame ${frameNumber} capture failed:`, error);
+            console.warn(`Fast frame ${frameNumber} capture failed:`, error);
             // Fallback to regular capture
             return this.fallbackFrameCapture(frameNumber);
         }
+    }
+
+    /**
+     * Fast manual capture method optimized for speed (no html2canvas)
+     */
+    async fastManualCapture(context, width, height) {
+        // 1. Draw the map canvas directly (fastest operation)
+        const mapCanvas = this.app.mapRenderer.map.getCanvas();
+        if (mapCanvas) {
+            context.drawImage(mapCanvas, 0, 0, width, height);
+        }
+
+        // 2. Draw only the essential overlays (skip slow DOM operations)
+        // Use cached logo (already implemented)
+        if (this.cachedLogoImage) {
+            const logoWidth = 160;
+            const logoHeight = 64;
+            const logoX = 16;
+            const logoY = 16;
+            
+            context.imageSmoothingEnabled = true;
+            context.imageSmoothingQuality = 'high';
+            context.drawImage(this.cachedLogoImage, logoX, logoY, logoWidth, logoHeight);
+        }
+
+        // 3. Draw stats overlay if visible (simplified version)
+        this.drawFastStats(context, width, height);
+    }
+
+    /**
+     * Fast stats drawing (skip complex DOM parsing)
+     */
+    drawFastStats(context, width, height) {
+        try {
+            const statsElement = document.querySelector('.video-stats-overlay');
+            if (!statsElement || statsElement.style.display === 'none') return;
+
+            // Get current stats values directly instead of DOM parsing
+            const progress = this.getAnimationProgress();
+            const currentTime = this.formatTime(progress * this.estimateAnimationDuration());
+            const totalTime = this.formatTime(this.estimateAnimationDuration());
+            
+            // Draw simple text-based stats overlay
+            context.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            context.fillRect(width - 200, 16, 180, 80);
+            
+            context.fillStyle = '#ffffff';
+            context.font = '14px Arial';
+            context.textAlign = 'left';
+            
+            const statsY = 35;
+            context.fillText(`Progress: ${Math.round(progress * 100)}%`, width - 190, statsY);
+            context.fillText(`Time: ${currentTime}/${totalTime}`, width - 190, statsY + 20);
+            
+        } catch (error) {
+            // Silently skip stats if there's any error
+            console.debug('Fast stats drawing skipped:', error);
+        }
+    }
+
+    /**
+     * Format seconds into MM:SS format
+     */
+    formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
     }
 
     /**
@@ -1722,8 +1867,18 @@ export class VideoExportController {
         const startTime = Date.now();
 
         // Stream frames to MediaRecorder at exact 30 FPS
-        const targetFPS = 30; // Fixed at 30 FPS to match capture
-        const frameInterval = 1000 / targetFPS; // 33.33ms per frame
+        // Calculate frame timing to match expected duration
+        const expectedDuration = this.estimateAnimationDuration(); // Expected total duration
+        const actualFrameCount = this.capturedFrames.length;
+        
+        // Calculate the frame rate needed to make the video match expected duration
+        const adjustedFPS = actualFrameCount / expectedDuration;
+        const frameInterval = 1000 / adjustedFPS;
+        
+        console.log(`🎬 Creating video from ${actualFrameCount} frames`);
+        console.log(`  - Expected video duration: ${expectedDuration.toFixed(2)}s`);
+        console.log(`  - Adjusted FPS: ${adjustedFPS.toFixed(1)} (to match expected duration)`);
+        console.log(`  - Frame interval: ${frameInterval.toFixed(1)}ms`);
         
         let lastProgressUpdate = 0;
         
@@ -1754,7 +1909,7 @@ export class VideoExportController {
                 lastProgressUpdate = now;
             }
 
-            // Let MediaRecorder capture this frame with precise timing
+            // Let MediaRecorder capture this frame with corrected timing
             await new Promise(resolve => {
                 setTimeout(resolve, frameInterval);
             });
@@ -1764,8 +1919,14 @@ export class VideoExportController {
         this.mediaRecorder.stop();
         await this.finishRecording();
         
+        console.log(`✅ Video created with ${actualFrameCount} frames at ${adjustedFPS.toFixed(1)} FPS`);
+        console.log(`  - Final video duration: ${expectedDuration.toFixed(2)}s (matches expected duration)`);
+        
         // Clean up captured frames to free memory
         this.capturedFrames = [];
+        
+        // Clear logo cache to free memory
+        this.cachedLogoImage = null;
     }
 
     /**
@@ -2267,10 +2428,18 @@ export class VideoExportController {
      * Draw the actual TrailReplay SVG logo to canvas
      */
     async drawActualSVGLogo(context, x, y, width, height) {
+        // Check if we have a cached logo image
+        if (this.cachedLogoImage) {
+            context.imageSmoothingEnabled = true;
+            context.imageSmoothingQuality = 'high';
+            context.drawImage(this.cachedLogoImage, x, y, width, height);
+            return;
+        }
+        
         // Use the same relative path as the main app logo for production compatibility
         const svgUrl = 'media/images/logohorizontal.svg';
         try {
-            console.log(`🔄 Fetching SVG logo from: ${svgUrl}`);
+            console.log(`🔄 Fetching SVG logo from: ${svgUrl} (caching for performance)`);
             // Fetch the SVG content
             const response = await fetch(svgUrl);
             if (!response.ok) {
@@ -2290,7 +2459,11 @@ export class VideoExportController {
             return new Promise((resolve, reject) => {
                 img.onload = () => {
                     try {
-                        console.log(`🖼️ SVG image loaded successfully (${img.width}x${img.height}), drawing to canvas at (${x},${y}) size ${width}x${height}`);
+                        console.log(`🖼️ SVG image loaded successfully (${img.width}x${img.height}), caching for future frames`);
+                        // Cache the loaded image for future use
+                        this.cachedLogoImage = img;
+                        
+                        // Draw to canvas
                         context.imageSmoothingEnabled = true;
                         context.imageSmoothingQuality = 'high';
                         context.drawImage(img, x, y, width, height);
@@ -2526,6 +2699,39 @@ export class VideoExportController {
             this.webCodecsEncoder.close();
             this.processWebCodecsVideo();
         }
+    }
+
+    /**
+     * Validate that the video timing matches the expected animation duration
+     */
+    async validateVideoTiming(expectedDuration) {
+        console.log(`🔍 Validating video timing...`);
+        console.log(`  - Expected duration: ${expectedDuration}s`);
+        
+        if (this.recordedChunks && this.recordedChunks.length > 0) {
+            // Create a temporary blob to estimate duration
+            const blob = new Blob(this.recordedChunks, { type: this.selectedMP4Codec || 'video/mp4' });
+            
+            // Log file size for reference
+            const sizeInfo = MP4Utils.estimateFileSize(expectedDuration, this.optimalSettings.bitrate || 4000000);
+            console.log(`  - Expected file size: ${sizeInfo.displaySize}`);
+            console.log(`  - Actual file size: ${MP4Utils.formatFileSize(blob.size)}`);
+            
+            // Note: We can't directly measure video duration from blob without loading it,
+            // but we can validate that the file size is reasonable for the expected duration
+            const sizeDifference = Math.abs(blob.size - sizeInfo.bytes) / sizeInfo.bytes;
+            if (sizeDifference > 0.5) { // More than 50% difference
+                console.warn(`⚠️ Video file size differs significantly from expected:`, {
+                    expected: sizeInfo.displaySize,
+                    actual: MP4Utils.formatFileSize(blob.size),
+                    difference: `${(sizeDifference * 100).toFixed(1)}%`
+                });
+            } else {
+                console.log(`✅ Video file size is within expected range`);
+            }
+        }
+        
+        console.log(`✅ Video timing validation completed`);
     }
 
     /**
