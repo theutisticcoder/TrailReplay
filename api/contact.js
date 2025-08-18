@@ -5,7 +5,8 @@ import { Resend } from 'resend';
 
 const resendApiKey = process.env.RESEND_API_KEY;
 const TO_EMAIL = 'alexalmansa5@gmail.com';
-const FROM_EMAIL = 'TrailReplay Feedback <feedback@trailreplay.com>';
+// Use Resend's default domain to avoid domain verification issues
+const FROM_EMAIL = 'TrailReplay Feedback <onboarding@resend.dev>';
 
 /** Basic IP rate-limit in-memory (best-effort within a single instance) */
 const rateLimitMap = new Map();
@@ -72,8 +73,18 @@ export default async function handler(req, res) {
         });
 
         if (error) {
+            // Try to surface meaningful provider error
+            const errorMessage = (
+                error?.message ||
+                error?.name ||
+                error?.response?.data?.message ||
+                error?.error?.message ||
+                error?.body?.message ||
+                (typeof error === 'string' ? error : null) ||
+                'Email provider error'
+            );
             console.error('Resend send error:', error);
-            return res.status(502).json({ error: error?.message || 'Email provider error' });
+            return res.status(502).json({ error: errorMessage });
         }
         return res.status(200).json({ ok: true, id: data?.id });
     } catch (err) {
