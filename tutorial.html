@@ -801,12 +801,21 @@
     <!-- Include translations -->
     <script type="module">
         import { initializeTranslations, setLanguage } from './src/translations.js';
-        import { inject } from '@vercel/analytics';
+        import { AnalyticsTracker } from './src/utils/analytics.js';
+        import { GA4_MEASUREMENT_ID, shouldEnableAnalytics } from './src/config/analytics.js';
         
         // Initialize translations when the page loads
         document.addEventListener('DOMContentLoaded', () => {
-            // Initialize Vercel Analytics
-            inject();
+            // Initialize Google Analytics 4 if enabled
+            if (shouldEnableAnalytics()) {
+                AnalyticsTracker.init(GA4_MEASUREMENT_ID);
+                
+                // Track page view
+                AnalyticsTracker.track('page_view', {
+                    page_title: document.title,
+                    page_location: window.location.href
+                });
+            }
             
             // Track tutorial page visit
             import('./src/utils/analytics.js').then(({ AnalyticsTracker }) => {
