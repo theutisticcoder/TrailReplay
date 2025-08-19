@@ -1,16 +1,76 @@
-import { track } from '@vercel/analytics';
-
 /**
  * Analytics utility for tracking TrailReplay user events
+ * Now using Google Analytics 4 (GA4) for free analytics tracking
  */
 export class AnalyticsTracker {
+    static isInitialized = false;
+    static isEnabled = true; // Can be toggled for privacy compliance
+    
+    /**
+     * Initialize Google Analytics 4
+     * @param {string} measurementId - Your GA4 Measurement ID (G-XXXXXXXXXX)
+     */
+    static init(measurementId) {
+        if (this.isInitialized || !measurementId) return;
+        
+        // Load Google Analytics script
+        const script1 = document.createElement('script');
+        script1.async = true;
+        script1.src = `https://www.googletagmanager.com/gtag/js?id=${measurementId}`;
+        document.head.appendChild(script1);
+        
+        // Initialize gtag
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        window.gtag = gtag;
+        gtag('js', new Date());
+        gtag('config', measurementId, {
+            // Privacy-friendly settings
+            anonymize_ip: true,
+            cookie_flags: 'SameSite=None;Secure'
+        });
+        
+        this.isInitialized = true;
+        console.log('🔍 Analytics initialized with GA4');
+    }
+    
+    /**
+     * Generic tracking method that sends events to GA4
+     * @param {string} eventName - Event name
+     * @param {Object} parameters - Event parameters
+     */
+    static track(eventName, parameters = {}) {
+        if (!this.isEnabled || !this.isInitialized || typeof window.gtag !== 'function') {
+            console.log(`📊 Analytics disabled or not initialized: ${eventName}`, parameters);
+            return;
+        }
+        
+        // Send event to Google Analytics
+        window.gtag('event', eventName, {
+            ...parameters,
+            // Add some default parameters
+            app_name: 'TrailReplay',
+            timestamp: new Date().toISOString()
+        });
+        
+        console.log(`📊 Event tracked: ${eventName}`, parameters);
+    }
+    
+    /**
+     * Enable or disable analytics tracking
+     * @param {boolean} enabled - Whether to enable tracking
+     */
+    static setEnabled(enabled) {
+        this.isEnabled = enabled;
+        console.log(`📊 Analytics ${enabled ? 'enabled' : 'disabled'}`);
+    }
     /**
      * Track GPX file upload events
      * @param {number} fileCount - Number of files uploaded
      * @param {string} source - Upload source (single, multiple, journey)
      */
     static trackFileUpload(fileCount = 1, source = 'single') {
-        track('gpx_file_upload', {
+        this.track('gpx_file_upload', {
             file_count: fileCount,
             upload_source: source
         });
@@ -22,7 +82,7 @@ export class AnalyticsTracker {
      * @param {number} duration - Track duration in seconds
      */
     static trackPlayback(action, duration = 0) {
-        track('animation_playback', {
+        this.track('animation_playback', {
             action: action,
             track_duration: duration
         });
@@ -34,7 +94,7 @@ export class AnalyticsTracker {
      * @param {string} aspectRatio - 16:9, 1:1, 9:16
      */
     static trackVideoExport(format, aspectRatio = '1:1') {
-        track('video_export', {
+        this.track('video_export', {
             export_format: format,
             aspect_ratio: aspectRatio
         });
@@ -46,7 +106,7 @@ export class AnalyticsTracker {
      * @param {boolean} hasTransportation - Whether transportation segments were added
      */
     static trackJourneyCreation(trackCount, hasTransportation = false) {
-        track('journey_creation', {
+        this.track('journey_creation', {
             track_count: trackCount,
             has_transportation: hasTransportation
         });
@@ -58,7 +118,7 @@ export class AnalyticsTracker {
      * @param {any} value - The setting value
      */
     static trackMapCustomization(setting, value) {
-        track('map_customization', {
+        this.track('map_customization', {
             setting: setting,
             value: String(value)
         });
@@ -70,7 +130,7 @@ export class AnalyticsTracker {
      * @param {string} icon - The icon used
      */
     static trackInteractiveFeature(type, icon = '') {
-        track('interactive_feature', {
+        this.track('interactive_feature', {
             feature_type: type,
             icon_used: icon
         });
@@ -81,7 +141,7 @@ export class AnalyticsTracker {
      * @param {string} language - en, es
      */
     static trackLanguageChange(language) {
-        track('language_change', {
+        this.track('language_change', {
             language: language
         });
     }
@@ -91,7 +151,7 @@ export class AnalyticsTracker {
      * @param {string} section - Section of tutorial visited
      */
     static trackTutorial(section) {
-        track('tutorial_interaction', {
+        this.track('tutorial_interaction', {
             section: section
         });
     }
@@ -103,7 +163,7 @@ export class AnalyticsTracker {
      * @param {string} terrainSource - mapzen, opentopo
      */
     static trackTerrainSettings(terrainStyle, terrain3d, terrainSource) {
-        track('terrain_settings', {
+        this.track('terrain_settings', {
             style: terrainStyle,
             terrain_3d: terrain3d,
             source: terrainSource
@@ -116,7 +176,7 @@ export class AnalyticsTracker {
      * @param {Object} properties - Event properties
      */
     static trackEvent(event, properties = {}) {
-        track(event, properties);
+        this.track(event, properties);
     }
 
     /**
@@ -125,7 +185,7 @@ export class AnalyticsTracker {
      * @param {Object} properties - Additional properties
      */
     static trackStravaEvent(action, properties = {}) {
-        track('strava_integration', {
+        this.track('strava_integration', {
             action: action,
             ...properties
         });
@@ -134,5 +194,5 @@ export class AnalyticsTracker {
 
 // Legacy function export for backwards compatibility
 export const trackEvent = (event, properties = {}) => {
-    track(event, properties);
+    AnalyticsTracker.track(event, properties);
 }; 

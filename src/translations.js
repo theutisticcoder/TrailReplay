@@ -681,12 +681,34 @@ export const translations = {
                 title: "Terms of Use",
                 updated: "Last updated: 2025-01-01",
                 useTitle: "Use of Service",
-                useDesc: "TrailReplay lets you visualize GPX data and create animations. You must own or have rights to any data you import. The service is provided “as is”, without warranties.",
+                useDesc: "TrailReplay lets you visualize GPX data and create animations. You must own or have rights to any data you import. The service is provided \"as is\", without warranties.",
                 stravaTitle: "Strava Integration",
                 stravaDesc: "By connecting your Strava account you grant read access to your activities to import GPS data. We do not modify your Strava content. You can revoke access at any time.",
                 privacyTitle: "Privacy",
                 privacyDesc: "See our Privacy Policy for details about what data we process."
             }
+        },
+        privacy: {
+            cookieTitle: "We use analytics to improve your experience",
+            cookieMessage: "We use Google Analytics to understand how you use TrailReplay and improve the app. No personal data is collected.",
+            accept: "Accept",
+            decline: "Decline",
+            learnMore: "Learn More",
+            privacyTitle: "Privacy & Analytics",
+            whatWeCollect: "What we collect",
+            collect1: "How you use TrailReplay features (play, pause, export, etc.)",
+            collect2: "General usage patterns and popular features",
+            collect3: "Technical information like browser type and screen size",
+            whatWeDontCollect: "What we DON'T collect",
+            dontCollect1: "Your GPS tracks or personal location data",
+            dontCollect2: "Personal information like names or emails",
+            dontCollect3: "Any data that could identify you personally",
+            whyWeCollect: "Why we collect this data",
+            whyCollectText: "We use this information to understand which features are most useful and improve TrailReplay for everyone.",
+            yourChoice: "Your choice",
+            yourChoiceText: "You can decline analytics and TrailReplay will work exactly the same. You can change your mind anytime in the settings.",
+            acceptAnalytics: "Accept Analytics",
+            declineAnalytics: "Decline Analytics"
         }
     },
     es: {
@@ -1360,12 +1382,34 @@ export const translations = {
                 title: "Términos de Uso",
                 updated: "Última actualización: 2025-01-01",
                 useTitle: "Uso del Servicio",
-                useDesc: "TrailReplay te permite visualizar datos GPX y crear animaciones. Debes ser titular o tener derechos sobre los datos que importes. El servicio se ofrece “tal cual”, sin garantías.",
+                useDesc: "TrailReplay te permite visualizar datos GPX y crear animaciones. Debes ser titular o tener derechos sobre los datos que importes. El servicio se ofrece \"tal cual\", sin garantías.",
                 stravaTitle: "Integración con Strava",
                 stravaDesc: "Al conectar tu cuenta de Strava concedes acceso de lectura a tus actividades para importar datos GPS. No modificamos tu contenido de Strava. Puedes revocar el acceso en cualquier momento.",
                 privacyTitle: "Privacidad",
                 privacyDesc: "Consulta nuestra Política de Privacidad para más detalles sobre los datos que procesamos."
             }
+        },
+        privacy: {
+            cookieTitle: "Usamos analíticas para mejorar tu experiencia",
+            cookieMessage: "Usamos Google Analytics para entender cómo usas TrailReplay y mejorar la aplicación. No se recopilan datos personales.",
+            accept: "Aceptar",
+            decline: "Rechazar",
+            learnMore: "Más Información",
+            privacyTitle: "Privacidad y Analíticas",
+            whatWeCollect: "Qué recopilamos",
+            collect1: "Cómo usas las funciones de TrailReplay (reproducir, pausar, exportar, etc.)",
+            collect2: "Patrones de uso general y funciones populares",
+            collect3: "Información técnica como tipo de navegador y tamaño de pantalla",
+            whatWeDontCollect: "Qué NO recopilamos",
+            dontCollect1: "Tus tracks GPS o datos de ubicación personal",
+            dontCollect2: "Información personal como nombres o emails",
+            dontCollect3: "Cualquier dato que pueda identificarte personalmente",
+            whyWeCollect: "Por qué recopilamos estos datos",
+            whyCollectText: "Usamos esta información para entender qué funciones son más útiles y mejorar TrailReplay para todos.",
+            yourChoice: "Tu elección",
+            yourChoiceText: "Puedes rechazar las analíticas y TrailReplay funcionará exactamente igual. Puedes cambiar de opinión en cualquier momento en la configuración.",
+            acceptAnalytics: "Aceptar Analíticas",
+            declineAnalytics: "Rechazar Analíticas"
         }
     }
 };
