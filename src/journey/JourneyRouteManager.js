@@ -382,7 +382,7 @@ export class JourneyRouteManager {
                 paint: {
                     'line-color': '#ff6b6b',
                     'line-width': 4,
-                    'line-dasharray': ['literal', [2, 2]]
+                    'line-dasharray': [2, 2]
                 }
             });
         }

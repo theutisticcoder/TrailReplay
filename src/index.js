@@ -9,15 +9,10 @@ window.addEventListener('DOMContentLoaded', async () => {
   if (shouldEnableAnalytics()) {
     AnalyticsTracker.init(GA4_MEASUREMENT_ID);
     
-    // Initialize cookie consent if required
-    if (ANALYTICS_CONFIG.requireConsent) {
-      CookieConsentManager.init();
-    } else {
-      // No consent required, enable analytics immediately
-      AnalyticsTracker.setEnabled(true);
-    }
+    // Always enable analytics (no consent check)
+    AnalyticsTracker.setEnabled(true);
     
-    // Track page view (will only send if analytics is enabled)
+    // Track page view for all users
     AnalyticsTracker.track('page_view', {
       page_title: document.title,
       page_location: window.location.href

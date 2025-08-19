@@ -40,8 +40,8 @@ export class AnalyticsTracker {
      * @param {Object} parameters - Event parameters
      */
     static track(eventName, parameters = {}) {
-        if (!this.isEnabled || !this.isInitialized || typeof window.gtag !== 'function') {
-            console.log(`📊 Analytics disabled or not initialized: ${eventName}`, parameters);
+        if (!this.isInitialized || typeof window.gtag !== 'function') {
+            console.log(`📊 Analytics not initialized: ${eventName}`, parameters);
             return;
         }
         

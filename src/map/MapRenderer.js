@@ -268,12 +268,7 @@ export class MapRenderer {
                     ['==', ['get', 'isTransportation'], true], 0.7,
                     0.4
                 ],
-                'line-dasharray': [
-                    'case',
-                    ['==', ['get', 'segmentMode'], 'plane'], ['literal', [2, 2]],
-                    ['==', ['get', 'segmentMode'], 'boat'], ['literal', [5, 3]],
-                    ['literal', [1, 0]]
-                ]
+                'line-dasharray': [1, 0]
             }
         });
 
