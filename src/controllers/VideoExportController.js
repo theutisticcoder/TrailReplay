@@ -1550,9 +1550,9 @@ export class VideoExportController {
 
             // Helper to trigger cinematic zoom-in
             const startZoomIn = async () => {
-                if (camera && camera.startCinematicSequence) {
-                    await camera.startCinematicSequence();
-                }
+                // For video export, we don't manually trigger zoom-in
+                // The MapRenderer.startAnimation() will handle it automatically
+                console.log('🎬 Video export: letting MapRenderer handle zoom-in automatically');
             };
 
             // Helper to trigger cinematic zoom-out

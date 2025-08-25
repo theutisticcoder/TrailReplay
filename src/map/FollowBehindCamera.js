@@ -131,43 +131,38 @@ export class FollowBehindCamera {
             return Promise.resolve();
         }
         
-        // FIRST: Ensure we have a proper wide overview starting position
-        console.log('🎬 Setting proper overview starting position first');
-        this.map.jumpTo({
-            center: [startPoint.lon, startPoint.lat],
-            zoom: 5,  // Very wide overview to ensure good starting point
-            pitch: 0,
-            bearing: 0
-        });
-        
         // Get current preset settings
         const preset = this.getCurrentPresetSettings();
+        
+        // Get current map state (zoom, pitch, bearing)
+        const currentZoom = this.map.getZoom();
+        const currentPitch = this.map.getPitch();
+        const currentBearing = this.map.getBearing();
+        const currentCenter = this.map.getCenter();
         
         // Calculate bearing for start position
         const bearing = this.calculateBearing(0);
         this.lastBearing = bearing;
         
-        console.log(`🎬 Now zooming from overview (zoom 5) to ${preset.name}: zoom=${preset.ZOOM}, pitch=${preset.PITCH}° (${FOLLOW_BEHIND_SETTINGS.CINEMATIC_DURATION/1000}s)`);
+        console.log(`🎬 Starting smooth zoom from current zoom ${currentZoom.toFixed(1)} to ${preset.name}: zoom=${preset.ZOOM}, pitch=${preset.PITCH}° (${FOLLOW_BEHIND_SETTINGS.CINEMATIC_DURATION/1000}s)`);
         
         // Return promise that resolves when zoom-in completes
         return new Promise((resolve) => {
-            // Small delay to ensure the overview position is set, then zoom-in
+            // Smooth transition from current position to animation position
+            this.map.easeTo({
+                center: [startPoint.lon, startPoint.lat],
+                zoom: preset.ZOOM,
+                pitch: preset.PITCH,
+                bearing: bearing,
+                duration: FOLLOW_BEHIND_SETTINGS.CINEMATIC_DURATION,
+                easing: (t) => 1 - Math.pow(1 - t, 3) // Smooth ease-out cubic
+            });
+            
+            // Resolve when zoom-in completes
             setTimeout(() => {
-                this.map.easeTo({
-                    center: [startPoint.lon, startPoint.lat],
-                    zoom: preset.ZOOM,
-                    pitch: preset.PITCH,
-                    bearing: bearing,
-                    duration: FOLLOW_BEHIND_SETTINGS.CINEMATIC_DURATION,
-                    easing: (t) => 1 - Math.pow(1 - t, 3) // Smooth ease-out cubic
-                });
-                
-                // Resolve when zoom-in completes
-                setTimeout(() => {
-                    console.log('🎬 Pre-animation zoom-in completed, ready to start trail animation');
-                    resolve();
-                }, FOLLOW_BEHIND_SETTINGS.CINEMATIC_DURATION);
-            }, 100); // Short delay to ensure overview position is applied
+                console.log('🎬 Pre-animation zoom-in completed, ready to start trail animation');
+                resolve();
+            }, FOLLOW_BEHIND_SETTINGS.CINEMATIC_DURATION);
         });
     }
     
@@ -520,5 +515,78 @@ export class FollowBehindCamera {
             key: key,
             name: FOLLOW_BEHIND_PRESETS[key].name
         }));
+    }
+    
+    /**
+     * Get cinematic duration for video export timing
+     */
+    getCinematicDuration() {
+        return FOLLOW_BEHIND_SETTINGS.CINEMATIC_DURATION;
+    }
+    
+    /**
+     * Get zoom-out duration for video export timing
+     */
+    getZoomOutDuration() {
+        return FOLLOW_BEHIND_SETTINGS.ZOOM_OUT_DURATION;
+    }
+    
+    /**
+     * Start cinematic sequence for video export (uses fixed overview starting position)
+     * This method is specifically for video export to ensure consistent timing
+     */
+    async startCinematicSequenceForVideoExport() {
+        if (!this.mapRenderer.trackData || !this.map) {
+            console.warn('🎬 Cannot start cinematic sequence for video export: missing trackData or map');
+            return Promise.resolve();
+        }
+        
+        console.log('🎬 Starting pre-animation zoom-in sequence for video export');
+        
+        // Get start point (marker should be at position 0 before animation starts)
+        const startPoint = this.gpxParser.getInterpolatedPoint(0);
+        if (!startPoint || typeof startPoint.lat === 'undefined' || typeof startPoint.lon === 'undefined') {
+            console.warn('🎬 No valid start point available for video export');
+            return Promise.resolve();
+        }
+        
+        // For video export, always start from a fixed overview position for consistent timing
+        console.log('🎬 Setting fixed overview starting position for video export');
+        this.map.jumpTo({
+            center: [startPoint.lon, startPoint.lat],
+            zoom: 5,  // Fixed overview for consistent video export timing
+            pitch: 0,
+            bearing: 0
+        });
+        
+        // Get current preset settings
+        const preset = this.getCurrentPresetSettings();
+        
+        // Calculate bearing for start position
+        const bearing = this.calculateBearing(0);
+        this.lastBearing = bearing;
+        
+        console.log(`🎬 Video export: zooming from overview (zoom 5) to ${preset.name}: zoom=${preset.ZOOM}, pitch=${preset.PITCH}° (${FOLLOW_BEHIND_SETTINGS.CINEMATIC_DURATION/1000}s)`);
+        
+        // Return promise that resolves when zoom-in completes
+        return new Promise((resolve) => {
+            // Small delay to ensure the overview position is set, then zoom-in
+            setTimeout(() => {
+                this.map.easeTo({
+                    center: [startPoint.lon, startPoint.lat],
+                    zoom: preset.ZOOM,
+                    pitch: preset.PITCH,
+                    bearing: bearing,
+                    duration: FOLLOW_BEHIND_SETTINGS.CINEMATIC_DURATION,
+                    easing: (t) => 1 - Math.pow(1 - t, 3) // Smooth ease-out cubic
+                });
+                
+                // Resolve when zoom-in completes
+                setTimeout(() => {
+                    console.log('🎬 Video export: pre-animation zoom-in completed, ready to start trail animation');
+                    resolve();
+                }, FOLLOW_BEHIND_SETTINGS.CINEMATIC_DURATION);
+            }, 100); // Short delay to ensure overview position is applied
+        });
     }
 } 

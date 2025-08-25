@@ -756,7 +756,12 @@ export class MapRenderer {
             this.followBehindCamera.setCinematicStart(false); // Prevent multiple triggers
             
             // Wait for cinematic zoom-in to complete BEFORE starting trail animation
-            await this.followBehindCamera.startCinematicSequence();
+            // Use video export-specific method if available (for consistent timing)
+            if (this.followBehindCamera.startCinematicSequenceForVideoExport) {
+                await this.followBehindCamera.startCinematicSequenceForVideoExport();
+            } else {
+                await this.followBehindCamera.startCinematicSequence();
+            }
             console.log('🎬 Pre-animation zoom-in complete, now starting trail animation');
         }
         
