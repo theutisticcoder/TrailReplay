@@ -4,9 +4,6 @@
         <div class="tech-stack">
             <span data-i18n="footer.techStack">Built with MapLibre GL JS, Three.js, Elevation Data, and many amazing open source projects.</span> <a href="acknowledgments.html" style="color:var(--trail-orange);text-decoration:underline;font-weight:500;" data-i18n="footer.acknowledgments">See all acknowledgments</a>.
         </div>
-        <div class="strava-attribution">
-            <img src="media/stravaResources/1.2-Strava-API-Logos/Powered by Strava/pwrdBy_strava_white/api_logo_pwrdBy_strava_horiz_white.svg" alt="Powered by Strava" class="footer-strava-logo">
-        </div>
         <div class="footer-links">
             <a href="https://github.com/alexalmansa/TrailReplay" target="_blank" rel="noopener noreferrer" class="footer-link github-link">
                 <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
@@ -29,7 +26,7 @@
             <a href="/terms" class="footer-link" rel="noopener">
                 <span>Terms</span>
             </a>
-            <a href="https://ko-fi.com/alexalmansa" target="_blank" rel="noopener noreferrer" class="footer-link coffee-link">
+            <a href="https://ko-fi.com/alexalmansa" target="_blank" rel="noopener noreferrer" class="footer-link coffee-link" onclick="trackDonationClick()">
                 <span data-i18n="footer.coffee">Buy me a coffee</span>
             </a>
             <select id="languageSelect" class="footer-link">
@@ -61,4 +58,17 @@
             </div>
         </div>
     </div>
+
+    <script>
+        // Track donation button clicks
+        function trackDonationClick() {
+            // Import and use the analytics tracker
+            import('./src/utils/analytics.js').then(({ AnalyticsTracker }) => {
+                AnalyticsTracker.trackDonationClick('ko-fi', 'footer');
+            }).catch(() => {
+                // Silently fail if analytics not available
+                console.log('📊 Donation click tracked (analytics not available)');
+            });
+        }
+    </script>
 </footer> 

@@ -19,7 +19,7 @@ export const ANALYTICS_CONFIG = {
     // Set to false to disable analytics completely
     enabled: true,
     
-    // Cookie consent configuration
+    // Cookie consent configuration (disabled for universal tracking)
     requireConsent: false,
     
     // Privacy settings

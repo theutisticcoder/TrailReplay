@@ -40,8 +40,8 @@ export class AnalyticsTracker {
      * @param {Object} parameters - Event parameters
      */
     static track(eventName, parameters = {}) {
-        if (!this.isInitialized || typeof window.gtag !== 'function') {
-            console.log(`📊 Analytics not initialized: ${eventName}`, parameters);
+        if (!this.isEnabled || !this.isInitialized || typeof window.gtag !== 'function') {
+            console.log(`📊 Analytics disabled or not initialized: ${eventName}`, parameters);
             return;
         }
         
@@ -188,6 +188,19 @@ export class AnalyticsTracker {
         this.track('strava_integration', {
             action: action,
             ...properties
+        });
+    }
+
+    /**
+     * Track donation/support button clicks
+     * @param {string} platform - ko-fi, buymeacoffee, etc.
+     * @param {string} location - footer, modal, etc.
+     */
+    static trackDonationClick(platform = 'ko-fi', location = 'footer') {
+        this.track('donation_click', {
+            platform: platform,
+            location: location,
+            timestamp: new Date().toISOString()
         });
     }
 }

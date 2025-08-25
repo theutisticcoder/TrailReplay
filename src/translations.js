@@ -26,6 +26,14 @@ export const translations = {
             proTip: "💡 Pro Tip:",
             proTipText: "TrailReplay works entirely in your browser - no data is uploaded to servers, ensuring your privacy and enabling offline use!",
             
+            // GPX Download Guide section
+            gpxDownloadTitle: "How to Download GPX Files",
+            gpxDownloadSubtitle: "Complete guide to export your GPS tracks from popular platforms",
+            gpxDownloadDescription: "Before you can create trail animations, you'll need GPX files from your GPS activities. We've created a comprehensive guide showing you how to download GPX files from the most popular platforms like Wikiloc, Strava, Garmin Connect, and many others.",
+            viewGpxGuide: "📥 View Complete GPX Download Guide",
+            gpxGuideTip: "💡 Quick Tip:",
+            gpxGuideTipText: "The guide covers Wikiloc and Strava in detail, plus tips for other platforms like Garmin Connect, Apple Health, Google Fit, and more.",
+            
             // Sample files section
             sampleFiles: "Download Sample GPX Files",
             sampleFilesSubtitle: "Try TrailReplay with these example activities",
@@ -162,34 +170,118 @@ export const translations = {
             mapzenWorking: "Mapzen elevation data loading successfully"
         },
         
+        // GPX Download Guide
+        gpxGuide: {
+            link: "📥 GPX Download Guide",
+            welcomeTitle: "How to Download GPX Files",
+            welcomeSubtitle: "Complete guide to export your GPS tracks from popular platforms",
+            welcomeDescription: "To create stunning trail animations with TrailReplay, you'll need GPX files from your GPS activities. This guide shows you how to download GPX files from the most popular platforms, starting with Wikiloc and Strava.",
+            proTip: "💡 Pro Tip:",
+            proTipText: "GPX files contain your GPS track data with coordinates, timestamps, and elevation information. They're the standard format for sharing GPS tracks between different applications.",
+            
+            // Wikiloc section
+            wikilocTitle: "Wikiloc",
+            wikilocSubtitle: "World's largest outdoor activity platform",
+            wikilocDescription: "Wikiloc is one of the most popular platforms for outdoor activities, with millions of trails shared by the community. Here's how to download GPX files from your Wikiloc activities:",
+            wikilocStep1Title: "Log into your Wikiloc account",
+            wikilocStep1Desc: "Go to wikiloc.com and sign in with your username and password.",
+            wikilocStep2Title: "Navigate to your activities",
+            wikilocStep2Desc: "Click on your profile picture in the top right corner, then select \"My tracks\" from the dropdown menu.",
+            wikilocStep3Title: "Select the activity you want to download",
+            wikilocStep3Desc: "Find the activity you want to export and click on its title to open the detailed view.",
+            wikilocStep4Title: "Download the GPX file",
+            wikilocStep4Desc: "On the activity page, look for the \"Download\" button (usually in the top right area). Click it and select \"GPX\" format from the options.",
+            wikilocStep5Title: "Save the file",
+            wikilocStep5Desc: "The GPX file will download to your computer. You can now upload it to TrailReplay to create your animated trail video.",
+            wikilocTipTitle: "💡 Wikiloc Tips:",
+            wikilocTip1: "You can also download GPX files from other users' public trails",
+            wikilocTip2: "Wikiloc offers both free and premium accounts with different download limits",
+            wikilocTip3: "The GPX files include elevation data, which makes for great 3D animations",
+            
+            // Strava section
+            stravaTitle: "Strava",
+            stravaSubtitle: "Popular fitness tracking platform for athletes",
+            stravaDescription: "Strava is widely used by runners, cyclists, and other athletes to track their activities. Here's how to export your GPX files from Strava:",
+            stravaStep1Title: "Log into your Strava account",
+            stravaStep1Desc: "Go to strava.com and sign in with your credentials.",
+            stravaStep2Title: "Go to your activities",
+            stravaStep2Desc: "Click on your profile picture in the top right, then select \"My Activities\" or go directly to your dashboard.",
+            stravaStep3Title: "Select an activity",
+            stravaStep3Desc: "Find the activity you want to export and click on it to open the detailed view.",
+            stravaStep4Title: "Export the GPX file",
+            stravaStep4Desc: "On the activity page, click the three dots (⋮) menu in the top right corner, then select \"Export Original\" or \"Export GPX\".",
+            stravaStep5Title: "Download and save",
+            stravaStep5Desc: "The GPX file will download to your computer. You can now use it with TrailReplay to create beautiful trail animations.",
+            stravaExportInfo: "Strava offers two export options: \"Export GPX\" for a standard GPX file, and \"Export Original\" to get the exact file format you originally uploaded (which may be GPX, TCX, or FIT).",
+            stravaTipTitle: "💡 Strava Tips:",
+            stravaTip1: "Use \"Export GPX\" for a standard GPX file that works with TrailReplay",
+            stravaTip2: "Use \"Export Original\" to get the exact file format you originally uploaded",
+            stravaTip3: "Strava Premium members have access to more export options",
+            stravaTip4: "You can also export activities from other users if they're public",
+            
+            // Other platforms section
+            otherPlatformsTitle: "Other Popular Platforms",
+            otherPlatformsSubtitle: "How to download GPX files from other fitness and outdoor platforms",
+            garminTitle: "Garmin Connect",
+            garminDesc: "Export activities from Garmin devices through the Connect web platform or mobile app.",
+            appleHealthTitle: "Apple Health",
+            appleHealthDesc: "Export workout data from Apple Health app, though GPX export requires third-party apps.",
+            googleFitTitle: "Google Fit",
+            googleFitDesc: "Export fitness data through Google Takeout, though GPX format may require conversion.",
+            runkeeperTitle: "Runkeeper",
+            runkeeperDesc: "Export activities as GPX files through the web interface or mobile app settings.",
+            alltrailsTitle: "AllTrails",
+            alltrailsDesc: "Download GPX files from trail maps and your recorded activities through the web platform.",
+            polarTitle: "Polar Flow",
+            polarDesc: "Export activities from Polar devices through the Flow web platform or mobile app.",
+            generalTipTitle: "💡 General Tips for All Platforms:",
+            generalTip1: "Most platforms require you to be logged in to download your own activities",
+            generalTip2: "Look for \"Export\", \"Download\", or \"GPX\" options in activity menus",
+            generalTip3: "Some platforms may require a premium subscription for GPX export",
+            generalTip4: "Always check the platform's privacy settings before sharing activities",
+            
+            // File format section
+            fileFormatTitle: "Understanding GPX Files",
+            fileFormatSubtitle: "What's inside a GPX file and why it works with TrailReplay",
+            whatIsGPXTitle: "What is a GPX file?",
+            whatIsGPXDesc: "GPX (GPS Exchange Format) is an open standard for storing GPS track data. It's an XML file that contains:",
+            gpxElement1: "<strong>Track points:</strong> Latitude, longitude, and elevation coordinates",
+            gpxElement2: "<strong>Timestamps:</strong> When each point was recorded",
+            gpxElement3: "<strong>Metadata:</strong> Activity name, description, and device information",
+            gpxElement4: "<strong>Waypoints:</strong> Important locations along your route",
+            trailreplayCompatibleTitle: "✅ TrailReplay Compatible:",
+            trailreplayCompatibleDesc: "TrailReplay reads all standard GPX files and uses the track points to create smooth animations. The more track points, the smoother your animation will be!",
+            fileQualityTitle: "Getting the Best Quality GPX Files",
+            fileQualityDesc: "For the best TrailReplay experience, look for GPX files with:",
+            qualityTip1: "<strong>High point density:</strong> More track points = smoother animations",
+            qualityTip2: "<strong>Accurate timestamps:</strong> Helps TrailReplay create realistic timing",
+            qualityTip3: "<strong>Elevation data:</strong> Enables 3D terrain visualization",
+            qualityTip4: "<strong>Clean data:</strong> Fewer GPS errors and outliers",
+            
+            // Next steps section
+            nextStepsTitle: "Ready to Create Your Trail Animation?",
+            nextStepsSubtitle: "Now that you have your GPX files, it's time to bring them to life",
+            nextStepsDesc: "Once you've downloaded your GPX files from your preferred platform, you're ready to create stunning trail animations with TrailReplay:",
+            nextStep1Title: "Upload your GPX files",
+            nextStep1Desc: "Go to TrailReplay and drag & drop your GPX files onto the upload area.",
+            nextStep2Title: "Build your journey",
+            nextStep2Desc: "Arrange your tracks in the Journey Builder and add transportation segments if needed.",
+            nextStep3Title: "Customize your animation",
+            nextStep3Desc: "Choose map styles, colors, and animation settings to match your story.",
+            nextStep4Title: "Export your video",
+            nextStep4Desc: "Create a beautiful video to share your adventure with friends and family.",
+            needHelpTitle: "Need Help?",
+            needHelpDesc: "Check out our complete tutorial and examples for detailed instructions on using TrailReplay's features.",
+            backToApp: "← Back to TrailReplay App"
+        },
+        
         upload: {
             title: "Upload GPX Files & Pictures",
             description: "Add multiple GPX tracks and images to create your journey",
             button: "Choose Files"
         },
         
-        strava: {
-            title: 'Compatible with Strava',
-            description: 'Connect your Strava account to import GPX files from your activities.',
-            connect: 'Connect with Strava',
-            disconnect: 'Disconnect',
-            connected: 'Connected',
-            disconnected: 'Disconnected',
-            loading: 'Loading...',
-            error: 'Error connecting to Strava',
-            noActivities: 'No activities found',
-            loadActivities: 'Load Activities',
-            logout: 'Logout',
-            loadMore: 'Load More Activities',
-            activitiesInfo: 'Activities from the past 2 years with GPS data',
-            activities: 'Activities',
-            importActivity: 'Import Activity',
-            importing: 'Importing...',
-            imported: 'Imported successfully',
-            importError: 'Error importing activity',
-            viewOnStrava: 'View on Strava',
-            or: 'or'
-        },
+
 
         landing: {
             hero: {
@@ -199,12 +291,12 @@ export const translations = {
             features: {
                 conversion: 'GPX to Video Conversion',
                 maps: '3D Animated Maps',
-                strava: 'Strava Integration',
                 free: '100% Free'
             },
             cta: {
                 start: 'Start Converting Your GPX Files',
-                tutorial: 'View Tutorial & Examples'
+                tutorial: 'View Tutorial & Examples',
+                gpxGuide: '📥 GPX Download Guide'
             },
             benefits: {
                 title: 'Why Choose Our GPX to Video Converter?',
@@ -220,10 +312,7 @@ export const translations = {
                     title: 'Easy to Use',
                     description: 'Simply upload your GPX files and watch them transform into engaging videos. No technical knowledge required - our online GPX converter does all the work.'
                 },
-                integration: {
-                    title: 'Strava Integration',
-                    description: 'Connect directly with Strava to import your activities. Turn your Strava routes into shareable video content effortlessly.'
-                }
+
             },
             useCases: {
                 title: 'Perfect for:',
@@ -238,7 +327,7 @@ export const translations = {
                 title: 'How It Works',
                 step1: {
                     title: 'Upload GPX Files',
-                    description: 'Upload your GPX files from your GPS watch, phone, or download from Strava. Supports multiple tracks and image annotations.'
+                    description: 'Upload your GPX files from your GPS watch, phone, or any source. Supports multiple tracks and image annotations.'
                 },
                 step2: {
                     title: 'Customize & Preview',
@@ -735,6 +824,14 @@ export const translations = {
             proTip: "💡 Consejo Profesional:",
             proTipText: "¡TrailReplay funciona completamente en tu navegador - no se suben datos a servidores, garantizando tu privacidad y permitiendo uso offline!",
             
+            // GPX Download Guide section
+            gpxDownloadTitle: "Cómo Descargar Archivos GPX",
+            gpxDownloadSubtitle: "Guía completa para exportar tus tracks GPS desde plataformas populares",
+            gpxDownloadDescription: "Antes de poder crear animaciones de senderos, necesitarás archivos GPX de tus actividades GPS. Hemos creado una guía completa que te muestra cómo descargar archivos GPX desde las plataformas más populares como Wikiloc, Strava, Garmin Connect y muchas otras.",
+            viewGpxGuide: "📥 Ver Guía Completa de Descarga GPX",
+            gpxGuideTip: "💡 Consejo Rápido:",
+            gpxGuideTipText: "La guía cubre Wikiloc y Strava en detalle, además de consejos para otras plataformas como Garmin Connect, Apple Health, Google Fit y más.",
+            
             // Sample files section
             sampleFiles: "Descargar Archivos GPX de Ejemplo",
             sampleFilesSubtitle: "Prueba TrailReplay con estas actividades de ejemplo",
@@ -871,34 +968,118 @@ export const translations = {
             mapzenWorking: "Datos de elevación Mapzen cargando correctamente"
         },
         
+        // GPX Download Guide
+        gpxGuide: {
+            link: "📥 Guía de Descarga GPX",
+            welcomeTitle: "Cómo Descargar Archivos GPX",
+            welcomeSubtitle: "Guía completa para exportar tus tracks GPS desde plataformas populares",
+            welcomeDescription: "Para crear impresionantes animaciones de senderos con TrailReplay, necesitarás archivos GPX de tus actividades GPS. Esta guía te muestra cómo descargar archivos GPX desde las plataformas más populares, comenzando con Wikiloc y Strava.",
+            proTip: "💡 Consejo Profesional:",
+            proTipText: "Los archivos GPX contienen los datos de tu track GPS con coordenadas, marcas de tiempo e información de elevación. Son el formato estándar para compartir tracks GPS entre diferentes aplicaciones.",
+            
+            // Wikiloc section
+            wikilocTitle: "Wikiloc",
+            wikilocSubtitle: "La plataforma de actividades al aire libre más grande del mundo",
+            wikilocDescription: "Wikiloc es una de las plataformas más populares para actividades al aire libre, con millones de senderos compartidos por la comunidad. Aquí te explicamos cómo descargar archivos GPX de tus actividades en Wikiloc:",
+            wikilocStep1Title: "Inicia sesión en tu cuenta de Wikiloc",
+            wikilocStep1Desc: "Ve a wikiloc.com e inicia sesión con tu nombre de usuario y contraseña.",
+            wikilocStep2Title: "Navega a tus actividades",
+            wikilocStep2Desc: "Haz clic en tu foto de perfil en la esquina superior derecha, luego selecciona \"Mis tracks\" del menú desplegable.",
+            wikilocStep3Title: "Selecciona la actividad que quieres descargar",
+            wikilocStep3Desc: "Encuentra la actividad que quieres exportar y haz clic en su título para abrir la vista detallada.",
+            wikilocStep4Title: "Descarga el archivo GPX",
+            wikilocStep4Desc: "En la página de la actividad, busca el botón \"Descargar\" (generalmente en el área superior derecha). Haz clic en él y selecciona el formato \"GPX\" de las opciones.",
+            wikilocStep5Title: "Guarda el archivo",
+            wikilocStep5Desc: "El archivo GPX se descargará a tu computadora. Ahora puedes subirlo a TrailReplay para crear tu video de sendero animado.",
+            wikilocTipTitle: "💡 Consejos de Wikiloc:",
+            wikilocTip1: "También puedes descargar archivos GPX de senderos públicos de otros usuarios",
+            wikilocTip2: "Wikiloc ofrece cuentas gratuitas y premium con diferentes límites de descarga",
+            wikilocTip3: "Los archivos GPX incluyen datos de elevación, lo que hace que las animaciones 3D sean excelentes",
+            
+            // Strava section
+            stravaTitle: "Strava",
+            stravaSubtitle: "Plataforma popular de seguimiento de fitness para atletas",
+            stravaDescription: "Strava es ampliamente utilizada por corredores, ciclistas y otros atletas para rastrear sus actividades. Aquí te explicamos cómo exportar tus archivos GPX desde Strava:",
+            stravaStep1Title: "Inicia sesión en tu cuenta de Strava",
+            stravaStep1Desc: "Ve a strava.com e inicia sesión con tus credenciales.",
+            stravaStep2Title: "Ve a tus actividades",
+            stravaStep2Desc: "Haz clic en tu foto de perfil en la esquina superior derecha, luego selecciona \"Mis Actividades\" o ve directamente a tu panel.",
+            stravaStep3Title: "Selecciona una actividad",
+            stravaStep3Desc: "Encuentra la actividad que quieres exportar y haz clic en ella para abrir la vista detallada.",
+            stravaStep4Title: "Exporta el archivo GPX",
+            stravaStep4Desc: "En la página de la actividad, haz clic en el menú de tres puntos (⋮) en la esquina superior derecha, luego selecciona \"Exportar Original\" o \"Exportar GPX\".",
+            stravaStep5Title: "Descarga y guarda",
+            stravaStep5Desc: "El archivo GPX se descargará a tu computadora. Ahora puedes usarlo con TrailReplay para crear hermosas animaciones de senderos.",
+            stravaExportInfo: "Strava ofrece dos opciones de exportación: \"Exportar GPX\" para un archivo GPX estándar, y \"Exportar Original\" para obtener el formato de archivo exacto que subiste originalmente (que puede ser GPX, TCX o FIT).",
+            stravaTipTitle: "💡 Consejos de Strava:",
+            stravaTip1: "Usa \"Exportar GPX\" para un archivo GPX estándar que funciona con TrailReplay",
+            stravaTip2: "Usa \"Exportar Original\" para obtener el formato de archivo exacto que subiste originalmente",
+            stravaTip3: "Los miembros Premium de Strava tienen acceso a más opciones de exportación",
+            stravaTip4: "También puedes exportar actividades de otros usuarios si son públicas",
+            
+            // Other platforms section
+            otherPlatformsTitle: "Otras Plataformas Populares",
+            otherPlatformsSubtitle: "Cómo descargar archivos GPX desde otras plataformas de fitness y actividades al aire libre",
+            garminTitle: "Garmin Connect",
+            garminDesc: "Exporta actividades desde dispositivos Garmin a través de la plataforma web Connect o la aplicación móvil.",
+            appleHealthTitle: "Apple Health",
+            appleHealthDesc: "Exporta datos de entrenamiento desde la aplicación Apple Health, aunque la exportación GPX requiere aplicaciones de terceros.",
+            googleFitTitle: "Google Fit",
+            googleFitDesc: "Exporta datos de fitness a través de Google Takeout, aunque el formato GPX puede requerir conversión.",
+            runkeeperTitle: "Runkeeper",
+            runkeeperDesc: "Exporta actividades como archivos GPX a través de la interfaz web o configuraciones de la aplicación móvil.",
+            alltrailsTitle: "AllTrails",
+            alltrailsDesc: "Descarga archivos GPX desde mapas de senderos y tus actividades grabadas a través de la plataforma web.",
+            polarTitle: "Polar Flow",
+            polarDesc: "Exporta actividades desde dispositivos Polar a través de la plataforma web Flow o la aplicación móvil.",
+            generalTipTitle: "💡 Consejos Generales para Todas las Plataformas:",
+            generalTip1: "La mayoría de las plataformas requieren que inicies sesión para descargar tus propias actividades",
+            generalTip2: "Busca opciones \"Exportar\", \"Descargar\" o \"GPX\" en los menús de actividades",
+            generalTip3: "Algunas plataformas pueden requerir una suscripción premium para la exportación GPX",
+            generalTip4: "Siempre verifica la configuración de privacidad de la plataforma antes de compartir actividades",
+            
+            // File format section
+            fileFormatTitle: "Entendiendo los Archivos GPX",
+            fileFormatSubtitle: "Qué hay dentro de un archivo GPX y por qué funciona con TrailReplay",
+            whatIsGPXTitle: "¿Qué es un archivo GPX?",
+            whatIsGPXDesc: "GPX (GPS Exchange Format) es un estándar abierto para almacenar datos de tracks GPS. Es un archivo XML que contiene:",
+            gpxElement1: "<strong>Puntos de track:</strong> Coordenadas de latitud, longitud y elevación",
+            gpxElement2: "<strong>Marcas de tiempo:</strong> Cuándo se grabó cada punto",
+            gpxElement3: "<strong>Metadatos:</strong> Nombre de la actividad, descripción e información del dispositivo",
+            gpxElement4: "<strong>Waypoints:</strong> Ubicaciones importantes a lo largo de tu ruta",
+            trailreplayCompatibleTitle: "✅ Compatible con TrailReplay:",
+            trailreplayCompatibleDesc: "TrailReplay lee todos los archivos GPX estándar y usa los puntos de track para crear animaciones suaves. ¡Cuántos más puntos de track, más suave será tu animación!",
+            fileQualityTitle: "Obteniendo los Mejores Archivos GPX de Calidad",
+            fileQualityDesc: "Para la mejor experiencia con TrailReplay, busca archivos GPX con:",
+            qualityTip1: "<strong>Alta densidad de puntos:</strong> Más puntos de track = animaciones más suaves",
+            qualityTip2: "<strong>Marcas de tiempo precisas:</strong> Ayuda a TrailReplay a crear tiempos realistas",
+            qualityTip3: "<strong>Datos de elevación:</strong> Permite la visualización de terreno 3D",
+            qualityTip4: "<strong>Datos limpios:</strong> Menos errores GPS y valores atípicos",
+            
+            // Next steps section
+            nextStepsTitle: "¿Listo para Crear tu Animación de Sendero?",
+            nextStepsSubtitle: "Ahora que tienes tus archivos GPX, es hora de darles vida",
+            nextStepsDesc: "Una vez que hayas descargado tus archivos GPX desde tu plataforma preferida, estás listo para crear impresionantes animaciones de senderos con TrailReplay:",
+            nextStep1Title: "Sube tus archivos GPX",
+            nextStep1Desc: "Ve a TrailReplay y arrastra y suelta tus archivos GPX en el área de carga.",
+            nextStep2Title: "Construye tu viaje",
+            nextStep2Desc: "Organiza tus tracks en el Constructor de Viajes y añade segmentos de transporte si es necesario.",
+            nextStep3Title: "Personaliza tu animación",
+            nextStep3Desc: "Elige estilos de mapa, colores y configuraciones de animación para que coincidan con tu historia.",
+            nextStep4Title: "Exporta tu video",
+            nextStep4Desc: "Crea un hermoso video para compartir tu aventura con amigos y familia.",
+            needHelpTitle: "¿Necesitas Ayuda?",
+            needHelpDesc: "Consulta nuestro tutorial completo y ejemplos para instrucciones detalladas sobre cómo usar las funciones de TrailReplay.",
+            backToApp: "← Volver a la App TrailReplay"
+        },
+        
         upload: {
             title: "Subir Archivos GPX y Fotos",
             description: "Añade múltiples rutas GPX e imágenes para crear tu viaje",
             button: "Elegir Archivos"
         },
         
-        strava: {
-            title: 'Compatible con Strava',
-            description: 'Conecta tu cuenta de Strava para importar archivos GPX de tus actividades.',
-            connect: 'Conectar con Strava',
-            disconnect: 'Desconectar',
-            connected: 'Conectado',
-            disconnected: 'Desconectado',
-            loading: 'Cargando...',
-            error: 'Error al conectar con Strava',
-            noActivities: 'No se encontraron actividades',
-            loadActivities: 'Cargar Actividades',
-            logout: 'Cerrar Sesión',
-            loadMore: 'Cargar Más Actividades',
-            activitiesInfo: 'Actividades de los últimos 2 años con datos GPS',
-            activities: 'Actividades',
-            importActivity: 'Importar Actividad',
-            importing: 'Importando...',
-            imported: 'Importado exitosamente',
-            importError: 'Error al importar actividad',
-            viewOnStrava: 'Ver en Strava',
-            or: 'o'
-        },
+
 
         landing: {
             hero: {
@@ -908,12 +1089,12 @@ export const translations = {
             features: {
                 conversion: 'Conversión GPX a Video',
                 maps: 'Mapas Animados 3D',
-                strava: 'Integración con Strava',
                 free: '100% Gratuito'
             },
             cta: {
                 start: 'Comienza a Convertir tus Archivos GPX',
-                tutorial: 'Ver Tutorial y Ejemplos'
+                tutorial: 'Ver Tutorial y Ejemplos',
+                gpxGuide: '📥 Guía de Descarga GPX'
             },
             benefits: {
                 title: '¿Por Qué Elegir Nuestro Conversor de GPX a Video?',
@@ -929,10 +1110,7 @@ export const translations = {
                     title: 'Fácil de Usar',
                     description: 'Simplemente sube tus archivos GPX y míralos transformarse en videos atractivos. No se requiere conocimiento técnico - nuestro conversor GPX en línea hace todo el trabajo.'
                 },
-                integration: {
-                    title: 'Integración con Strava',
-                    description: 'Conéctate directamente con Strava para importar tus actividades. Convierte tus rutas de Strava en contenido de video compartible sin esfuerzo.'
-                }
+
             },
             useCases: {
                 title: 'Perfecto para:',
@@ -947,7 +1125,7 @@ export const translations = {
                 title: 'Cómo Funciona',
                 step1: {
                     title: 'Sube Archivos GPX',
-                    description: 'Sube tus archivos GPX desde tu reloj GPS, teléfono, o descárgalos de Strava. Soporta múltiples tracks y anotaciones de imágenes.'
+                    description: 'Sube tus archivos GPX desde tu reloj GPS, teléfono, o cualquier fuente. Soporta múltiples tracks y anotaciones de imágenes.'
                 },
                 step2: {
                     title: 'Personaliza y Previsualiza',

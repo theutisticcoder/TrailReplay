@@ -26,6 +26,51 @@
     <link rel="stylesheet" href="./src/styles.css">
     <link rel="icon" type="image/png" href="media/images/simplelogo.png" />
     
+    <style>
+        /* Tutorial and GPX Guide button styles */
+        .tutorial-btn, .gpx-guide-btn {
+            text-decoration: none;
+            font-weight: 600;
+            padding: 0.7rem 1.5rem;
+            border-radius: 6px;
+            transition: all 200ms ease-out;
+            font-size: 1.15rem;
+            display: inline-block;
+            margin: 0.5rem;
+        }
+        
+        .tutorial-btn {
+            color: var(--trail-orange);
+            border: 2px solid var(--trail-orange);
+        }
+        
+        .tutorial-btn:hover {
+            background: var(--trail-orange);
+            color: var(--canvas);
+            transform: translateY(-2px);
+        }
+        
+        .gpx-guide-btn {
+            color: var(--evergreen);
+            border: 2px solid var(--evergreen);
+        }
+        
+        .gpx-guide-btn:hover {
+            background: var(--evergreen);
+            color: var(--canvas);
+            transform: translateY(-2px);
+        }
+        
+        /* Mobile responsive spacing */
+        @media (max-width: 768px) {
+            .tutorial-btn, .gpx-guide-btn {
+                display: block;
+                margin: 0.75rem auto;
+                max-width: 280px;
+            }
+        }
+    </style>
+    
     <!-- JSON-LD Structured Data -->
     <script type="application/ld+json">
     {
@@ -93,8 +138,11 @@
 <body>
     <div id="header"></div>
     <div class="tutorial-link" style="margin: 1.5rem auto 0 auto; text-align:center;">
-        <a href="tutorial.html" data-i18n="tutorial.link" style="color: var(--trail-orange); text-decoration: none; font-weight: 600; padding: 0.7rem 1.5rem; border: 2px solid var(--trail-orange); border-radius: 6px; transition: all 200ms ease-out; font-size:1.15rem; display:inline-block;">
+        <a href="tutorial.html" data-i18n="tutorial.link" class="tutorial-btn">
             📚 Tutorial & Examples
+        </a>
+        <a href="gpx-download-guide.html" data-i18n="gpxGuide.link" class="gpx-guide-btn">
+            📥 GPX Download Guide
         </a>
     </div>
     <div id="app">

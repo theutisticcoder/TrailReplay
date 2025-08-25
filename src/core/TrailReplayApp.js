@@ -10,7 +10,7 @@ import { ProgressController } from '../controllers/ProgressController.js';
 import { JourneyController } from '../controllers/JourneyController.js';
 import { IconController } from '../controllers/IconController.js';
 import { TimelineController } from '../controllers/TimelineController.js';
-import { StravaController } from '../controllers/StravaController.js';
+
 import { setupEventListeners } from '../ui/eventListeners.js';
 import { setupModals } from '../ui/modalController.js';
 import { DEFAULT_SETTINGS, ICON_CATEGORIES, AVAILABLE_ICONS } from '../utils/constants.js';
@@ -88,7 +88,6 @@ export class TrailReplayApp {
         this.exporter = new ExportController(this);
         this.videoExporter = new VideoExportController(this);
         this.notes = new AnnotationController(this);
-        this.strava = new StravaController(this); // Initialize StravaController
 
         // Set legacy compatibility references
         this.mapController = this.map;
@@ -112,12 +111,6 @@ export class TrailReplayApp {
         
         // Initialize video export functionality
         this.videoExporter.initialize();
-        
-        // Initialize Strava integration
-        this.strava.initialize();
-        
-        // Make strava controller globally accessible
-        window.stravaController = this.strava;
         
         // Set up timing synchronization for journeys
         this.setupTimingSynchronization();
