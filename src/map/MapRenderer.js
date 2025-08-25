@@ -762,6 +762,12 @@ export class MapRenderer {
         
         // Now start the actual trail animation
         this.isAnimating = true;
+        
+        // Hide the full track line during animation - only show completed portion
+        if (this.map.getLayer('trail-line')) {
+            this.map.setPaintProperty('trail-line', 'line-opacity', 0);
+        }
+        
         // If in follow-behind mode, disable all map interactions during animation
         if (this.cameraMode === 'followBehind') {
             this.disableMapInteractions();
@@ -810,6 +816,16 @@ export class MapRenderer {
             this.animationProgress = 1;
             this.journeyElapsedTime = this.segmentTimings.totalDuration;
             this.isAnimating = false;
+            
+            // Show the full track line again when animation completes
+            if (this.map.getLayer('trail-line')) {
+                this.map.setPaintProperty('trail-line', 'line-opacity', [
+                    'case',
+                    ['==', ['get', 'isTransportation'], true], 0.9,
+                    0.8
+                ]);
+            }
+            
             // If in follow-behind mode, trigger zoom-out to show whole track after a brief pause
             if (this.cameraMode === 'followBehind') {
                 console.log('🎬 Animation complete, starting zoom-out sequence');
@@ -858,6 +874,16 @@ export class MapRenderer {
 
     stopAnimation() {
         this.isAnimating = false;
+        
+        // Show the full track line again when animation stops
+        if (this.map.getLayer('trail-line')) {
+            this.map.setPaintProperty('trail-line', 'line-opacity', [
+                'case',
+                ['==', ['get', 'isTransportation'], true], 0.9,
+                0.8
+            ]);
+        }
+        
         // If in follow-behind mode, allow zooming when paused
         if (this.cameraMode === 'followBehind') {
             this.enableZoomOnlyInteractions();
@@ -880,6 +906,15 @@ export class MapRenderer {
         
         // Reset follow-behind specific flags for next animation
         this.followBehindCamera.setCinematicStart(true);
+        
+        // Show the full track line when animation is reset
+        if (this.map.getLayer('trail-line')) {
+            this.map.setPaintProperty('trail-line', 'line-opacity', [
+                'case',
+                ['==', ['get', 'isTransportation'], true], 0.9,
+                0.8
+            ]);
+        }
         
         this.updateCurrentPosition();
         
