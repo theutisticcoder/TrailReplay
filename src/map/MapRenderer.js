@@ -157,6 +157,15 @@ export class MapRenderer {
             }
             // Initialize marker-dependent controls state
             this.updateMarkerDependentControls(this.showMarker);
+            
+            // Initialize elevation profile color
+            const progressPath = document.getElementById('progressPath');
+            if (progressPath) {
+                progressPath.setAttribute('stroke', this.pathColor);
+            }
+            
+            // Initialize elevation profile gradient
+            this.updateElevationGradient(this.pathColor);
         });
 
         // Add click handler for annotations and icon changes
@@ -483,6 +492,61 @@ export class MapRenderer {
             this.map.setPaintProperty('trail-line', 'line-color', color);
             this.map.setPaintProperty('trail-completed', 'line-color', color);
             this.map.setPaintProperty('current-position-glow', 'circle-color', color);
+        }
+        
+        // Update elevation profile progress color
+        const progressPath = document.getElementById('progressPath');
+        if (progressPath) {
+            progressPath.setAttribute('stroke', color);
+        }
+        
+        // Update elevation profile gradient colors
+        this.updateElevationGradient(color);
+    }
+
+    updateElevationGradient(baseColor) {
+        // Convert hex color to RGB for manipulation
+        const hexToRgb = (hex) => {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : null;
+        };
+
+        const rgb = hexToRgb(baseColor);
+        if (!rgb) return;
+
+        // Create lighter variants of the base color for gradient
+        const lighten = (r, g, b, factor) => {
+            return {
+                r: Math.min(255, Math.round(r + (255 - r) * factor)),
+                g: Math.min(255, Math.round(g + (255 - g) * factor)),
+                b: Math.min(255, Math.round(b + (255 - b) * factor))
+            };
+        };
+
+        const rgbToHex = (r, g, b) => {
+            return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+        };
+
+        // Generate gradient colors
+        const midColor = lighten(rgb.r, rgb.g, rgb.b, 0.3);
+        const lightColor = lighten(rgb.r, rgb.g, rgb.b, 0.6);
+
+        const midColorHex = rgbToHex(midColor.r, midColor.g, midColor.b);
+        const lightColorHex = rgbToHex(lightColor.r, lightColor.g, lightColor.b);
+
+        // Update gradient stops
+        const progressGradient = document.getElementById('progressGradient');
+        if (progressGradient) {
+            const stops = progressGradient.querySelectorAll('stop');
+            if (stops.length >= 3) {
+                stops[0].setAttribute('style', `stop-color:${baseColor};stop-opacity:0.9`);
+                stops[1].setAttribute('style', `stop-color:${midColorHex};stop-opacity:0.7`);
+                stops[2].setAttribute('style', `stop-color:${lightColorHex};stop-opacity:0.5`);
+            }
         }
     }
 
