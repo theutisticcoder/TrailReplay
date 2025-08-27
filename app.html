@@ -229,8 +229,8 @@
                         <div class="control-group">
                             <label for="terrainStyle">Map Style:</label>
                             <select id="terrainStyle">
-                                <option value="hybrid" selected>🛰️🗺️ Hybrid</option>
-                                <option value="satellite">🛰️ Satellite</option>
+                                <option value="hybrid">🛰️🗺️ Hybrid</option>
+                                <option value="satellite" selected>🛰️ Satellite</option>
                                 <option value="opentopomap">🗻 Terrain (OpenTopoMap)</option>
                                 <option value="street">🗺️ Street</option>
                             </select>
@@ -359,6 +359,18 @@
                         </div>
                         </div>
 
+                        <!-- Stats Settings -->
+                        <div class="control-section">
+                            <div class="control-section-header" data-i18n="controls.statsSettings">📊 Stats Settings</div>
+                            <div class="control-group">
+                                <label data-i18n="controls.showEndStats">Show End Stats</label>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="showEndStats" checked>
+                                    <label for="showEndStats" class="toggle-slider"></label>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Action Buttons -->
                         <div class="control-buttons">
                             <button id="addIconChangeBtn" class="control-btn">
@@ -385,10 +397,16 @@
                             <div class="elevation-profile-container">
                                 <!-- Live Stats integrated into elevation profile -->
                                 <div id="liveStatsOverlay" class="live-stats-overlay">
-                                    <span class="live-stat-label">D:</span>
-                                    <span class="live-stat-value" id="liveDistance">0.0 km</span><br>
-                                    <span class="live-stat-label">E:</span>
-                                    <span class="live-stat-value" id="liveElevation">0 m</span>
+                                    <div class="live-stat-item">
+                                        <span class="live-stat-label">D:</span>
+                                        <span class="live-stat-full-label" data-i18n="controls.distance"></span>
+                                        <span class="live-stat-value" id="liveDistance">0.0 km</span>
+                                    </div>
+                                    <div class="live-stat-item">
+                                        <span class="live-stat-label">E:</span>
+                                        <span class="live-stat-full-label" data-i18n="controls.elevation"></span>
+                                        <span class="live-stat-value" id="liveElevation">0 m</span>
+                                    </div>
                                 </div>
                                 
                                 <div class="elevation-progress-bar" id="progressBar">

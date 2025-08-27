@@ -25,7 +25,8 @@ export class MapRenderer {
         this.markerSize = DEFAULT_SETTINGS.DEFAULT_MARKER_SIZE;
         this.autoZoom = true;
         this.showCircle = true;
-        this.showMarker = true; // Controls marker visibility
+        this.showMarker = true;
+        this.showEndStats = true; // Controls marker visibility
         this.currentIcon = '🏃‍♂️';
         this.userSelectedBaseIcon = null; // Stores user's custom base icon choice
         this.gpxParser = new GPXParser();
@@ -520,6 +521,11 @@ export class MapRenderer {
         this.updateMarkerDependentControls(enabled);
     }
 
+    setShowEndStats(enabled) {
+        this.showEndStats = enabled;
+        console.log('🎯 End stats visibility set to:', enabled);
+    }
+
     setAnimationSpeed(speed) {
         this.animationSpeed = speed;
     }
@@ -845,6 +851,9 @@ export class MapRenderer {
                 ]);
             }
             
+            // Trigger stats end animation
+            this.triggerStatsEndAnimation();
+            
             // If in follow-behind mode, trigger zoom-out to show whole track after a brief pause
             if (this.cameraMode === 'followBehind') {
                 console.log('🎬 Animation complete, starting zoom-out sequence');
@@ -922,6 +931,9 @@ export class MapRenderer {
         if (this.pictureAnnotations && this.pictureAnnotations.resetTriggeredStates) {
             this.pictureAnnotations.resetTriggeredStates();
         }
+        
+        // Reset stats end animation
+        this.resetStatsEndAnimation();
         
         // Reset follow-behind specific flags for next animation
         this.followBehindCamera.setCinematicStart(true);
@@ -1214,6 +1226,55 @@ export class MapRenderer {
         });
     }
 
+    triggerStatsEndAnimation() {
+        const overlay = document.getElementById('liveStatsOverlay');
+        if (!overlay || !this.showEndStats) {
+            console.log('🎯 End stats animation skipped:', !overlay ? 'overlay not found' : 'disabled by user');
+            return;
+        }
+        
+        console.log('🎯 Triggering stats end animation');
+        
+        // Detect layout based on screen size and map aspect ratio
+        const mapContainer = this.map.getContainer();
+        const mapWidth = mapContainer.clientWidth;
+        const mapHeight = mapContainer.clientHeight;
+        const aspectRatio = mapWidth / mapHeight;
+        const isMobile = window.innerWidth <= 768;
+        
+        // Remove any existing layout classes
+        overlay.classList.remove('mobile-layout', 'square-layout', 'horizontal-layout');
+        
+        // Determine layout based on conditions
+        if (isMobile) {
+            overlay.classList.add('mobile-layout');
+        } else if (aspectRatio >= 0.8 && aspectRatio <= 1.2) {
+            // Square-ish aspect ratio (0.8 to 1.2)
+            overlay.classList.add('square-layout');
+        } else {
+            // Horizontal/widescreen aspect ratio
+            overlay.classList.add('horizontal-layout');
+        }
+        
+        // Add the end animation class to trigger the CSS transition
+        overlay.classList.add('end-animation');
+        
+        // Remove the animation after 10 seconds to return to normal state
+        setTimeout(() => {
+            overlay.classList.remove('end-animation', 'mobile-layout', 'square-layout', 'horizontal-layout');
+        }, 10000);
+    }
+
+    resetStatsEndAnimation() {
+        const overlay = document.getElementById('liveStatsOverlay');
+        if (!overlay) return;
+        
+        console.log('🎯 Resetting stats end animation');
+        
+        // Remove the end animation class and layout classes to return to normal state
+        overlay.classList.remove('end-animation', 'mobile-layout', 'square-layout', 'horizontal-layout');
+    }
+
     destroy() {
         if (this.map) {
             this.map.remove();
@@ -1248,6 +1309,12 @@ export class MapRenderer {
 
     setAnimationProgress(progress) {
         this.animationProgress = Math.max(0, Math.min(1, progress));
+        
+        // Reset stats animation if seeking away from the end
+        if (progress < 0.98) {
+            this.resetStatsEndAnimation();
+        }
+        
         // --- Per-segment time calculation ---
         if (this.segmentTimings && this.segmentTimings.segments && this.segmentTimings.segments.length > 0) {
             // Map global progress to journeyElapsedTime

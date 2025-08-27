@@ -2104,12 +2104,184 @@ body.route-drawing-active .transportation-options {
     margin: 0.5rem 0 0 0.5rem !important;
     max-width: 180px !important;
     min-width: 0 !important;
+    transition: all 1.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    transform-origin: center !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.1rem !important;
 }
+
+/* End animation state - bigger and prominent */
+.live-stats-overlay.end-animation {
+    position: absolute !important;
+    top: 2rem !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    margin: 0 !important;
+    max-width: none !important;
+    min-width: auto !important;
+    font-size: 1.8rem !important;
+    background: rgba(255, 255, 255, 0.15) !important;
+    border-radius: 20px !important;
+    padding: 1.2rem 2.5rem !important;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3) !important;
+    text-align: center !important;
+    z-index: 1000 !important;
+    display: inline-flex !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    gap: 3rem !important;
+    backdrop-filter: blur(15px) !important;
+    -webkit-backdrop-filter: blur(15px) !important;
+}
+
+/* Different layouts for different aspect ratios */
+
+/* Mobile layout - 4 rows */
+.live-stats-overlay.end-animation.mobile-layout {
+    flex-direction: column !important;
+    gap: 0.6rem !important;
+    font-size: 1rem !important;
+    padding: 1rem 1.5rem !important;
+    min-width: 200px !important;
+    max-width: 85vw !important;
+}
+
+.live-stats-overlay.end-animation.mobile-layout .live-stat-item {
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 1rem !important;
+    width: 100%;
+    padding: 0.2rem 0 !important;
+}
+
+.live-stats-overlay.end-animation.mobile-layout .live-stat-full-label {
+    font-size: 0.85rem !important;
+    text-align: left !important;
+    font-weight: 600 !important;
+    white-space: nowrap !important;
+}
+
+.live-stats-overlay.end-animation.mobile-layout .live-stat-value {
+    font-size: 0.9rem !important;
+    text-align: right !important;
+    font-weight: 700 !important;
+    white-space: nowrap !important;
+}
+
+/* Square layout - centered 2x2 */
+.live-stats-overlay.end-animation.square-layout {
+    flex-direction: row !important;
+    gap: 3.5rem !important;
+    font-size: 1.4rem !important;
+    padding: 1.5rem 3rem !important;
+    min-width: 320px !important;
+}
+
+.live-stats-overlay.end-animation.square-layout .live-stat-item {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    min-width: 100px !important;
+}
+
+.live-stats-overlay.end-animation.square-layout .live-stat-full-label {
+    font-size: 1.1rem !important;
+    white-space: nowrap !important;
+}
+
+.live-stats-overlay.end-animation.square-layout .live-stat-value {
+    font-size: 1.4rem !important;
+    white-space: nowrap !important;
+}
+
+/* Horizontal layout - 2 rows with labels on left */
+.live-stats-overlay.end-animation.horizontal-layout {
+    flex-direction: column !important;
+    gap: 0.6rem !important;
+    font-size: 1.3rem !important;
+    padding: 1rem 2rem !important;
+}
+
+.live-stats-overlay.end-animation.horizontal-layout .live-stat-item {
+    flex-direction: row !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    gap: 1rem !important;
+}
+
+.live-stats-overlay.end-animation.horizontal-layout .live-stat-full-label {
+    font-size: 1rem !important;
+    text-align: left !important;
+    min-width: 80px;
+}
+
+.live-stats-overlay.end-animation.horizontal-layout .live-stat-full-label:after {
+    content: ":";
+}
+
+.live-stats-overlay.end-animation.horizontal-layout .live-stat-value {
+    font-size: 1.1rem !important;
+    text-align: left !important;
+}
+
+/* Pulse animation for end stats */
+@keyframes statsPulse {
+    0%, 100% {
+        transform: translateX(-50%) scale(1);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+        background: rgba(255, 255, 255, 0.15);
+    }
+    50% {
+        transform: translateX(-50%) scale(1.02);
+        box-shadow: 0 20px 45px rgba(0, 0, 0, 0.4);
+        background: rgba(255, 255, 255, 0.2);
+    }
+}
+
+.live-stats-overlay.end-animation {
+    animation: statsPulse 3s ease-in-out infinite;
+}
+
+.live-stat-item {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.3rem;
+    transition: all 1.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Individual stat item styling handled by layout-specific classes */
 
 .live-stat-label {
     font-size: 0.78rem !important;
     opacity: 0.8;
     text-align: left !important;
+    color: #fff !important;
+    transition: all 1.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    display: inline !important;
+}
+
+.live-stat-full-label {
+    font-size: 1.1rem !important;
+    font-weight: 600;
+    text-align: center !important;
+    color: #fff !important;
+    transition: all 1.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    display: none !important;
+    opacity: 0 !important;
+}
+
+.live-stats-overlay.end-animation .live-stat-label {
+    display: none !important;
+    opacity: 0 !important;
+}
+
+/* Generic rule for showing full labels */
+.live-stats-overlay.end-animation .live-stat-full-label {
+    display: block !important;
+    opacity: 1 !important;
     color: #fff !important;
 }
 
@@ -2117,6 +2289,13 @@ body.route-drawing-active .transportation-options {
     font-size: 0.92rem !important;
     font-weight: 600;
     text-align: left !important;
+    color: #fff !important;
+    transition: all 1.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Generic rule for styling values */
+.live-stats-overlay.end-animation .live-stat-value {
+    font-weight: 700;
     color: #fff !important;
 }
 
@@ -2200,6 +2379,7 @@ body.route-drawing-active .transportation-options {
         position: relative;
         margin-bottom: 1rem;
     }
+    
 }
 
 

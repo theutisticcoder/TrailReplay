@@ -89,6 +89,12 @@ export class MapController {
         }
     }
 
+    setShowEndStats(enabled) {
+        if (this.mapRenderer) {
+            this.mapRenderer.setShowEndStats(enabled);
+        }
+    }
+
     setCameraMode(mode) {
         console.log('🎬 MapController.setCameraMode called with:', mode);
         if (this.mapRenderer) {

@@ -105,6 +105,14 @@ export function setupEventListeners(app) {
         });
     }
 
+    // Show end stats toggle
+    const showEndStatsToggle = byId('showEndStats');
+    if (showEndStatsToggle) {
+        showEndStatsToggle.addEventListener('change', (e) => {
+            app.map.setShowEndStats(e.target.checked);
+        });
+    }
+
     // Camera mode dropdown
     const cameraModeSelect = byId('cameraMode');
     if (cameraModeSelect) {

@@ -356,6 +356,12 @@ export const translations = {
             markerSettings: "🎯 Marker Settings",
             cameraSettings: "🎬 Camera Settings",
             mapTerrainSettings: "🗺️ Map & Terrain",
+            statsSettings: "📊 Stats Settings",
+            
+            // Stats Labels
+            distance: "Distance",
+            elevation: "Elevation",
+            showEndStats: "Show End Stats",
             play: "Play",
             pause: "Pause",
             reset: "Reset",
@@ -1155,6 +1161,18 @@ export const translations = {
             changeIcon: "Cambiar",
             autoFollow: "Seguimiento Automático",
             showCircle: "Mostrar Círculo",
+            
+            // Stats Labels
+            distance: "Distancia",
+            elevation: "Elevación",
+            showEndStats: "Mostrar Estadísticas Finales",
+
+            // Control Section Headers
+            markerSettings: "🎯 Configuración del Marcador",
+            cameraSettings: "🎬 Configuración de la Cámara",
+            mapTerrainSettings: "🗺️ Mapa y Terreno",
+            statsSettings: "📊 Configuración de Estadísticas",
+            
             play: "Reproducir",
             pause: "Pausar",
             reset: "Reiniciar",
