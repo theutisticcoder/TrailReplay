@@ -249,6 +249,17 @@
                             </div>
                         </div>
 
+                        <!-- Marker Controls Section -->
+                        <div class="control-section">
+                            <div class="control-section-header" data-i18n="controls.markerSettings">🎯 Marker Settings</div>
+                            <div class="control-group">
+                                <label data-i18n="controls.showMarker">Show Marker:</label>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="showMarker" checked>
+                                    <label for="showMarker" class="toggle-slider"></label>
+                                </div>
+                            </div>
+
                         <div class="control-group">
                             <label data-i18n="controls.markerSize">Marker Size:</label>
                             <input type="range" id="markerSize" min="0.5" max="3" step="0.1" value="0.7">
@@ -264,13 +275,17 @@
                         </div>
 
                         <div class="control-group">
-                            <label data-i18n="controls.autoFollow">Auto Follow:</label>
+                            <label data-i18n="controls.showCircle">Show Circle:</label>
                             <div class="toggle-switch">
-                                <input type="checkbox" id="autoZoom" checked>
-                                <label for="autoZoom" class="toggle-slider"></label>
+                                <input type="checkbox" id="showCircle" checked>
+                                <label for="showCircle" class="toggle-slider"></label>
                             </div>
                         </div>
+                        </div>
 
+                        <!-- Camera Controls Section -->
+                        <div class="control-section">
+                            <div class="control-section-header" data-i18n="controls.cameraSettings">🎬 Camera Settings</div>
                         <div class="control-group">
                             <label data-i18n="controls.cameraMode">Camera Mode:</label>
                             <select id="cameraMode">
@@ -302,6 +317,14 @@
                             </div>
                         </div>
 
+                        <div class="control-group">
+                            <label data-i18n="controls.autoFollow">Auto Follow:</label>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="autoZoom" checked>
+                                <label for="autoZoom" class="toggle-slider"></label>
+                            </div>
+                        </div>
+
                         <!-- Follow-Behind Zoom Preset (shown when Follow Behind is selected) -->
                         <div class="control-group" id="followBehindZoomGroup" style="display: block;">
                             <label data-i18n="controls.followBehindZoom">Follow Distance:</label>
@@ -312,31 +335,28 @@
                             </select>
                         </div>
 
-                        <div class="control-group">
-                            <label data-i18n="controls.showCircle">Show Circle:</label>
-                            <div class="toggle-switch">
-                                <input type="checkbox" id="showCircle" checked>
-                                <label for="showCircle" class="toggle-slider"></label>
-                            </div>
                         </div>
 
-                        <div class="control-group">
-                            <label data-i18n="controls.terrain3d">3D Terrain:</label>
-                            <div class="toggle-switch">
-                                <input type="checkbox" id="terrain3d" checked>
-                                <label for="terrain3d" class="toggle-slider"></label>
+                        <!-- Terrain Controls Section -->
+                        <div class="control-section">
+                            <div class="control-section-header" data-i18n="controls.mapTerrainSettings">🗺️ Map & Terrain</div>
+                            <div class="control-group">
+                                <label data-i18n="controls.terrain3d">3D Terrain:</label>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="terrain3d" checked>
+                                    <label for="terrain3d" class="toggle-slider"></label>
+                                </div>
                             </div>
-                        </div>
 
 
 
-                        <!-- Terrain Source Selection (shown when 3D is enabled) -->
                         <div class="control-group" id="terrainSourceGroup" style="display: block;">
                             <label data-i18n="controls.terrainSource">Elevation Data:</label>
                             <select id="terrainSource" class="terrain-source-select">
                                 <option value="mapzen" selected>Mapzen Global</option>
                                 <option value="opentopo">OpenTopography SRTM</option>
                             </select>
+                        </div>
                         </div>
 
                         <!-- Action Buttons -->

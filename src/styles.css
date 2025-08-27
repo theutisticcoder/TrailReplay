@@ -324,6 +324,29 @@ body {
     gap: 0.5rem;
 }
 
+/* Control Sections */
+.control-section {
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(193, 101, 47, 0.1);
+}
+
+.control-section:last-child {
+    border-bottom: none;
+    margin-bottom: 1rem;
+}
+
+.control-section-header {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--trail-orange);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.5rem;
+    padding: 0.25rem 0;
+    border-bottom: 1px solid rgba(193, 101, 47, 0.2);
+}
+
 .control-group label {
     font-weight: 600;
     color: var(--evergreen);
@@ -416,6 +439,33 @@ body {
     background: var(--trail-orange);
     color: var(--canvas);
     border-color: var(--trail-orange);
+}
+
+/* Disabled controls styling */
+.control-group input:disabled,
+.control-group select:disabled,
+.control-group button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+    background-color: rgba(128, 128, 128, 0.1);
+    transition: all 0.3s ease;
+}
+
+.control-group input:disabled + label,
+.control-group label[for]:has(+ input:disabled) {
+    cursor: not-allowed;
+    opacity: 0.5;
+    transition: opacity 0.3s ease;
+}
+
+/* Disabled control group styling */
+.control-group.disabled {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.control-group.disabled label {
+    opacity: 0.5;
 }
 
 /* Icon Grid */
@@ -3033,10 +3083,10 @@ body.high-quality-recording .map canvas {
     background: var(--canvas);
     border: 2px solid var(--evergreen);
     border-radius: 8px;
-    padding: 1rem;
+    padding: 0.75rem;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
     z-index: 99999;
-    width: 360px;
+    width: 480px;
     opacity: 0;
     visibility: hidden;
     transform: translateY(8px);
@@ -3099,19 +3149,19 @@ body.high-quality-recording .map canvas {
 /* Wider tooltip for large screens */
 @media (min-width: 1200px) {
     .camera-info-tooltip {
-        width: 420px;
+        width: 520px;
     }
 }
 
 @media (max-width: 768px) {
     .camera-info-tooltip {
-        width: 300px;
+        width: 320px;
     }
-    
+
     .camera-info-tooltip::before {
         left: 15px;
     }
-    
+
     .camera-info-tooltip::after {
         left: 17px;
     }
@@ -3181,8 +3231,8 @@ html .container {
 }
 
 .camera-controls-section {
-    margin-bottom: 0.75rem;
-    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    padding: 0.5rem;
     background: #f4e6d7;
     border-radius: 6px;
     border: 1px solid var(--trail-orange);
@@ -3190,6 +3240,11 @@ html .container {
 
 .camera-controls-section:last-child {
     margin-bottom: 0;
+}
+
+/* Reduce spacing for more compact tooltip */
+.camera-info-content {
+    gap: 0.5rem;
 }
 
 .camera-controls-section h5 {

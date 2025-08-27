@@ -25,6 +25,7 @@ export class MapRenderer {
         this.markerSize = DEFAULT_SETTINGS.DEFAULT_MARKER_SIZE;
         this.autoZoom = true;
         this.showCircle = true;
+        this.showMarker = true; // Controls marker visibility
         this.currentIcon = '🏃‍♂️';
         this.userSelectedBaseIcon = null; // Stores user's custom base icon choice
         this.gpxParser = new GPXParser();
@@ -153,6 +154,8 @@ export class MapRenderer {
             if (this.cameraMode === 'followBehind' && !this.isAnimating) {
                 this.enableZoomOnlyInteractions();
             }
+            // Initialize marker-dependent controls state
+            this.updateMarkerDependentControls(this.showMarker);
         });
 
         // Add click handler for annotations and icon changes
@@ -487,9 +490,9 @@ export class MapRenderer {
         
         if (this.map.loaded()) {
             this.map.setPaintProperty('current-position-glow', 'circle-radius', 15 * size);
-        if (this.map.getLayer('activity-icon')) {
-            this.map.setLayoutProperty('activity-icon', 'icon-size', size);
-        }
+            if (this.map.getLayer('activity-icon') && this.showMarker) {
+                this.map.setLayoutProperty('activity-icon', 'icon-size', size);
+            }
             this.updateActivityIcon();
         }
     }
@@ -504,6 +507,17 @@ export class MapRenderer {
         if (this.map && this.map.loaded()) {
             this.updateActivityIcon();
         }
+    }
+
+    setShowMarker(enabled) {
+        this.showMarker = enabled;
+        
+        if (this.map && this.map.loaded()) {
+            this.updateMarkerVisibility();
+        }
+        
+        // Update UI controls that depend on marker visibility
+        this.updateMarkerDependentControls(enabled);
     }
 
     setAnimationSpeed(speed) {
@@ -997,12 +1011,80 @@ export class MapRenderer {
         this.createAndAddActivityIcon();
         
         if (this.map.getLayer('activity-icon')) {
-            this.map.setLayoutProperty('activity-icon', 'visibility', 'visible');
+            const visibility = this.showMarker ? 'visible' : 'none';
+            const opacity = this.showMarker ? 1 : 0;
+            
+            this.map.setLayoutProperty('activity-icon', 'visibility', visibility);
             this.map.setLayoutProperty('activity-icon', 'icon-size', this.markerSize);
-            this.map.setPaintProperty('activity-icon', 'icon-opacity', 1);
+            this.map.setPaintProperty('activity-icon', 'icon-opacity', opacity);
         } else {
             // If the layer is missing, recreate it
             this.createAndAddActivityIconLayer(true);
+        }
+    }
+
+    updateMarkerVisibility() {
+        if (!this.map.loaded()) {
+            return;
+        }
+        
+        const visibility = this.showMarker ? 'visible' : 'none';
+        const opacity = this.showMarker ? 1 : 0;
+        
+        if (this.map.getLayer('activity-icon')) {
+            this.map.setLayoutProperty('activity-icon', 'visibility', visibility);
+            this.map.setPaintProperty('activity-icon', 'icon-opacity', opacity);
+        }
+    }
+
+    updateMarkerDependentControls(enabled) {
+        // Get all marker-related control groups
+        const markerSizeGroup = document.getElementById('markerSize')?.closest('.control-group');
+        const currentIconGroup = document.getElementById('currentIconDisplay')?.closest('.control-group');
+        const showCircleGroup = document.getElementById('showCircle')?.closest('.control-group');
+        
+        // Disable/enable marker size slider
+        const markerSizeSlider = document.getElementById('markerSize');
+        if (markerSizeSlider) {
+            markerSizeSlider.disabled = !enabled;
+            markerSizeSlider.style.opacity = enabled ? '1' : '0.5';
+        }
+        
+        // Disable/enable marker size value display
+        const markerSizeValue = document.getElementById('markerSizeValue');
+        if (markerSizeValue) {
+            markerSizeValue.style.opacity = enabled ? '1' : '0.5';
+        }
+        
+        // Disable/enable current icon display
+        const currentIconDisplay = document.getElementById('currentIconDisplay');
+        if (currentIconDisplay) {
+            currentIconDisplay.style.opacity = enabled ? '1' : '0.5';
+        }
+        
+        // Disable/enable change icon button
+        const changeIconBtn = document.getElementById('changeIconBtn');
+        if (changeIconBtn) {
+            changeIconBtn.disabled = !enabled;
+            changeIconBtn.style.opacity = enabled ? '1' : '0.5';
+        }
+        
+        // Disable/enable show circle toggle (since it only affects the marker)
+        const showCircleToggle = document.getElementById('showCircle');
+        if (showCircleToggle) {
+            showCircleToggle.disabled = !enabled;
+            showCircleToggle.style.opacity = enabled ? '1' : '0.5';
+        }
+        
+        // Update control group classes for visual feedback
+        if (markerSizeGroup) {
+            markerSizeGroup.classList.toggle('disabled', !enabled);
+        }
+        if (currentIconGroup) {
+            currentIconGroup.classList.toggle('disabled', !enabled);
+        }
+        if (showCircleGroup) {
+            showCircleGroup.classList.toggle('disabled', !enabled);
         }
     }
 
@@ -1010,8 +1092,11 @@ export class MapRenderer {
         if (!this.map.getLayer('activity-icon')) {
             this.createAndAddActivityIconLayer(true);
         } else {
-            this.map.setLayoutProperty('activity-icon', 'visibility', 'visible');
-            this.map.setPaintProperty('activity-icon', 'icon-opacity', 1);
+            const visibility = this.showMarker ? 'visible' : 'none';
+            const opacity = this.showMarker ? 1 : 0;
+            
+            this.map.setLayoutProperty('activity-icon', 'visibility', visibility);
+            this.map.setPaintProperty('activity-icon', 'icon-opacity', opacity);
             
             if (!this.map.hasImage('activity-icon')) {
                 this.createAndAddActivityIcon();
@@ -1027,6 +1112,9 @@ export class MapRenderer {
             setTimeout(() => {
                 try {
             if (!this.map.getLayer('activity-icon')) {
+                const visibility = this.showMarker ? 'visible' : 'none';
+                const opacity = this.showMarker ? 1 : 0;
+                
                 this.map.addLayer({
                     id: 'activity-icon',
                     type: 'symbol',
@@ -1036,10 +1124,11 @@ export class MapRenderer {
                         'icon-size': this.markerSize,
                         'icon-allow-overlap': true,
                         'icon-ignore-placement': true,
-                                'icon-anchor': 'center'
+                        'icon-anchor': 'center',
+                        'visibility': visibility
                     },
                     paint: {
-                        'icon-opacity': 1
+                        'icon-opacity': opacity
                     }
                 });
             }
@@ -1068,6 +1157,9 @@ export class MapRenderer {
                 
                 setTimeout(() => {
                     if (!this.map.getLayer('activity-icon')) {
+                        const visibility = this.showMarker ? 'visible' : 'none';
+                        const opacity = this.showMarker ? 1 : 0;
+                        
                         this.map.addLayer({
                             id: 'activity-icon',
                             type: 'symbol',
@@ -1078,10 +1170,10 @@ export class MapRenderer {
                                 'icon-allow-overlap': true,
                                 'icon-ignore-placement': true,
                                 'icon-anchor': 'center',
-                                'visibility': 'visible'
+                                'visibility': visibility
                             },
                             paint: {
-                                'icon-opacity': 1
+                                'icon-opacity': opacity
                             }
                         });
                     }

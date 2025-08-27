@@ -97,6 +97,14 @@ export function setupEventListeners(app) {
         });
     }
 
+    // Show marker toggle
+    const showMarkerToggle = byId('showMarker');
+    if (showMarkerToggle) {
+        showMarkerToggle.addEventListener('change', (e) => {
+            app.map.setShowMarker(e.target.checked);
+        });
+    }
+
     // Camera mode dropdown
     const cameraModeSelect = byId('cameraMode');
     if (cameraModeSelect) {

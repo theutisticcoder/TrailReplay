@@ -83,6 +83,12 @@ export class MapController {
         }
     }
 
+    setShowMarker(enabled) {
+        if (this.mapRenderer) {
+            this.mapRenderer.setShowMarker(enabled);
+        }
+    }
+
     setCameraMode(mode) {
         console.log('🎬 MapController.setCameraMode called with:', mode);
         if (this.mapRenderer) {
