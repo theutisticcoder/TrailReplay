@@ -2137,7 +2137,7 @@ body.route-drawing-active .transportation-options {
 
 /* Different layouts for different aspect ratios */
 
-/* Mobile layout - 4 rows */
+/* Mobile layout - up to 6 rows (3 stats x 2 rows each) */
 .live-stats-overlay.end-animation.mobile-layout {
     flex-direction: column !important;
     gap: 0.6rem !important;
@@ -2170,7 +2170,7 @@ body.route-drawing-active .transportation-options {
     white-space: nowrap !important;
 }
 
-/* Square layout - centered 2x2 */
+/* Square layout - centered columns (2-3 stats) */
 .live-stats-overlay.end-animation.square-layout {
     flex-direction: row !important;
     gap: 3.5rem !important;
@@ -2179,11 +2179,24 @@ body.route-drawing-active .transportation-options {
     min-width: 320px !important;
 }
 
+/* Square layout with speed - bigger to accommodate 3 stats */
+.live-stats-overlay.end-animation.square-layout.with-speed {
+    gap: 2.5rem !important;
+    padding: 1.8rem 3.5rem !important;
+    min-width: 420px !important;
+    font-size: 1.3rem !important;
+}
+
 .live-stats-overlay.end-animation.square-layout .live-stat-item {
     flex-direction: column !important;
     align-items: center !important;
     gap: 0.5rem !important;
     min-width: 100px !important;
+}
+
+.live-stats-overlay.end-animation.square-layout.with-speed .live-stat-item {
+    min-width: 90px !important;
+    gap: 0.4rem !important;
 }
 
 .live-stats-overlay.end-animation.square-layout .live-stat-full-label {
@@ -2298,6 +2311,10 @@ body.route-drawing-active .transportation-options {
     font-weight: 700;
     color: #fff !important;
 }
+
+
+
+
 
 /* Progress Container Updates */
 .progress-header {
@@ -3072,6 +3089,8 @@ body.high-quality-recording .map canvas {
         padding: 0.5rem;
         gap: 0.4rem;
     }
+    
+
     
     .elevation-progress-bar {
         height: 50px;

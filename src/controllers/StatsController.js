@@ -2,6 +2,7 @@ export class StatsController {
     constructor(app) {
         this.app = app;
         this.lastStatsUpdate = 0;
+
         this._elevationDataChecked = false;
     }
 
@@ -20,8 +21,11 @@ export class StatsController {
 
     // Update live stats during animation - this is the main method called during playback
     updateLiveStats() {
-        const overlay = document.getElementById('liveStatsOverlay');
-        if (!overlay) return;
+        // Cache overlay element
+        if (!this.overlayElement) {
+            this.overlayElement = document.getElementById('liveStatsOverlay');
+        }
+        if (!this.overlayElement) return;
         
         // Skip expensive operations during clean recording, but allow updates during overlay recording
         if (this.app.recordingMode && !this.app.overlayRecordingMode) {
@@ -30,23 +34,21 @@ export class StatsController {
         
         // If no data, show placeholders
         if (!this.app.mapController || !this.app.currentTrackData) {
-            document.getElementById('liveDistance').textContent = '–';
-            document.getElementById('liveElevation').textContent = '–';
+            this.setErrorState();
             return;
         }
         
         try {
-            // Throttle updates during animation for performance
+            // Increased throttling for better performance during animation
             const now = performance.now();
-            if (this.lastStatsUpdate && (now - this.lastStatsUpdate) < 100) {
-                return; // Skip if updated less than 100ms ago
+            if (this.lastStatsUpdate && (now - this.lastStatsUpdate) < 150) {
+                return; // Skip if updated less than 150ms ago
             }
             this.lastStatsUpdate = now;
             
             // Ensure GPX parser is ready
             if (!this.app.mapRenderer.ensureGPXParserReady()) {
-                document.getElementById('liveDistance').textContent = '–';
-                document.getElementById('liveElevation').textContent = '–';
+                this.setErrorState();
                 return;
             }
             
@@ -54,8 +56,7 @@ export class StatsController {
             const currentPoint = this.app.mapRenderer.gpxParser.getInterpolatedPoint(progress);
             
             if (!currentPoint) {
-                document.getElementById('liveDistance').textContent = '–';
-                document.getElementById('liveElevation').textContent = '–';
+                this.setErrorState();
                 return;
             }
             
@@ -74,39 +75,46 @@ export class StatsController {
             // Calculate actual elevation gain based on current position in track
             const currentElevationGain = this.calculateActualElevationGain(progress);
             
-            // Format and update the display values with optimized DOM updates
-            const distanceElement = document.getElementById('liveDistance');
-            const elevationElement = document.getElementById('liveElevation');
+            // Cache DOM elements for better performance
+            if (!this.distanceElement) {
+                this.distanceElement = document.getElementById('liveDistance');
+            }
+            if (!this.elevationElement) {
+                this.elevationElement = document.getElementById('liveElevation');
+            }
             
-            if (distanceElement) {
+            // Format and update the display values - simplified without animation during playback
+            if (this.distanceElement) {
                 const formattedDistance = this.app.gpxParser.formatDistance(currentDistance);
-                if (distanceElement.textContent !== formattedDistance) {
-                    // Skip animation during heavy operations
-                    if (this.app.isPlaying && this.app.mapRenderer.isAnimating) {
-                        distanceElement.textContent = formattedDistance;
-                    } else {
-                        this.animateValueChange(distanceElement, formattedDistance);
-                    }
+                if (this.distanceElement.textContent !== formattedDistance) {
+                    this.distanceElement.textContent = formattedDistance;
                 }
             }
             
-            if (elevationElement) {
+            if (this.elevationElement) {
                 const formattedElevation = this.app.gpxParser.formatElevation(currentElevationGain);
-                if (elevationElement.textContent !== formattedElevation) {
-                    // Skip animation during heavy operations
-                    if (this.app.isPlaying && this.app.mapRenderer.isAnimating) {
-                        elevationElement.textContent = formattedElevation;
-                    } else {
-                        this.animateValueChange(elevationElement, formattedElevation);
-                    }
+                if (this.elevationElement.textContent !== formattedElevation) {
+                    this.elevationElement.textContent = formattedElevation;
                 }
             }
             
         } catch (error) {
-            document.getElementById('liveDistance').textContent = '–';
-            document.getElementById('liveElevation').textContent = '–';
+            this.setErrorState();
             console.warn('Error updating live stats:', error);
         }
+    }
+
+    // Helper method to set error state for all stats - reduces code duplication
+    setErrorState() {
+        if (!this.distanceElement) {
+            this.distanceElement = document.getElementById('liveDistance');
+        }
+        if (!this.elevationElement) {
+            this.elevationElement = document.getElementById('liveElevation');
+        }
+        
+        if (this.distanceElement) this.distanceElement.textContent = '–';
+        if (this.elevationElement) this.elevationElement.textContent = '–';
     }
 
     // Calculate actual elevation gain based on current progress through the track
@@ -208,7 +216,13 @@ export class StatsController {
     resetLiveStats() {
         document.getElementById('liveDistance').textContent = '0.0 km';
         document.getElementById('liveElevation').textContent = '0 m';
+        const avgSpeedElement = document.getElementById('liveAverageSpeed');
+        if (avgSpeedElement) {
+            avgSpeedElement.textContent = '0 km/h';
+        }
     }
+
+
 
 
 

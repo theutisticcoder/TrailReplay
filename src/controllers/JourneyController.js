@@ -132,8 +132,25 @@ export class JourneyController {
             
             // Convert journey data format to track data format that MapRenderer expects
             // but preserve segment information for icon changes and visual transitions
-            const trackData = {
-                trackPoints: journeyData.coordinates.map((coord, index) => ({
+            let trackPoints = [];
+            
+            // Try to preserve original trackPoints with speed/time data if available
+            if (journeyData.segments && journeyData.segments.length === 1 && 
+                journeyData.segments[0].type === 'track' &&
+                journeyData.segments[0].data && 
+                journeyData.segments[0].data.data &&
+                journeyData.segments[0].data.data.trackPoints) {
+                
+                // Single track journey - use original trackPoints with full data
+                trackPoints = journeyData.segments[0].data.data.trackPoints;
+                const speedyPoints = trackPoints.filter(p => p.speed > 0).length;
+                console.log(`🚀 Using original trackPoints: ${trackPoints.length} points, ${speedyPoints} with speed > 0`);
+                console.log('🔍 First 5 speeds:', trackPoints.slice(0, 5).map(p => p.speed?.toFixed(2) || '0.00'));
+                
+            } else {
+                // Multi-segment journey or missing trackPoints - fallback to coordinates
+                console.log('🔄 Converting coordinates to trackPoints (speed data will be lost)');
+                trackPoints = journeyData.coordinates.map((coord, index) => ({
                     lat: coord[1],
                     lon: coord[0],
                     elevation: coord[2] || 0,
@@ -141,7 +158,11 @@ export class JourneyController {
                     distance: 0, // Will be calculated if needed
                     speed: 0,
                     time: null
-                })),
+                }));
+            }
+
+            const trackData = {
+                trackPoints: trackPoints,
                 stats: journeyData.stats,
                 bounds: this.calculateBounds(journeyData.coordinates),
                 // Preserve journey segment information
@@ -393,20 +414,20 @@ export class JourneyController {
         }
     }
 
-    // Setup timeline progress updates
+    // Setup timeline progress updates with optimized throttling
     setupTimelineProgressUpdates() {
         // Clear any existing interval
         if (this.timelineProgressInterval) {
             clearInterval(this.timelineProgressInterval);
         }
         
-        // Set up periodic updates during animation
+        // Set up periodic updates during animation with reduced frequency for better performance
         this.timelineProgressInterval = setInterval(() => {
             if (this.app.state.isPlaying && this.app.mapRenderer && this.app.currentTrackData?.isJourney) {
                 const progress = this.app.mapRenderer.getAnimationProgress();
                 this.updateTimelineProgressIndicator(progress);
             }
-        }, 100); // Update every 100ms during animation
+        }, 200); // Reduced from 100ms to 200ms for better performance
     }
 
     // Handle timeline seeking

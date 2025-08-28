@@ -1322,15 +1322,15 @@ export class VideoExportController {
                         return;
                     }
 
-                    // Throttle to target FPS
+                    // Throttle to target FPS with optimized frame capture
                     if (currentTime - lastFrameTime >= frameInterval) {
                         await this.captureFrame(frameCount);
                         frameCount++;
                         lastFrameTime = currentTime;
 
-                        // Update progress periodically - improved to show both frame and time progress
+                        // Update progress less frequently for better performance
                         const now = Date.now();
-                        if (now - lastProgressUpdate > 1000) { // Update every second
+                        if (now - lastProgressUpdate > 2000) { // Reduced from 1s to 2s
                             const animationProgress = this.getAnimationProgress();
                             const frameProgress = Math.min((frameCount / expectedFrameCount), 1.0);
                             const displayProgress = Math.max(animationProgress, frameProgress) * 100;
@@ -1338,7 +1338,10 @@ export class VideoExportController {
                             this.updateProgress(85 + (displayProgress * 0.1), 
                                 `Recording frame ${frameCount}/${expectedFrameCount}... ${Math.round(displayProgress)}% complete`);
                             lastProgressUpdate = now;
-                            console.log(`📹 Frame ${frameCount}/${expectedFrameCount}, Animation: ${Math.round(animationProgress * 100)}%`);
+                            // Reduced console logging frequency
+                            if (frameCount % 30 === 0) {
+                                console.log(`📹 Frame ${frameCount}/${expectedFrameCount}, Animation: ${Math.round(animationProgress * 100)}%`);
+                            }
                         }
                     }
 
@@ -1746,8 +1749,8 @@ export class VideoExportController {
             captureContext.fillStyle = '#000000';
             captureContext.fillRect(0, 0, width, height);
 
-            // Fast Method: Skip html2canvas entirely, use direct canvas-to-canvas copying
-            await this.fastManualCapture(captureContext, width, height);
+            // Use the full manual capture method to include all UI elements
+            await this.manualHighQualityCapture(captureContext, width, height);
 
             return {
                 canvas: captureCanvas,
@@ -1849,6 +1852,109 @@ export class VideoExportController {
 
         // 5. Draw any active annotations
         await this.drawHighQualityAnnotations(context);
+
+        // 6. Draw final animation stats if animation is complete
+        await this.drawFinalAnimationStats(context);
+    }
+
+    /**
+     * Draw SVG path data to canvas context
+     */
+    drawSVGPath(context, pathData, x, y, width, height, strokeColor, fillColor) {
+        if (!pathData) return;
+
+        // Parse the SVG path and draw it
+        const commands = pathData.match(/[MLHVCSQTAZ][^MLHVCSQTAZ]*/gi) || [];
+        
+        context.beginPath();
+        let currentX = 0, currentY = 0;
+        
+        for (const command of commands) {
+            const type = command[0];
+            const params = command.slice(1).trim().split(/[\s,]+/).map(Number).filter(n => !isNaN(n));
+            
+            switch (type) {
+                case 'M': // Move to
+                    if (params.length >= 2) {
+                        currentX = (params[0] / 800) * width + x; // 800 is SVG viewBox width
+                        currentY = (params[1] / 60) * height + y; // 60 is SVG viewBox height
+                        context.moveTo(currentX, currentY);
+                    }
+                    break;
+                case 'L': // Line to
+                    if (params.length >= 2) {
+                        currentX = (params[0] / 800) * width + x;
+                        currentY = (params[1] / 60) * height + y;
+                        context.lineTo(currentX, currentY);
+                    }
+                    break;
+                case 'Z': // Close path
+                    context.closePath();
+                    break;
+            }
+        }
+        
+        // Fill and stroke the path
+        if (fillColor) {
+            context.fillStyle = fillColor;
+            context.fill();
+        }
+        
+        if (strokeColor) {
+            context.strokeStyle = strokeColor;
+            context.lineWidth = 1;
+            context.stroke();
+        }
+    }
+
+    /**
+     * Draw progress marker on elevation profile
+     */
+    drawProgressMarker(context, x, y, width, height, progress) {
+        const markerX = x + (width * progress);
+        const markerY = y + (height / 2);
+        
+        // Draw marker circle
+        context.beginPath();
+        context.arc(markerX, markerY, 4, 0, 2 * Math.PI);
+        context.fillStyle = '#FFFFFF';
+        context.fill();
+        context.strokeStyle = '#C1652F';
+        context.lineWidth = 2;
+        context.stroke();
+    }
+
+    /**
+     * Fallback simple progress bar drawing
+     */
+    drawSimpleProgressBar(context, x, y, width, height, progress) {
+        const barHeight = 10;
+        const barY = y + height - 30;
+
+        // Background
+        context.fillStyle = 'rgba(76, 175, 80, 0.3)';
+        context.fillRect(x, barY, width, barHeight);
+
+        // Progress
+        context.fillStyle = 'rgba(193, 101, 47, 0.8)';
+        const progressWidth = Math.max(2, width * progress);
+        context.fillRect(x, barY, progressWidth, barHeight);
+
+        // Border
+        context.strokeStyle = '#4CAF50';
+        context.lineWidth = 1;
+        context.strokeRect(x, barY, width, barHeight);
+
+        // Marker
+        const markerX = x + (width * progress);
+        const markerY = barY + (barHeight / 2);
+        context.beginPath();
+        context.arc(markerX, markerY, 4, 0, 2 * Math.PI);
+        context.fillStyle = '#FFFFFF';
+        context.fill();
+        context.strokeStyle = '#C1652F';
+        context.lineWidth = 2;
+        context.stroke();
     }
 
     /**
@@ -1954,51 +2060,57 @@ export class VideoExportController {
     }
 
     /**
-     * High-quality live stats drawing
+     * High-quality live stats drawing - positioned correctly for video export
      */
     async drawHighQualityLiveStats(context) {
         const liveStatsOverlay = document.getElementById('liveStatsOverlay');
         if (!liveStatsOverlay || liveStatsOverlay.style.display === 'none') return;
 
-        const rect = liveStatsOverlay.getBoundingClientRect();
-        const containerRect = this.videoCaptureContainer.getBoundingClientRect();
+        // Skip normal stats drawing if we're in end-animation mode (final stats will be drawn separately)
+        if (liveStatsOverlay.classList.contains('end-animation')) {
+            return;
+        }
+
+        const { width, height } = this.recordingDimensions;
         
-        const x = rect.left - containerRect.left;
-        const y = rect.top - containerRect.top;
+        // Position stats in top-right corner of video (matching browser layout)
+        const statsX = width - 200; // 200px from right edge
+        const statsY = 20; // 20px from top
 
         const distanceElement = document.getElementById('liveDistance');
         const elevationElement = document.getElementById('liveElevation');
         
         if (distanceElement && elevationElement) {
-            context.font = 'bold 18px Arial';
-            context.fillStyle = 'rgba(255, 255, 255, 0.95)';
-            context.strokeStyle = 'rgba(0, 0, 0, 0.8)';
-            context.lineWidth = 3;
+            // Match the exact font and styling from CSS
+            context.font = 'bold 0.92rem Arial'; // Matches CSS font-size: 0.92rem
+            context.fillStyle = '#fff'; // Matches CSS color: #fff
+            context.textAlign = 'left'; // Matches CSS text-align: left
+            context.textBaseline = 'top';
 
-            // Draw distance with better styling
-            const distanceText = `Distance: ${distanceElement.textContent}`;
-            context.strokeText(distanceText, x + 10, y + 30);
-            context.fillText(distanceText, x + 10, y + 30);
+            // Draw distance with exact positioning (matches CSS margin and padding)
+            const distanceText = `D: ${distanceElement.textContent}`;
+            context.fillText(distanceText, statsX + 12, statsY + 4); // 12px padding, 4px top margin
 
-            // Draw elevation with better styling
-            const elevationText = `Elevation: ${elevationElement.textContent}`;
-            context.strokeText(elevationText, x + 10, y + 60);
-            context.fillText(elevationText, x + 10, y + 60);
+            // Draw elevation with exact positioning (matches CSS gap: 0.1rem)
+            const elevationText = `E: ${elevationElement.textContent}`;
+            context.fillText(elevationText, statsX + 12, statsY + 24); // 20px gap between items
         }
     }
 
     /**
-     * High-quality elevation profile drawing
+     * High-quality elevation profile drawing - positioned at bottom of video
      */
     async drawHighQualityElevationProfile(context) {
         const elevationContainer = document.querySelector('.elevation-profile-container');
         if (!elevationContainer || elevationContainer.style.display === 'none') return;
 
-        const rect = elevationContainer.getBoundingClientRect();
-        const containerRect = this.videoCaptureContainer.getBoundingClientRect();
+        const { width, height } = this.recordingDimensions;
         
-        const x = rect.left - containerRect.left;
-        const y = rect.top - containerRect.top;
+        // Position elevation profile at bottom of video (matching browser layout)
+        const profileX = 20; // 20px from left edge
+        const profileY = height - 100; // 100px from bottom
+        const profileWidth = width - 40; // Full width minus margins
+        const profileHeight = 80; // Fixed height for elevation profile
 
         // Get current progress - try multiple sources for accuracy
         let progress = this.getAnimationProgress();
@@ -2027,64 +2139,32 @@ export class VideoExportController {
             }
         }
 
-        const { width, height } = this.recordingDimensions;
-
-        console.log(`Drawing high-quality elevation profile with progress: ${progress.toFixed(3)}`);
-
-        if (progress >= 0) { // Show even at start
-            const barWidth = Math.min(rect.width, width * 0.9);
-            const barHeight = 10; // Thicker for high quality
-            const barX = x;
-            const barY = y + rect.height - 30;
-
-            // Background with gradient
-            const gradient = context.createLinearGradient(0, barY, 0, barY + barHeight);
-            gradient.addColorStop(0, 'rgba(76, 175, 80, 0.4)');
-            gradient.addColorStop(1, 'rgba(76, 175, 80, 0.2)');
-            context.fillStyle = gradient;
-            context.fillRect(barX, barY, barWidth, barHeight);
-
-            // Progress with gradient - always draw something even at 0 progress
-            const progressGradient = context.createLinearGradient(0, barY, 0, barY + barHeight);
-            progressGradient.addColorStop(0, 'rgba(193, 101, 47, 0.9)');
-            progressGradient.addColorStop(1, 'rgba(193, 101, 47, 0.7)');
-            context.fillStyle = progressGradient;
-            const progressWidth = Math.max(3, barWidth * progress); // Minimum 3px width for high quality
-            context.fillRect(barX, barY, progressWidth, barHeight);
-
-            // Add border
-            context.strokeStyle = '#4CAF50';
-            context.lineWidth = 1;
-            context.strokeRect(barX, barY, barWidth, barHeight);
-
-            // Draw high-quality progress marker - always visible
-            const markerX = barX + (barWidth * progress);
-            const markerY = barY + (barHeight / 2);
-            const markerRadius = 6; // Larger for high quality
-
-            // Draw marker with shadow effect
-            context.shadowColor = 'rgba(0, 0, 0, 0.3)';
-            context.shadowBlur = 3;
-            context.shadowOffsetX = 1;
-            context.shadowOffsetY = 1;
-
-            // Draw marker circle
-            context.beginPath();
-            context.arc(markerX, markerY, markerRadius, 0, 2 * Math.PI);
-            context.fillStyle = '#FFFFFF';
-            context.fill();
+        // Try to capture the actual SVG elements from the browser
+        const elevationPath = document.getElementById('elevationPath');
+        const progressPath = document.getElementById('progressPath');
+        
+        if (elevationPath && progressPath) {
+            // Get the actual SVG paths that are being displayed
+            const elevationPathData = elevationPath.getAttribute('d');
+            const progressPathData = progressPath.getAttribute('d');
             
-            // Reset shadow
-            context.shadowColor = 'transparent';
-            context.shadowBlur = 0;
-            context.shadowOffsetX = 0;
-            context.shadowOffsetY = 0;
-            
-            // Draw marker outline
-            context.strokeStyle = '#C1652F';
-            context.lineWidth = 3;
-            context.stroke();
+            if (elevationPathData && progressPathData) {
+                // Draw the elevation profile by parsing the SVG path
+                this.drawSVGPath(context, elevationPathData, profileX, profileY, profileWidth, profileHeight, '#4CAF50', 'rgba(76, 175, 80, 0.3)');
+                
+                // Draw the progress overlay
+                this.drawSVGPath(context, progressPathData, profileX, profileY, profileWidth, profileHeight, '#C1652F', 'rgba(193, 101, 47, 0.8)');
+                
+                // Draw progress marker if animation is in progress
+                if (progress > 0) {
+                    this.drawProgressMarker(context, profileX, profileY, profileWidth, profileHeight, progress);
+                }
+                return;
+            }
         }
+
+        // Fallback to simple progress bar if SVG capture fails
+        this.drawSimpleProgressBar(context, profileX, profileY, profileWidth, profileHeight, progress);
     }
 
     /**
@@ -2108,6 +2188,59 @@ export class VideoExportController {
             console.warn('Failed to draw high-quality SVG logo, using fallback:', error);
             this.drawHighQualityProfessionalLogo(context, x, y, logoWidth, logoHeight);
         }
+    }
+
+    /**
+     * Draw final animation stats if animation is complete
+     */
+    async drawFinalAnimationStats(context) {
+        const liveStatsOverlay = document.getElementById('liveStatsOverlay');
+        if (!liveStatsOverlay || !liveStatsOverlay.classList.contains('end-animation')) {
+            return; // Only draw if animation is complete and end-animation class is present
+        }
+
+        const { width, height } = this.recordingDimensions;
+        
+        // Get the final stats values
+        const distanceElement = document.getElementById('liveDistance');
+        const elevationElement = document.getElementById('liveElevation');
+        
+        if (!distanceElement || !elevationElement) return;
+
+        // Calculate position for final stats (centered, prominent)
+        const statsWidth = 300;
+        const statsHeight = 120;
+        const x = (width - statsWidth) / 2;
+        const y = height * 0.1; // 10% from top
+
+        // Draw background with blur effect (transparent background)
+        context.fillStyle = 'rgba(255, 255, 255, 0.1)';
+        context.fillRect(x, y, statsWidth, statsHeight);
+
+        // Draw border
+        context.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        context.lineWidth = 1;
+        context.strokeRect(x, y, statsWidth, statsHeight);
+
+        // Draw stats text
+        context.font = 'bold 24px Arial';
+        context.fillStyle = 'rgba(255, 255, 255, 0.95)';
+        context.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+        context.lineWidth = 3;
+        context.textAlign = 'center';
+
+        // Draw distance
+        const distanceText = `Distance: ${distanceElement.textContent}`;
+        context.strokeText(distanceText, x + statsWidth/2, y + 40);
+        context.fillText(distanceText, x + statsWidth/2, y + 40);
+
+        // Draw elevation
+        const elevationText = `Elevation: ${elevationElement.textContent}`;
+        context.strokeText(elevationText, x + statsWidth/2, y + 80);
+        context.fillText(elevationText, x + statsWidth/2, y + 80);
+
+        // Reset text alignment
+        context.textAlign = 'left';
     }
 
     /**

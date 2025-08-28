@@ -369,7 +369,25 @@
                                     <label for="showEndStats" class="toggle-slider"></label>
                                 </div>
                             </div>
+
                         </div>
+
+                        <!-- Comparison Mode - DISABLED FOR NOW -->
+                        <!-- <div class="control-section">
+                            <div class="control-section-header" data-i18n="controls.comparisonSettings">🏃‍♂️ Comparison Mode</div>
+                            <div class="control-group">
+                                <label data-i18n="controls.enableComparison">Enable Comparison</label>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="enableComparison">
+                                    <label for="enableComparison" class="toggle-slider"></label>
+                                </div>
+                            </div>
+                            <div class="control-group" id="comparisonFileGroup" style="display: none;">
+                                <label data-i18n="controls.secondTrack">Second Track</label>
+                                <input type="file" id="comparisonFile" accept=".gpx" class="file-input">
+                                <button id="loadComparisonBtn" class="btn btn-secondary" data-i18n="controls.loadTrack">Load Track</button>
+                            </div>
+                        </div> -->
 
                         <!-- Action Buttons -->
                         <div class="control-buttons">
@@ -393,6 +411,8 @@
                             
                             <!-- Logo Watermark - removed DOM element, using programmatic drawing only -->
                             
+
+
                             <!-- Elevation Profile (stays in map) -->
                             <div class="elevation-profile-container">
                                 <!-- Live Stats integrated into elevation profile -->
@@ -407,6 +427,8 @@
                                         <span class="live-stat-full-label" data-i18n="controls.elevation"></span>
                                         <span class="live-stat-value" id="liveElevation">0 m</span>
                                     </div>
+
+
                                 </div>
                                 
                                 <div class="elevation-progress-bar" id="progressBar">

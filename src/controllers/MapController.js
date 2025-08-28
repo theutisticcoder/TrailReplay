@@ -8,7 +8,7 @@ export class MapController {
 
     async init() {
         if (!this.mapRenderer) {
-            this.mapRenderer = new MapRenderer('map');
+            this.mapRenderer = new MapRenderer('map', this.app);
             await this.waitForMapLoad();
             
             // Enable 3D terrain by default

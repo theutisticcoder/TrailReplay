@@ -113,6 +113,39 @@ export function setupEventListeners(app) {
         });
     }
 
+
+
+    // Comparison mode toggle
+    const enableComparisonToggle = byId('enableComparison');
+    if (enableComparisonToggle) {
+        enableComparisonToggle.addEventListener('change', (e) => {
+            const comparisonFileGroup = byId('comparisonFileGroup');
+            if (e.target.checked) {
+                comparisonFileGroup.style.display = 'block';
+            } else {
+                comparisonFileGroup.style.display = 'none';
+                // Disable comparison mode if active
+                if (app.comparisonMode) {
+                    app.disableComparisonMode();
+                }
+            }
+        });
+    }
+
+    // Load comparison track
+    const loadComparisonBtn = byId('loadComparisonBtn');
+    if (loadComparisonBtn) {
+        loadComparisonBtn.addEventListener('click', () => {
+            const fileInput = byId('comparisonFile');
+            const file = fileInput.files[0];
+            if (file) {
+                app.loadComparisonTrack(file);
+            } else {
+                alert('Please select a GPX file first.');
+            }
+        });
+    }
+
     // Camera mode dropdown
     const cameraModeSelect = byId('cameraMode');
     if (cameraModeSelect) {

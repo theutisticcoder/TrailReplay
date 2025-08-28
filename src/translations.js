@@ -359,9 +359,17 @@ export const translations = {
             statsSettings: "📊 Stats Settings",
             
             // Stats Labels
-            distance: "Distance",
-            elevation: "Elevation",
-            showEndStats: "Show End Stats",
+                    distance: "Distance",
+        elevation: "Elevation",
+        avgSpeed: "Average Speed",
+    showEndStats: "Show End Stats",
+            
+            // Comparison Mode
+            comparisonSettings: "🏃‍♂️ Comparison Mode",
+            enableComparison: "Enable Comparison",
+            secondTrack: "Second Track",
+            loadTrack: "Load Track",
+            
             play: "Play",
             pause: "Pause",
             reset: "Reset",
@@ -1163,9 +1171,15 @@ export const translations = {
             showCircle: "Mostrar Círculo",
             
             // Stats Labels
-            distance: "Distancia",
-            elevation: "Elevación",
-            showEndStats: "Mostrar Estadísticas Finales",
+                    distance: "Distancia",
+        elevation: "Elevación",
+        showEndStats: "Mostrar Estadísticas Finales",
+            
+            // Comparison Mode
+            comparisonSettings: "🏃‍♂️ Modo Comparación",
+            enableComparison: "Habilitar Comparación",
+            secondTrack: "Segunda Ruta",
+            loadTrack: "Cargar Ruta",
 
             // Control Section Headers
             markerSettings: "🎯 Configuración del Marcador",
