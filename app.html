@@ -259,15 +259,8 @@
                                         instructionsSection.style.display = 'grid';
                                     }
 
-                                    // Update the toggle button text
-                                    const toggleBtn = document.getElementById('showExternalImportBtn');
-                                    if (toggleBtn) {
-                                        const buttonText = toggleBtn.querySelector('span:not(.btn-icon)');
-                                        if (buttonText && buttonText.hasAttribute('data-i18n')) {
-                                            buttonText.setAttribute('data-i18n', 'upload.hideExternalImport');
-                                            buttonText.textContent = translations[currentLanguage]?.upload?.hideExternalImport || 'Hide External Import';
-                                        }
-                                    }
+                                    // No need to update button text here - the testPlatformURL function
+                                    // should only populate the URL field and show the section
                                 }
 
                                 // Focus the input field

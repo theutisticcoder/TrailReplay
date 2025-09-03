@@ -1784,7 +1784,7 @@ export function t(key, params = {}) {
 export function updatePageTranslations() {
     // Update text content with data-i18n attributes
     const i18nElements = document.querySelectorAll('[data-i18n]');
-    
+
     i18nElements.forEach(element => {
         const key = element.getAttribute('data-i18n');
         const translation = t(key);
@@ -1795,7 +1795,7 @@ export function updatePageTranslations() {
 
     // Update placeholder attributes with data-i18n-placeholder
     const placeholderElements = document.querySelectorAll('[data-i18n-placeholder]');
-    
+
     placeholderElements.forEach(element => {
         const key = element.getAttribute('data-i18n-placeholder');
         const translation = t(key);
@@ -1806,7 +1806,7 @@ export function updatePageTranslations() {
 
     // Update title attributes with data-i18n-title
     const titleElements = document.querySelectorAll('[data-i18n-title]');
-    
+
     titleElements.forEach(element => {
         const key = element.getAttribute('data-i18n-title');
         const translation = t(key);
@@ -1814,6 +1814,11 @@ export function updatePageTranslations() {
             element.title = translation;
         }
     });
+}
+
+// Make updatePageTranslations available globally
+if (typeof window !== 'undefined') {
+    window.updatePageTranslations = updatePageTranslations;
 }
 
 // Auto-detect browser language

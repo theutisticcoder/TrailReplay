@@ -121,43 +121,58 @@ export class FollowBehindCamera {
             console.warn('🎬 Cannot start cinematic sequence: missing trackData or map');
             return Promise.resolve();
         }
-        
+
         console.log('🎬 Starting pre-animation zoom-in sequence');
-        
+
         // Get start point (marker should be at position 0 before animation starts)
         const startPoint = this.gpxParser.getInterpolatedPoint(0);
         if (!startPoint || typeof startPoint.lat === 'undefined' || typeof startPoint.lon === 'undefined') {
             console.warn('🎬 No valid start point available');
             return Promise.resolve();
         }
-        
+
         // Get current preset settings
         const preset = this.getCurrentPresetSettings();
-        
+
+        // Calculate elevation-adjusted zoom for the initial cinematic zoom-in
+        let adjustedZoom = preset.ZOOM;
+
+        // If we have elevation data, adjust the zoom based on the starting elevation
+        if (startPoint.elevation !== undefined && startPoint.elevation !== null) {
+            const startElevation = startPoint.elevation;
+
+            // Apply elevation-based zoom adjustment (same logic as terrain-aware settings)
+            const elevationFactor = Math.min(startElevation * FOLLOW_BEHIND_SETTINGS.ELEVATION_SENSITIVITY, TERRAIN_CONSTANTS.ELEVATION_FACTOR_MAX);
+            adjustedZoom = Math.max(FOLLOW_BEHIND_SETTINGS.MIN_ZOOM,
+                                   Math.min(FOLLOW_BEHIND_SETTINGS.MAX_ZOOM, preset.ZOOM - elevationFactor));
+
+            console.log(`🎬 Elevation-adjusted zoom: base=${preset.ZOOM}, elevation=${startElevation}m, factor=${elevationFactor.toFixed(2)}, adjusted=${adjustedZoom.toFixed(1)}`);
+        }
+
         // Get current map state (zoom, pitch, bearing)
         const currentZoom = this.map.getZoom();
         const currentPitch = this.map.getPitch();
         const currentBearing = this.map.getBearing();
         const currentCenter = this.map.getCenter();
-        
+
         // Calculate bearing for start position
         const bearing = this.calculateBearing(0);
         this.lastBearing = bearing;
-        
-        console.log(`🎬 Starting smooth zoom from current zoom ${currentZoom.toFixed(1)} to ${preset.name}: zoom=${preset.ZOOM}, pitch=${preset.PITCH}° (${FOLLOW_BEHIND_SETTINGS.CINEMATIC_DURATION/1000}s)`);
-        
+
+        console.log(`🎬 Starting smooth zoom from current zoom ${currentZoom.toFixed(1)} to ${preset.name}: zoom=${adjustedZoom.toFixed(1)}, pitch=${preset.PITCH}° (${FOLLOW_BEHIND_SETTINGS.CINEMATIC_DURATION/1000}s)`);
+
         // Return promise that resolves when zoom-in completes
         return new Promise((resolve) => {
-            // Smooth transition from current position to animation position
+            // Smooth transition from current position to animation position with elevation-adjusted zoom
             this.map.easeTo({
                 center: [startPoint.lon, startPoint.lat],
-                zoom: preset.ZOOM,
+                zoom: adjustedZoom,
                 pitch: preset.PITCH,
                 bearing: bearing,
                 duration: FOLLOW_BEHIND_SETTINGS.CINEMATIC_DURATION,
                 easing: (t) => 1 - Math.pow(1 - t, 3) // Smooth ease-out cubic
             });
-            
+
             // Resolve when zoom-in completes
             setTimeout(() => {
                 console.log('🎬 Pre-animation zoom-in completed, ready to start trail animation');
@@ -540,16 +555,16 @@ export class FollowBehindCamera {
             console.warn('🎬 Cannot start cinematic sequence for video export: missing trackData or map');
             return Promise.resolve();
         }
-        
+
         console.log('🎬 Starting pre-animation zoom-in sequence for video export');
-        
+
         // Get start point (marker should be at position 0 before animation starts)
         const startPoint = this.gpxParser.getInterpolatedPoint(0);
         if (!startPoint || typeof startPoint.lat === 'undefined' || typeof startPoint.lon === 'undefined') {
             console.warn('🎬 No valid start point available for video export');
             return Promise.resolve();
         }
-        
+
         // For video export, always start from a fixed overview position for consistent timing
         console.log('🎬 Setting fixed overview starting position for video export');
         this.map.jumpTo({
@@ -558,29 +573,44 @@ export class FollowBehindCamera {
             pitch: 0,
             bearing: 0
         });
-        
+
         // Get current preset settings
         const preset = this.getCurrentPresetSettings();
-        
+
+        // Calculate elevation-adjusted zoom for video export consistency
+        let adjustedZoom = preset.ZOOM;
+
+        // If we have elevation data, adjust the zoom based on the starting elevation
+        if (startPoint.elevation !== undefined && startPoint.elevation !== null) {
+            const startElevation = startPoint.elevation;
+
+            // Apply elevation-based zoom adjustment (same logic as terrain-aware settings)
+            const elevationFactor = Math.min(startElevation * FOLLOW_BEHIND_SETTINGS.ELEVATION_SENSITIVITY, TERRAIN_CONSTANTS.ELEVATION_FACTOR_MAX);
+            adjustedZoom = Math.max(FOLLOW_BEHIND_SETTINGS.MIN_ZOOM,
+                                   Math.min(FOLLOW_BEHIND_SETTINGS.MAX_ZOOM, preset.ZOOM - elevationFactor));
+
+            console.log(`🎬 Video export elevation-adjusted zoom: base=${preset.ZOOM}, elevation=${startElevation}m, factor=${elevationFactor.toFixed(2)}, adjusted=${adjustedZoom.toFixed(1)}`);
+        }
+
         // Calculate bearing for start position
         const bearing = this.calculateBearing(0);
         this.lastBearing = bearing;
-        
-        console.log(`🎬 Video export: zooming from overview (zoom 5) to ${preset.name}: zoom=${preset.ZOOM}, pitch=${preset.PITCH}° (${FOLLOW_BEHIND_SETTINGS.CINEMATIC_DURATION/1000}s)`);
-        
+
+        console.log(`🎬 Video export: zooming from overview (zoom 5) to ${preset.name}: zoom=${adjustedZoom.toFixed(1)}, pitch=${preset.PITCH}° (${FOLLOW_BEHIND_SETTINGS.CINEMATIC_DURATION/1000}s)`);
+
         // Return promise that resolves when zoom-in completes
         return new Promise((resolve) => {
-            // Small delay to ensure the overview position is set, then zoom-in
+            // Small delay to ensure the overview position is set, then zoom-in with elevation-adjusted zoom
             setTimeout(() => {
                 this.map.easeTo({
                     center: [startPoint.lon, startPoint.lat],
-                    zoom: preset.ZOOM,
+                    zoom: adjustedZoom,
                     pitch: preset.PITCH,
                     bearing: bearing,
                     duration: FOLLOW_BEHIND_SETTINGS.CINEMATIC_DURATION,
                     easing: (t) => 1 - Math.pow(1 - t, 3) // Smooth ease-out cubic
                 });
-                
+
                 // Resolve when zoom-in completes
                 setTimeout(() => {
                     console.log('🎬 Video export: pre-animation zoom-in completed, ready to start trail animation');

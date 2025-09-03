@@ -34,8 +34,13 @@ export class URLController {
                 // Update button text with proper translation
                 const buttonText = showExternalBtn.querySelector('span:not(.btn-icon)');
                 if (buttonText) {
-                    buttonText.textContent = isHidden ? 'Hide External Import' : 'Import from Strava/Wikiloc';
+                    // Set the data-i18n attribute (don't set textContent directly)
                     buttonText.setAttribute('data-i18n', isHidden ? 'upload.hideExternalImport' : 'upload.externalImport');
+
+                    // Apply the new translation immediately
+                    if (typeof window !== 'undefined' && window.updatePageTranslations) {
+                        window.updatePageTranslations();
+                    }
                 }
             });
         }
