@@ -764,7 +764,10 @@
     <!-- Language Switcher Initialization -->
     <script type="module">
         import { initializeTranslations, setLanguage } from './src/translations.js';
-        
+
+        // Initialize translations
+        initializeTranslations();
+
         // Setup language switcher functionality on DOM ready
         document.addEventListener('DOMContentLoaded', () => {
             const languageSelect = document.getElementById('languageSelect');
@@ -772,7 +775,7 @@
                 // Set current language as selected
                 const lang = localStorage.getItem('trailReplayLang') || navigator.language.slice(0,2) || 'en';
                 languageSelect.value = lang.startsWith('es') ? 'es' : 'en';
-                
+
                 // Add event listener for language changes
                 languageSelect.addEventListener('change', (e) => {
                     setLanguage(e.target.value);

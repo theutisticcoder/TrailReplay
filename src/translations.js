@@ -4,6 +4,7 @@ import { AnalyticsTracker } from './utils/analytics.js';
 export const translations = {
     en: {
         subtitle: "Replay the story your trails told",
+        support: "Support",
         acknowledgments: {
             title: "Acknowledgments",
             intro: "TrailReplay is proudly built on the shoulders of open source giants. We thank the following projects and communities:",
@@ -874,6 +875,7 @@ export const translations = {
     },
     es: {
         subtitle: "Revive la historia que contaron tus senderos",
+        support: "Apoyar",
         acknowledgments: {
             title: "Agradecimientos",
             intro: "TrailReplay está orgullosamente construido sobre los hombros de gigantes del software libre. Agradecemos a los siguientes proyectos y comunidades:",

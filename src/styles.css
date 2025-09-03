@@ -108,6 +108,7 @@ body {
     padding: 1.5rem 0;
     text-align: center;
     border-bottom: 2px solid var(--evergreen);
+    position: relative;
 }
 
 .logo-container {
@@ -152,6 +153,53 @@ body {
 /* Hide text when SVG is successfully loaded - but we'll handle this via JavaScript now */
 .logo-placeholder:has(.logo-image[style*="display: none"]) .logo-text {
     display: block;
+}
+
+/* Support Button - Top Right Corner */
+.support-button {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    color: var(--canvas);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    transition: all 200ms ease-out;
+    font-size: 0.95rem;
+    font-weight: 500;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+}
+
+.support-button:hover {
+    background: #FFDD44;
+    color: var(--evergreen);
+    transform: translateY(-2px);
+    border-color: rgba(255, 204, 0, 0.6);
+    box-shadow: 0 4px 12px rgba(255, 204, 0, 0.3);
+}
+
+.support-button:hover span {
+    color: var(--evergreen) !important;
+}
+
+.support-button svg {
+    flex-shrink: 0;
+}
+
+.support-button span {
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: inline-block !important;
+    color: var(--evergreen) !important;
+    font-weight: 500 !important;
+    font-size: 0.95rem !important;
+    white-space: nowrap !important;
 }
 
 .logo {
