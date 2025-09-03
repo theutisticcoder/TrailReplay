@@ -77,6 +77,33 @@ export class AnalyticsTracker {
     }
 
     /**
+     * Track URL-based GPX downloads
+     * @param {string} url - The source URL
+     * @param {string} format - File format (gpx, kml, etc.)
+     */
+    static trackUrlDownload(url, format = 'gpx') {
+        this.track('url_gpx_download', {
+            source_url: url,
+            file_format: format,
+            platform: this.extractPlatform(url)
+        });
+    }
+
+    /**
+     * Extract platform name from URL for analytics
+     * @param {string} url - The source URL
+     * @returns {string} Platform name
+     */
+    static extractPlatform(url) {
+        if (url.includes('wikiloc.com')) return 'wikiloc';
+        if (url.includes('strava.com')) return 'strava';
+        if (url.includes('garmin.com')) return 'garmin';
+        if (url.includes('alltrails.com')) return 'alltrails';
+        if (url.includes('komoot.com')) return 'komoot';
+        return 'other';
+    }
+
+    /**
      * Track animation playback events
      * @param {string} action - play, pause, reset
      * @param {number} duration - Track duration in seconds

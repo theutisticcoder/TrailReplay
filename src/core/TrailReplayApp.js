@@ -10,6 +10,7 @@ import { ProgressController } from '../controllers/ProgressController.js';
 import { JourneyController } from '../controllers/JourneyController.js';
 import { IconController } from '../controllers/IconController.js';
 import { TimelineController } from '../controllers/TimelineController.js';
+import { URLController } from '../controllers/URLController.js';
 
 import { setupEventListeners } from '../ui/eventListeners.js';
 import { setupModals } from '../ui/modalController.js';
@@ -68,6 +69,7 @@ export class TrailReplayApp {
         this.videoExporter = null;
         this.notes = null;
         this.strava = null; // Initialize StravaController
+        this.url = null; // URL Controller for Wikiloc URLs
 
         // Legacy property names for compatibility
         this.mapController = null; // Will point to this.map
@@ -95,6 +97,8 @@ export class TrailReplayApp {
         this.exporter = new ExportController(this);
         this.videoExporter = new VideoExportController(this);
         this.notes = new AnnotationController(this);
+        this.url = new URLController(this);
+        this.url.initialize();
 
         // Set legacy compatibility references
         this.mapController = this.map;

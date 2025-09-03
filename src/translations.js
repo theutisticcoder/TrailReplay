@@ -278,7 +278,59 @@ export const translations = {
         upload: {
             title: "Upload GPX Files & Pictures",
             description: "Add multiple GPX tracks and images to create your journey",
-            button: "Choose Files"
+            button: "Choose Files",
+            urlLabel: "Paste your URL:",
+            loadFromUrl: "🔗 Open Download Page",
+            urlPlaceholder: "https://www.strava.com/activities/123456 or https://www.wikiloc.com/trails/view/123456 or other platform URLs",
+            stravaInstructions: "On Strava: Click 3 dots (⋯) next to activity title → Export GPX",
+            wikilocInstructions: "On Wikiloc: Click 'File' tab → Download GPX",
+            externalImport: "Import from External Sources",
+            hideExternalImport: "Hide External Import",
+
+            // Platform instruction cards
+            platformInstructions: {
+                strava: {
+                    title: "Strava",
+                    step1: "Paste activity URL:",
+                    step2: "Click \"🔗 Open Download Page\"",
+                    step3: "On Strava: Click 3 dots (⋯) next to activity title",
+                    step4: "Select \"Export GPX\"",
+                    step5: "Upload downloaded file",
+                    tryIt: "Try it:",
+                    exampleActivity: "UTMB 2021 Activity"
+                },
+                wikiloc: {
+                    title: "Wikiloc",
+                    step1: "Paste trail URL:",
+                    step2: "Click \"🔗 Open Download Page\"",
+                    step3: "On Wikiloc: Click \"File\" tab",
+                    step4: "Click \"Download GPX\"",
+                    step5: "Upload downloaded file",
+                    otherExamples: "Other examples:",
+                    santFeliuRace: "Sant Feliu Race",
+                    anotherTrail: "Another trail"
+                },
+                otherPlatforms: {
+                    title: "Other Platforms",
+                    step1: "Paste any GPS platform URL",
+                    step2: "Click \"🔗 Open Download Page\"",
+                    step3: "Look for \"Export\" or \"Download GPX\" option",
+                    step4: "Select GPX format if available",
+                    step5: "Upload downloaded file",
+                    supported: "Supported:",
+                    supportedPlatforms: "Garmin, AllTrails, Komoot, Suunto, Polar, Coros, Endomondo, Nike, Adidas, Fitbit, Dropbox, Google Drive"
+                }
+            },
+
+            // Status messages
+            urlStatus: {
+                exampleLoaded: "Example URL loaded!",
+                platformDetected: "Platform detected:",
+                clickToTest: "Click \"🔗 Open Download Page\" to test the functionality.",
+                openingPage: "⏳ Opening...",
+                openingText: "Opening...",
+                pageOpened: "Page opened successfully!"
+            }
         },
         
 
@@ -1096,7 +1148,59 @@ export const translations = {
         upload: {
             title: "Subir Archivos GPX y Fotos",
             description: "Añade múltiples rutas GPX e imágenes para crear tu viaje",
-            button: "Elegir Archivos"
+            button: "Elegir Archivos",
+            urlLabel: "Pega tu URL:",
+            loadFromUrl: "🔗 Abrir Página de Descarga",
+            urlPlaceholder: "https://www.strava.com/activities/123456 o https://www.wikiloc.com/trails/view/123456 u otras plataformas",
+            stravaInstructions: "En Strava: Haz clic en 3 puntos (⋯) junto al título de la actividad → Exportar GPX",
+            wikilocInstructions: "En Wikiloc: Haz clic en la pestaña 'Archivo' → Descargar GPX",
+            externalImport: "Importar desde Fuentes Externas",
+            hideExternalImport: "Ocultar Importación Externa",
+
+            // Platform instruction cards
+            platformInstructions: {
+                strava: {
+                    title: "Strava",
+                    step1: "Pega la URL de la actividad:",
+                    step2: "Haz clic en \"🔗 Abrir Página de Descarga\"",
+                    step3: "En Strava: Haz clic en 3 puntos (⋯) junto al título de la actividad",
+                    step4: "Selecciona \"Exportar GPX\"",
+                    step5: "Sube el archivo descargado",
+                    tryIt: "Prueba:",
+                    exampleActivity: "Actividad UTMB 2021"
+                },
+                wikiloc: {
+                    title: "Wikiloc",
+                    step1: "Pega la URL del sendero:",
+                    step2: "Haz clic en \"🔗 Abrir Página de Descarga\"",
+                    step3: "En Wikiloc: Haz clic en la pestaña \"Archivo\"",
+                    step4: "Haz clic en \"Descargar GPX\"",
+                    step5: "Sube el archivo descargado",
+                    otherExamples: "Otros ejemplos:",
+                    santFeliuRace: "Carrera Sant Feliu",
+                    anotherTrail: "Otro sendero"
+                },
+                otherPlatforms: {
+                    title: "Otras Plataformas",
+                    step1: "Pega cualquier URL de plataforma GPS",
+                    step2: "Haz clic en \"🔗 Abrir Página de Descarga\"",
+                    step3: "Busca la opción \"Exportar\" o \"Descargar GPX\"",
+                    step4: "Selecciona formato GPX si está disponible",
+                    step5: "Sube el archivo descargado",
+                    supported: "Compatibles:",
+                    supportedPlatforms: "Garmin, AllTrails, Komoot, Suunto, Polar, Coros, Endomondo, Nike, Adidas, Fitbit, Dropbox, Google Drive"
+                }
+            },
+
+            // Status messages
+            urlStatus: {
+                exampleLoaded: "¡URL de ejemplo cargada!",
+                platformDetected: "Plataforma detectada:",
+                clickToTest: "Haz clic en \"🔗 Abrir Página de Descarga\" para probar la funcionalidad.",
+                openingPage: "⏳ Abriendo...",
+                openingText: "Abriendo...",
+                pageOpened: "¡Página abierta exitosamente!"
+            }
         },
         
 

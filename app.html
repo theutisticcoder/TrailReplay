@@ -158,6 +158,168 @@
                         <p class="upload-formats-info">
                             <small>Supported formats: <strong>GPX files</strong> (.gpx) and <strong>Images</strong> (.jpg, .jpeg, .png, .gif, .webp)</small>
                         </p>
+
+                        <!-- URL Input Section -->
+                        <div class="url-input-section" id="urlInputSection">
+                            <!-- Import from External Website Button -->
+                            <div class="external-import-toggle">
+                                <button id="showExternalImportBtn" class="external-import-btn">
+                                    <span class="btn-icon">🌐</span>
+                                    <span data-i18n="upload.externalImport">Import from Strava/Wikiloc</span>
+                                </button>
+                            </div>
+
+                            <div class="external-import-section" id="externalImportSection" style="display: none;">
+                                <div class="url-input-group">
+                                    <label for="wikilocUrl" data-i18n="upload.urlLabel">Paste your URL:</label>
+                                    <input type="url" id="wikilocUrl" data-i18n-placeholder="upload.urlPlaceholder" placeholder="https://www.strava.com/activities/1234567890 or https://www.wikiloc.com/trails/view/123456" class="url-input">
+                                    <button id="loadFromUrlBtn" class="url-load-btn" data-i18n="upload.loadFromUrl">
+                                        <span class="btn-text" data-i18n="upload.loadFromUrl">🔗 Open Download Page</span>
+                                        <span class="loading-text" style="display: none;" data-i18n="upload.urlStatus.openingText">⏳ Opening...</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Platform Instructions -->
+                            <div class="platform-instructions" id="platformInstructions" style="display: none;">
+                                <div class="platform-card strava-card">
+                                    <div class="platform-header">
+                                        <div class="platform-logo strava-logo">S</div>
+                                        <h4 data-i18n="upload.platformInstructions.strava.title">Strava</h4>
+                                    </div>
+                                    <ol>
+                                        <li data-i18n="upload.platformInstructions.strava.step1">Paste activity URL:</data-i18n> <a href="#" onclick="testPlatformURL('https://www.strava.com/activities/5868127842')" class="example-url">https://www.strava.com/activities/5868127842</a></li>
+                                        <li data-i18n="upload.platformInstructions.strava.step2">Click "🔗 Open Download Page"</li>
+                                        <li data-i18n="upload.platformInstructions.strava.step3">On Strava: Click 3 dots (⋯) next to activity title</li>
+                                        <li data-i18n="upload.platformInstructions.strava.step4">Select "Export GPX"</li>
+                                        <li data-i18n="upload.platformInstructions.strava.step5">Upload downloaded file</li>
+                                    </ol>
+                                    <p class="platform-examples">
+                                        <strong data-i18n="upload.platformInstructions.strava.tryIt">Try it:</strong> <a href="#" onclick="testPlatformURL('https://www.strava.com/activities/5868127842')" class="example-url" data-i18n="upload.platformInstructions.strava.exampleActivity">UTMB 2021 Activity</a>
+                                    </p>
+                                </div>
+                                <div class="platform-card wikiloc-card">
+                                    <div class="platform-header">
+                                        <div class="platform-logo wikiloc-logo">W</div>
+                                        <h4 data-i18n="upload.platformInstructions.wikiloc.title">Wikiloc</h4>
+                                    </div>
+                                    <ol>
+                                        <li data-i18n="upload.platformInstructions.wikiloc.step1">Paste trail URL:</data-i18n> <a href="#" onclick="testPlatformURL('https://es.wikiloc.com/rutas-carrera/cursa-festa-major-sant-feliu-de-codines-2022-113786033')" class="example-url">https://es.wikiloc.com/rutas-carrera/cursa-festa-major-sant-feliu-de-codines-2022-113786033</a></li>
+                                        <li data-i18n="upload.platformInstructions.wikiloc.step2">Click "🔗 Open Download Page"</li>
+                                        <li data-i18n="upload.platformInstructions.wikiloc.step3">On Wikiloc: Click "File" tab</li>
+                                        <li data-i18n="upload.platformInstructions.wikiloc.step4">Click "Download GPX"</li>
+                                        <li data-i18n="upload.platformInstructions.wikiloc.step5">Upload downloaded file</li>
+                                    </ol>
+                                    <p class="platform-examples">
+                                        <strong data-i18n="upload.platformInstructions.wikiloc.otherExamples">Other examples:</strong><br>
+                                        <a href="#" onclick="testPlatformURL('https://es.wikiloc.com/rutas-carrera/cursa-festa-major-sant-feliu-de-codines-2022-113786033')" class="example-url" data-i18n="upload.platformInstructions.wikiloc.santFeliuRace">Sant Feliu Race</a> |
+                                        <a href="#" onclick="testPlatformURL('https://www.wikiloc.com/trails/view/123456')" class="example-url" data-i18n="upload.platformInstructions.wikiloc.anotherTrail">Another trail</a>
+                                    </p>
+                                </div>
+
+                                <div class="platform-card other-card">
+                                    <div class="platform-header">
+                                        <div class="platform-logo other-logo">?</div>
+                                        <h4 data-i18n="upload.platformInstructions.otherPlatforms.title">Other Platforms</h4>
+                                    </div>
+                                    <ol>
+                                        <li data-i18n="upload.platformInstructions.otherPlatforms.step1">Paste any GPS platform URL</li>
+                                        <li data-i18n="upload.platformInstructions.otherPlatforms.step2">Click "🔗 Open Download Page"</li>
+                                        <li data-i18n="upload.platformInstructions.otherPlatforms.step3">Look for "Export" or "Download GPX" option</li>
+                                        <li data-i18n="upload.platformInstructions.otherPlatforms.step4">Select GPX format if available</li>
+                                        <li data-i18n="upload.platformInstructions.otherPlatforms.step5">Upload downloaded file</li>
+                                    </ol>
+                                    <p class="platform-examples">
+                                        <strong data-i18n="upload.platformInstructions.otherPlatforms.supported">Supported:</strong> <span data-i18n="upload.platformInstructions.otherPlatforms.supportedPlatforms">Garmin, AllTrails, Komoot, Suunto, Polar, Coros, Endomondo, Nike, Adidas, Fitbit, Dropbox, Google Drive</span>
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="url-status" id="urlStatus" style="display: none;"></div>
+                        </div>
+
+                        <script>
+                        function testPlatformURL(url) {
+                            // Prevent default link behavior
+                            event.preventDefault();
+
+                            // Get the URL input field
+                            const urlInput = document.getElementById('wikilocUrl');
+                            const externalSection = document.getElementById('externalImportSection');
+                            const instructionsSection = document.getElementById('platformInstructions');
+
+                            if (urlInput) {
+                                // Populate the URL input field
+                                urlInput.value = url;
+
+                                // Show the external import section if it's hidden
+                                if (externalSection && externalSection.style.display === 'none') {
+                                    externalSection.style.display = 'block';
+                                    if (instructionsSection) {
+                                        instructionsSection.style.display = 'grid';
+                                    }
+
+                                    // Update the toggle button text
+                                    const toggleBtn = document.getElementById('showExternalImportBtn');
+                                    if (toggleBtn) {
+                                        const buttonText = toggleBtn.querySelector('span:not(.btn-icon)');
+                                        if (buttonText && buttonText.hasAttribute('data-i18n')) {
+                                            buttonText.setAttribute('data-i18n', 'upload.hideExternalImport');
+                                            buttonText.textContent = translations[currentLanguage]?.upload?.hideExternalImport || 'Hide External Import';
+                                        }
+                                    }
+                                }
+
+                                // Focus the input field
+                                urlInput.focus();
+
+                                // Scroll to the input field
+                                urlInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                                // Show a helpful message
+                                showTestURLMessage(url);
+
+                                console.log('✅ Example URL loaded:', url);
+                            }
+                        }
+
+                        function showTestURLMessage(url) {
+                            const statusDiv = document.getElementById('urlStatus');
+                            if (statusDiv) {
+                                const platform = detectPlatform(url);
+                                const platformName = platform.charAt(0).toUpperCase() + platform.slice(1);
+
+                                statusDiv.innerHTML = `
+                                    <div class="status-info">
+                                        <p>🎯 <strong data-i18n="upload.urlStatus.exampleLoaded">Example URL loaded!</strong></p>
+                                        <p data-i18n="upload.urlStatus.platformDetected">Platform detected:</data-i18n> <strong>${platformName}</strong></p>
+                                        <p data-i18n="upload.urlStatus.clickToTest">Click "🔗 Open Download Page" to test the functionality.</p>
+                                    </div>
+                                `;
+                                statusDiv.style.display = 'block';
+                                statusDiv.className = 'url-status visible';
+                            }
+                        }
+
+                        function detectPlatform(url) {
+                            if (url.includes('strava.com')) return 'strava';
+                            if (url.includes('wikiloc.com')) return 'wikiloc';
+                            if (url.includes('garmin.com') || url.includes('connect.garmin.com')) return 'garmin';
+                            if (url.includes('alltrails.com')) return 'alltrails';
+                            if (url.includes('komoot.com')) return 'komoot';
+                            if (url.includes('suunto.com')) return 'suunto';
+                            if (url.includes('polar.com')) return 'polar';
+                            if (url.includes('coros.com')) return 'coros';
+                            if (url.includes('endomondo.com')) return 'endomondo';
+                            if (url.includes('nike.com') || url.includes('nrc-app')) return 'nike';
+                            if (url.includes('adidas')) return 'adidas';
+                            if (url.includes('fitbit.com')) return 'fitbit';
+                            if (url.includes('dropbox.com')) return 'dropbox';
+                            if (url.includes('drive.google.com')) return 'google-drive';
+                            return 'unknown';
+                        }
+                        </script>
+
                         <input type="file" id="gpxFileInput" accept=".gpx,image/*" class="file-input" multiple>
                         <button class="upload-btn" onclick="console.log('Upload button clicked!'); document.getElementById('gpxFileInput').click()">
                             <span data-i18n="upload.button">Choose Files</span>

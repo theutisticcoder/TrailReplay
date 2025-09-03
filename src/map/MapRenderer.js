@@ -66,10 +66,17 @@ export class MapRenderer {
         }
         
         this.initializeMap();
-        
+
+        // Add resize event listener for dynamic layout detection
+        this.setupResizeListener();
+
         // Initialize default camera mode after a brief delay
         setTimeout(() => {
             this.initializeCameraMode();
+            // Detect initial layout after map is fully loaded
+            setTimeout(() => {
+                this.detectAndSetMapLayout();
+            }, 500);
         }, 100);
         this.preloadedTiles = new Set(); // Track preloaded tile URLs
         this.currentMapStyle = 'satellite'; // Track current style for preloading
@@ -745,6 +752,11 @@ export class MapRenderer {
                 this.followBehindCamera.initialize();
             }, 1500); // Wait for map bounds fitting to complete
         }
+
+        // Detect and apply proper map layout based on aspect ratio
+        setTimeout(() => {
+            this.detectAndSetMapLayout();
+        }, 200); // Small delay to ensure map container is properly sized
     }
 
     updateCurrentPosition() {
@@ -1320,43 +1332,73 @@ export class MapRenderer {
         });
     }
 
-    triggerStatsEndAnimation() {
+    // Setup resize event listener for dynamic layout updates
+    setupResizeListener() {
+        // Debounce resize events to avoid excessive layout recalculations
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                console.log('🔄 Window resized, updating map layout');
+                this.detectAndSetMapLayout();
+            }, 250); // 250ms debounce
+        });
+
+        console.log('📏 Resize listener setup for dynamic layout detection');
+    }
+
+    // Function to detect and set map layout based on aspect ratio
+    detectAndSetMapLayout() {
         const overlay = document.getElementById('liveStatsOverlay');
-        if (!overlay || !this.showEndStats) {
-            console.log('🎯 End stats animation skipped:', !overlay ? 'overlay not found' : 'disabled by user');
+        if (!overlay) {
+            console.log('🎯 Layout detection skipped: overlay not found');
             return;
         }
-        
-        console.log('🎯 Triggering stats end animation');
 
+        console.log('🎯 Detecting map layout based on aspect ratio');
 
-        
         // Detect layout based on screen size and map aspect ratio
         const mapContainer = this.map.getContainer();
         const mapWidth = mapContainer.clientWidth;
         const mapHeight = mapContainer.clientHeight;
         const aspectRatio = mapWidth / mapHeight;
         const isMobile = window.innerWidth <= 768;
-        
+
+        console.log('📐 Map dimensions:', mapWidth, 'x', mapHeight, 'Aspect ratio:', aspectRatio.toFixed(2));
+
         // Remove any existing layout classes
         overlay.classList.remove('mobile-layout', 'square-layout', 'horizontal-layout', 'with-speed');
-        
+
         // Determine layout based on conditions
         if (isMobile) {
             overlay.classList.add('mobile-layout');
+            console.log('📱 Applied mobile layout');
         } else if (aspectRatio >= 0.8 && aspectRatio <= 1.2) {
             // Square-ish aspect ratio (0.8 to 1.2)
             overlay.classList.add('square-layout');
+            console.log('⬜ Applied square layout (aspect ratio:', aspectRatio.toFixed(2), ')');
         } else {
             // Horizontal/widescreen aspect ratio
             overlay.classList.add('horizontal-layout');
+            console.log('⬌ Applied horizontal layout (aspect ratio:', aspectRatio.toFixed(2), ')');
         }
-        
+    }
 
-        
+    triggerStatsEndAnimation() {
+        const overlay = document.getElementById('liveStatsOverlay');
+        if (!overlay || !this.showEndStats) {
+            console.log('🎯 End stats animation skipped:', !overlay ? 'overlay not found' : 'disabled by user');
+            return;
+        }
+
+        console.log('🎯 Triggering stats end animation');
+
+        // Use the new layout detection function
+        this.detectAndSetMapLayout();
+
         // Add the end animation class to trigger the CSS transition
         overlay.classList.add('end-animation');
-        
+
         // Remove the animation after 10 seconds to return to normal state
         setTimeout(() => {
             overlay.classList.remove('end-animation', 'mobile-layout', 'square-layout', 'horizontal-layout', 'with-speed');

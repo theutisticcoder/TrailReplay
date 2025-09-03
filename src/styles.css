@@ -282,6 +282,490 @@ body {
     transform: translateY(-2px);
 }
 
+/* URL Input Section */
+.url-input-section {
+    margin: 2rem 0;
+    padding: 1.5rem;
+    background: rgba(248, 246, 240, 0.5);
+    border-radius: 6px;
+    border: 1px solid var(--evergreen-40);
+}
+
+.url-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: stretch;
+}
+
+.url-input-group label {
+    font-weight: 600;
+    color: var(--evergreen);
+    font-size: 0.95rem;
+}
+
+.url-input {
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--evergreen-40);
+    border-radius: 6px;
+    font-size: 1rem;
+    font-family: inherit;
+    color: var(--evergreen);
+    background: var(--canvas);
+    transition: border-color 200ms ease-out, box-shadow 200ms ease-out;
+}
+
+.url-input:focus {
+    outline: none;
+    border-color: var(--trail-orange);
+    box-shadow: 0 0 0 3px rgba(193, 101, 47, 0.1);
+}
+
+.url-load-btn {
+    background: var(--trail-orange);
+    color: var(--canvas);
+    border: 2px solid var(--trail-orange);
+    padding: 0.75rem 1.5rem;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 200ms ease-out;
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 48px;
+}
+
+.url-load-btn:hover:not(:disabled) {
+    background: var(--evergreen);
+    border-color: var(--evergreen);
+    transform: translateY(-2px);
+}
+
+.url-load-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.url-status {
+    margin-top: 1rem;
+    padding: 1rem;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: all 300ms ease-out;
+}
+
+.url-status.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.status-success {
+    background: rgba(40, 167, 69, 0.1);
+    border: 1px solid rgba(40, 167, 69, 0.3);
+    color: #155724;
+}
+
+.status-error {
+    background: rgba(220, 53, 69, 0.1);
+    border: 1px solid rgba(220, 53, 69, 0.3);
+    color: #721c24;
+}
+
+.status-info {
+    background: rgba(193, 101, 47, 0.1);
+    border: 1px solid rgba(193, 101, 47, 0.3);
+    color: var(--evergreen);
+}
+
+.status-warning {
+    background: rgba(255, 193, 109, 0.1);
+    border: 1px solid rgba(255, 193, 109, 0.3);
+    color: #856404;
+}
+
+.download-instructions {
+    margin-top: 1rem;
+}
+
+.download-instructions ol {
+    padding-left: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.download-instructions li {
+    margin-bottom: 0.5rem;
+}
+
+.download-instructions a {
+    color: var(--trail-orange);
+    text-decoration: none;
+}
+
+.download-instructions a:hover {
+    text-decoration: underline;
+}
+
+.download-instructions .tip {
+    font-style: italic;
+    color: var(--evergreen);
+    opacity: 0.8;
+}
+
+/* External Import Toggle */
+.external-import-toggle {
+    margin-bottom: 1rem;
+}
+
+.external-import-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(193, 101, 47, 0.1);
+    color: var(--evergreen);
+    border: 2px solid rgba(193, 101, 47, 0.3);
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 200ms ease-out;
+    font-family: inherit;
+}
+
+.external-import-btn:hover {
+    background: rgba(193, 101, 47, 0.15);
+    border-color: var(--trail-orange);
+    transform: translateY(-1px);
+}
+
+.external-import-btn .btn-icon {
+    font-size: 1.1rem;
+}
+
+.external-import-section {
+    margin-bottom: 1.5rem;
+}
+
+/* Platform Instructions */
+.platform-instructions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+    animation: fadeIn 300ms ease-out;
+    max-width: 100%;
+    padding: 0 0.75rem;
+    box-sizing: border-box;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.platform-card {
+    background: rgba(248, 246, 240, 0.8);
+    border: 1px solid var(--evergreen-40);
+    border-radius: 8px;
+    padding: 0.8rem;
+    transition: all 200ms ease-out;
+    width: 100%;
+    box-sizing: border-box;
+    max-width: 100%;
+}
+
+.platform-card:hover {
+    border-color: var(--trail-orange);
+    background: rgba(193, 101, 47, 0.05);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(193, 101, 47, 0.1);
+}
+
+.platform-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.platform-logo {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.strava-logo {
+    background: linear-gradient(135deg, #fc4c02, #e43e00);
+}
+
+.wikiloc-logo {
+    background: linear-gradient(135deg, #28a745, #1e7e34);
+}
+
+.other-logo {
+    background: linear-gradient(135deg, #6c757d, #5a6268);
+}
+
+.platform-card h4 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--evergreen);
+}
+
+.platform-card ol {
+    margin: 0;
+    padding-left: 1.2rem;
+}
+
+.platform-card li {
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.platform-card code {
+    background: rgba(0, 0, 0, 0.1);
+    padding: 0.2rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.8rem;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.example-url {
+    color: var(--trail-orange);
+    text-decoration: none;
+    font-weight: 500;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    background: rgba(193, 101, 47, 0.1);
+    padding: 0.2rem 0.4rem;
+    border-radius: 3px;
+    border: 1px solid rgba(193, 101, 47, 0.2);
+    transition: all 200ms ease-out;
+    cursor: pointer;
+    word-break: break-all;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.example-url:hover {
+    background: rgba(193, 101, 47, 0.15);
+    border-color: var(--trail-orange);
+    transform: translateY(-1px);
+    text-decoration: none;
+}
+
+.platform-examples {
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    font-size: 0.85rem;
+}
+
+.platform-examples strong {
+    color: var(--evergreen);
+    font-weight: 600;
+}
+
+.platform-examples .example-url {
+    margin-right: 0.5rem;
+    margin-bottom: 0.25rem;
+    display: inline-block;
+}
+
+.platform-examples .example-url:last-child {
+    margin-right: 0;
+}
+
+/* Responsive adjustments for URL input */
+@media (max-width: 768px) {
+    .url-input-section {
+        margin: 1.5rem 0;
+        padding: 1rem;
+    }
+
+    .url-input-group {
+        gap: 0.5rem;
+    }
+
+    .url-input {
+        padding: 0.6rem 0.8rem;
+        font-size: 0.95rem;
+    }
+
+    .url-load-btn {
+        padding: 0.6rem 1.2rem;
+        font-size: 0.95rem;
+        min-height: 44px;
+    }
+
+    .platform-instructions {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+        padding: 0 0.75rem;
+    }
+
+    .platform-card {
+        padding: 0.75rem;
+        margin: 0 auto;
+        max-width: 100%;
+    }
+
+    .platform-card h4 {
+        font-size: 0.95rem;
+    }
+
+    .platform-card li {
+        font-size: 0.85rem;
+        line-height: 1.3;
+    }
+
+    .example-url {
+        font-size: 0.75rem;
+        padding: 0.15rem 0.3rem;
+        word-break: break-all;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+        display: inline-block;
+        vertical-align: middle;
+    }
+
+    .platform-examples {
+        font-size: 0.8rem;
+    }
+
+    .platform-examples .example-url {
+        margin-right: 0.25rem;
+        margin-bottom: 0.25rem;
+        font-size: 0.7rem;
+        max-width: calc(100% - 1rem);
+    }
+}
+
+/* Extra small mobile devices */
+@media (max-width: 480px) {
+    .platform-instructions {
+        gap: 0.75rem;
+        padding: 0 0.25rem;
+    }
+
+    .platform-card {
+        padding: 0.5rem;
+        border-radius: 6px;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    .platform-card h4 {
+        font-size: 0.85rem;
+        margin-bottom: 0.4rem;
+    }
+
+    .platform-card li {
+        font-size: 0.75rem;
+        margin-bottom: 0.3rem;
+        line-height: 1.2;
+    }
+
+    .example-url {
+        font-size: 0.65rem;
+        padding: 0.08rem 0.15rem;
+        max-width: 85%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        word-break: break-word;
+        hyphens: auto;
+    }
+
+    .platform-examples {
+        font-size: 0.7rem;
+        margin-top: 0.6rem;
+        padding-top: 0.4rem;
+    }
+
+    .platform-logo {
+        width: 24px;
+        height: 24px;
+        font-size: 0.9rem;
+    }
+}
+
+/* iPhone-sized screens (very small) */
+@media (max-width: 400px) {
+    .platform-instructions {
+        gap: 0.5rem;
+        padding: 0 0.2rem;
+    }
+
+    .platform-card {
+        padding: 0.4rem;
+        margin: 0;
+    }
+
+    .platform-card h4 {
+        font-size: 0.8rem;
+        margin-bottom: 0.3rem;
+    }
+
+    .platform-card li {
+        font-size: 0.7rem;
+        margin-bottom: 0.25rem;
+        line-height: 1.1;
+        padding-left: 0.5rem;
+    }
+
+    .platform-card ol {
+        padding-left: 0.8rem;
+        margin: 0;
+    }
+
+    .example-url {
+        font-size: 0.6rem;
+        padding: 0.05rem 0.1rem;
+        max-width: 80%;
+        border-radius: 2px;
+    }
+
+    .platform-examples {
+        font-size: 0.65rem;
+        margin-top: 0.5rem;
+        padding-top: 0.3rem;
+    }
+
+    .platform-logo {
+        width: 20px;
+        height: 20px;
+        font-size: 0.8rem;
+    }
+}
+
 /* Visualization Section */
 .visualization-section {
     background: var(--canvas);
