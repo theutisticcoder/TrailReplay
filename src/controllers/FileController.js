@@ -49,22 +49,24 @@ export class FileController {
                 // Single file - load directly
                 const file = gpxFiles[0];
                 const trackData = await this.gpxParser.parseFile(file);
-                
+
                 if (trackData) {
                     this.app.currentTrackData = trackData;
-                    
+
                     // Load track data to map
                     this.app.map.loadTrackData(trackData);
-                    
+
                     // Show visualization section
                     this.app.showVisualizationSection();
-                    
+
                     // Update stats
                     this.app.updateStats(trackData.stats);
-                    
+
                     // Generate elevation profile after loading track data
-                    console.log('🏔️ Generating elevation profile for track data...');
                     this.app.generateElevationProfile();
+
+                    // Update stats again after elevation profile generation (may have recalculated elevation stats)
+                    this.app.updateStats(trackData.stats);
                     
                     console.log('GPX file loaded successfully');
                     

@@ -489,6 +489,12 @@ export class TrailReplayApp {
         const maxElevation = Math.max(...elevations);
         const elevationRange = maxElevation - minElevation;
 
+        // Update stats with current elevation data (may have been modified after GPX parsing)
+        if (this.currentTrackData && this.currentTrackData.stats) {
+            this.currentTrackData.stats.minElevation = minElevation;
+            this.currentTrackData.stats.maxElevation = maxElevation;
+        }
+
         // If no elevation variation, create a flat line
         if (elevationRange === 0) {
             const flatY = svgHeight / 2;
@@ -1041,7 +1047,7 @@ export class TrailReplayApp {
         const uploadSection = document.getElementById('uploadSection');
         const visualizationSection = document.getElementById('visualizationSection');
         const statsSection = document.getElementById('statsSection');
-        
+
         if (uploadSection) uploadSection.style.display = 'none';
         if (visualizationSection) {
             visualizationSection.style.display = 'block';
@@ -1051,25 +1057,31 @@ export class TrailReplayApp {
             statsSection.style.display = 'block';
             statsSection.classList.add('fade-in');
         }
-        
+
         // Initialize live stats and generate elevation profile
         this.stats.resetLiveStats();
         this.generateElevationProfile();
     }
 
     updateStats(stats) {
-        const elements = {
-            'totalDistance': stats.totalDistance ? `${stats.totalDistance.toFixed(2)} km` : '0 km',
-            'elevationGain': stats.elevationGain ? `${Math.round(stats.elevationGain)} m` : '0 m',
-            'totalTime': this.formatTimeInSeconds(this.state.totalAnimationTime)
-        };
+        // Delegate to StatsController for comprehensive stats handling
+        if (this.stats && typeof this.stats.updateStats === 'function') {
+            this.stats.updateStats(stats);
+        } else {
+            // Fallback to basic implementation
+            const elements = {
+                'totalDistance': stats.totalDistance ? `${stats.totalDistance.toFixed(2)} km` : '0 km',
+                'elevationGain': stats.elevationGain ? `${Math.round(stats.elevationGain)} m` : '0 m',
+                'totalTime': this.formatTimeInSeconds(this.state.totalAnimationTime)
+            };
 
-        Object.entries(elements).forEach(([id, value]) => {
-            const element = document.getElementById(id);
-            if (element) {
-                element.textContent = value;
-            }
-        });
+            Object.entries(elements).forEach(([id, value]) => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.textContent = value;
+                }
+            });
+        }
     }
 
     formatTimeInSeconds(totalSeconds) {

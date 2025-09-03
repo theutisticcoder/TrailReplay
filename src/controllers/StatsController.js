@@ -9,14 +9,41 @@ export class StatsController {
     initialize() {
         // Initialize stats display
         this.resetLiveStats();
+        this.resetStats();
     }
 
     // Update the static stats section when a track is loaded
     updateStats(stats) {
         if (!stats) return;
-        
-        document.getElementById('totalDistance').textContent = this.app.gpxParser.formatDistance(stats.totalDistance);
-        document.getElementById('elevationGain').textContent = this.app.gpxParser.formatElevation(stats.elevationGain);
+
+        // Recalculate stats from current trackPoints if available (may have been modified)
+        this.recalculateStatsFromTrackPoints(stats);
+
+        // Format and update the display values
+        const distanceText = this.app.gpxParser.formatDistance(stats.totalDistance);
+        const elevationText = this.app.gpxParser.formatElevation(stats.elevationGain);
+        const durationText = this.formatDurationMinutes(stats.totalDuration);
+        const speedText = this.formatSpeed(stats.avgSpeed);
+        const paceText = this.formatPace(stats.avgSpeed);
+        const maxElevationText = this.app.gpxParser.formatElevation(stats.maxElevation);
+        const minElevationText = this.app.gpxParser.formatElevation(stats.minElevation);
+
+        // Update the DOM elements
+        const totalDistanceEl = document.getElementById('totalDistance');
+        const elevationGainEl = document.getElementById('elevationGain');
+        const durationEl = document.getElementById('duration');
+        const averageSpeedEl = document.getElementById('averageSpeed');
+        const averagePaceEl = document.getElementById('averagePace');
+        const maxElevationEl = document.getElementById('maxElevation');
+        const minElevationEl = document.getElementById('minElevation');
+
+        if (totalDistanceEl) totalDistanceEl.textContent = distanceText;
+        if (elevationGainEl) elevationGainEl.textContent = elevationText;
+        if (durationEl) durationEl.textContent = durationText;
+        if (averageSpeedEl) averageSpeedEl.textContent = speedText;
+        if (averagePaceEl) averagePaceEl.textContent = paceText;
+        if (maxElevationEl) maxElevationEl.textContent = maxElevationText;
+        if (minElevationEl) minElevationEl.textContent = minElevationText;
     }
 
     // Update live stats during animation - this is the main method called during playback
@@ -222,6 +249,102 @@ export class StatsController {
         }
     }
 
+    // Reset all static stats to default values
+    resetStats() {
+        document.getElementById('totalDistance').textContent = '0 km';
+        document.getElementById('elevationGain').textContent = '0 m';
+        document.getElementById('duration').textContent = '0h 0m';
+        document.getElementById('averageSpeed').textContent = '0 km/h';
+        document.getElementById('averagePace').textContent = '0:00 min/km';
+        document.getElementById('maxElevation').textContent = '0 m';
+        document.getElementById('minElevation').textContent = '0 m';
+    }
+
+    // Format duration from hours to readable format (1h 30m)
+    formatDuration(hours) {
+        if (!hours || hours === 0) return '0h 0m';
+
+        const totalMinutes = Math.round(hours * 60);
+        const displayHours = Math.floor(totalMinutes / 60);
+        const displayMinutes = totalMinutes % 60;
+
+        if (displayHours > 0) {
+            return `${displayHours}h ${displayMinutes}m`;
+        } else {
+            return `${displayMinutes}m`;
+        }
+    }
+
+    // Format duration from hours to minutes format (same as above for now)
+    formatDurationMinutes(hours) {
+        return this.formatDuration(hours);
+    }
+
+    // Format speed in km/h
+    formatSpeed(speedKmh) {
+        if (!speedKmh || speedKmh === 0) return '0 km/h';
+        return `${speedKmh.toFixed(1)} km/h`;
+    }
+
+    // Format pace from km/h to min/km
+    formatPace(avgSpeedKmh) {
+        if (!avgSpeedKmh || avgSpeedKmh === 0) return '0:00 min/km';
+
+        // Convert km/h to min/km
+        const paceMinPerKm = 60 / avgSpeedKmh;
+
+        // Format as MM:SS
+        const minutes = Math.floor(paceMinPerKm);
+        const seconds = Math.round((paceMinPerKm - minutes) * 60);
+
+        return `${minutes}:${seconds.toString().padStart(2, '0')} min/km`;
+    }
+
+    // Recalculate stats from current trackPoints data (useful after journey transformations)
+    recalculateStatsFromTrackPoints(stats) {
+        if (!this.app.currentTrackData || !this.app.currentTrackData.trackPoints) {
+            return;
+        }
+
+        const trackPoints = this.app.currentTrackData.trackPoints;
+
+        // Recalculate elevation stats
+        const elevations = trackPoints.map(point => point.elevation || 0).filter(e => e > 0);
+        if (elevations.length > 0) {
+            const newMinElevation = Math.min(...elevations);
+            const newMaxElevation = Math.max(...elevations);
+
+            if (newMinElevation !== stats.minElevation || newMaxElevation !== stats.maxElevation) {
+                stats.minElevation = newMinElevation;
+                stats.maxElevation = newMaxElevation;
+            }
+        }
+
+        // Recalculate speed stats
+        const speeds = trackPoints.map(point => point.speed || 0).filter(s => s > 0);
+        if (speeds.length > 0) {
+            const newAvgSpeed = speeds.reduce((sum, speed) => sum + speed, 0) / speeds.length;
+
+            if (Math.abs(newAvgSpeed - (stats.avgSpeed || 0)) > 0.1) {
+                stats.avgSpeed = newAvgSpeed;
+            }
+        }
+
+        // Recalculate duration if we have time data
+        const pointsWithTime = trackPoints.filter(p => p.time).length;
+        if (pointsWithTime > 1) {
+            const firstTime = trackPoints.find(p => p.time)?.time;
+            const lastTime = trackPoints.slice().reverse().find(p => p.time)?.time;
+
+            if (firstTime && lastTime) {
+                const newDuration = (lastTime - firstTime) / 1000 / 3600; // hours
+
+                if (Math.abs(newDuration - (stats.totalDuration || 0)) > 0.01) {
+                    stats.totalDuration = newDuration;
+                }
+            }
+        }
+    }
 
 
 

@@ -143,22 +143,59 @@ export class JourneyController {
                 
                 // Single track journey - use original trackPoints with full data
                 trackPoints = journeyData.segments[0].data.data.trackPoints;
-                const speedyPoints = trackPoints.filter(p => p.speed > 0).length;
-                console.log(`🚀 Using original trackPoints: ${trackPoints.length} points, ${speedyPoints} with speed > 0`);
-                console.log('🔍 First 5 speeds:', trackPoints.slice(0, 5).map(p => p.speed?.toFixed(2) || '0.00'));
                 
             } else {
-                // Multi-segment journey or missing trackPoints - fallback to coordinates
-                console.log('🔄 Converting coordinates to trackPoints (speed data will be lost)');
-                trackPoints = journeyData.coordinates.map((coord, index) => ({
-                    lat: coord[1],
-                    lon: coord[0],
-                    elevation: coord[2] || 0,
-                    index: index,
-                    distance: 0, // Will be calculated if needed
-                    speed: 0,
-                    time: null
-                }));
+                // Multi-segment journey or missing trackPoints - try to preserve speed data from segments
+
+                // Try to build speed data from segment information
+                let segmentIndex = 0;
+                let pointInSegment = 0;
+                let cumulativeTime = 0;
+
+                trackPoints = journeyData.coordinates.map((coord, index) => {
+                    // Find which segment this point belongs to
+                    while (segmentIndex < journeyData.segments.length &&
+                           pointInSegment >= journeyData.segments[segmentIndex].pointCount) {
+                        pointInSegment = 0;
+                        segmentIndex++;
+                    }
+
+                    let speed = 0;
+                    let time = null;
+
+                    if (segmentIndex < journeyData.segments.length) {
+                        const segment = journeyData.segments[segmentIndex];
+
+                        // If this segment has original track data with speed, try to use it
+                        if (segment.type === 'track' && segment.data && segment.data.data &&
+                            segment.data.data.trackPoints && segment.data.data.trackPoints[pointInSegment]) {
+
+                            const originalPoint = segment.data.data.trackPoints[pointInSegment];
+                            speed = originalPoint.speed || 0;
+                            time = originalPoint.time || null;
+                        } else if (segment.type === 'track' && segment.data && segment.data.stats) {
+                            // Estimate speed from segment stats
+                            const segmentStats = segment.data.stats;
+                            if (segmentStats.avgSpeed && segmentStats.avgSpeed > 0) {
+                                speed = segmentStats.avgSpeed;
+                            }
+                        }
+                    }
+
+                    pointInSegment++;
+
+                    return {
+                        lat: coord[1],
+                        lon: coord[0],
+                        elevation: coord[2] || 0,
+                        index: index,
+                        distance: 0, // Will be calculated if needed
+                        speed: speed,
+                        time: time
+                    };
+                });
+
+
             }
 
             const trackData = {
@@ -196,9 +233,12 @@ export class JourneyController {
             // Update UI with synchronized timing
             this.app.showVisualizationSection();
             this.app.updateStats(trackData.stats);
-            
+
             // Generate elevation profile for the journey
             this.app.generateElevationProfile();
+
+            // Update stats again after elevation profile generation (may have recalculated stats)
+            this.app.updateStats(trackData.stats);
             
             // Use the new synchronization method to ensure all displays match
             this.app.synchronizeAllTimingDisplays(segmentTiming);

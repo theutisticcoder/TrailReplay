@@ -128,15 +128,7 @@ export class GPXParser {
                     point.speed = 0;
                 }
                 
-                // Debug speed calculation for first few points
-                if (index < 5) {
-                    console.log(`⚡ Speed calc point ${index}:`, {
-                        hasTime: !!(previousPoint.time && time),
-                        speed: point.speed.toFixed(2) + ' km/h',
-                        distance: distance.toFixed(3) + ' km',
-                        timeDiff: previousPoint.time && time ? ((time - previousPoint.time) / 1000).toFixed(1) + ' s' : 'no time'
-                    });
-                }
+
 
                 // Calculate elevation gain
                 if (!isNaN(elevation) && !isNaN(previousPoint.elevation) && elevation > previousPoint.elevation) {
@@ -203,6 +195,8 @@ export class GPXParser {
             endTime,
             hasTimeData: !!(startTime && endTime)
         };
+
+
 
         return {
             trackPoints: this.trackPoints,
