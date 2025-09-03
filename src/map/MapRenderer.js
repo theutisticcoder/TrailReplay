@@ -26,7 +26,7 @@ export class MapRenderer {
         this.markerSize = DEFAULT_SETTINGS.DEFAULT_MARKER_SIZE;
         this.autoZoom = true;
         this.showCircle = true;
-        this.showMarker = true;
+        this.showMarker = false; // Disabled by default for more professional look
         this.showEndStats = true;
         
         // Comparison mode properties
