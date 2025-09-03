@@ -16,7 +16,7 @@ export class JourneyController {
         // Make journey builder globally available for onclick handlers (legacy compatibility)
         window.journeyBuilder = this.journeyBuilder;
         
-        console.log('JourneyController initialized');
+
     }
 
     // Add a track to the journey
@@ -26,7 +26,7 @@ export class JourneyController {
             return;
         }
         
-        console.log('Adding track to journey:', filename);
+
         this.journeyBuilder.addTrack(trackData, filename);
     }
 
@@ -58,7 +58,7 @@ export class JourneyController {
 
         // Listen for journey preview events
         document.addEventListener('journeyPreview', (e) => {
-            console.log('Journey preview event received:', e.detail);
+
             
             // Clear elevation profile cache for journey updates
             this.app.clearElevationProfileCache?.();
@@ -72,13 +72,21 @@ export class JourneyController {
             this.app.showMessage?.(e.detail.message, e.detail.type);
         });
 
+        // Listen for journey built events (when tracks are combined into a journey)
+        document.addEventListener('journeyBuilt', (e) => {
+            console.log('JourneyController: Received journeyBuilt event, loading journey...');
+
+            // Clear elevation profile cache for journey updates
+            this.app.clearElevationProfileCache?.();
+
+            // Load the journey data into the main app
+            this.loadJourneyData(e.detail.journey);
+        });
+
         // Listen for segment timing updates
         document.addEventListener('segmentTimingUpdate', (e) => {
-            console.log('🎯 JOURNEY CONTROLLER: Received segmentTimingUpdate event:', e.detail);
-            
             // Immediate UI update first
             if (e.detail.totalDuration) {
-                console.log('🎯 JOURNEY CONTROLLER: Immediately updating UI with total duration:', e.detail.totalDuration);
                 this.app.state.totalAnimationTime = e.detail.totalDuration;
                 
                 // Update UI elements
@@ -87,7 +95,7 @@ export class JourneyController {
                     totalTimeElement.textContent = this.app.formatTimeInSeconds(e.detail.totalDuration);
                 }
                 
-                console.log('🎯 JOURNEY CONTROLLER: UI updated successfully');
+
             }
             
             // Then handle the full timing update
@@ -96,7 +104,7 @@ export class JourneyController {
 
         // Listen for timeline seeking
         document.addEventListener('timelineSeek', (e) => {
-            console.log('🎯 Received timeline seek event:', e.detail.progress);
+
             this.handleTimelineSeek(e.detail.progress);
         });
 
@@ -121,7 +129,7 @@ export class JourneyController {
 
     // Load journey data into the main app
     async loadJourneyData(journeyData) {
-        console.log('Loading journey data:', journeyData);
+
         
         try {
             // Store the original journey data
@@ -200,7 +208,7 @@ export class JourneyController {
 
             const trackData = {
                 trackPoints: trackPoints,
-                stats: journeyData.stats,
+                stats: journeyData.stats, // Use aggregated stats from JourneyCore
                 bounds: this.calculateBounds(journeyData.coordinates),
                 // Preserve journey segment information
                 segments: journeyData.segments,
@@ -208,11 +216,13 @@ export class JourneyController {
                 // Add segment timing information
                 segmentTiming: segmentTiming
             };
-            
+
             // CRITICAL: Synchronize all timing sources from the start
-            console.log('🎯 INITIAL JOURNEY LOAD: Synchronizing all timing sources with:', segmentTiming.totalDuration);
+            // Use segment timing for animation, but keep journey stats for display
             this.app.state.totalAnimationTime = segmentTiming.totalDuration;
             this.app.currentTrackData = trackData;
+
+            // Ensure journey stats are preserved and not overridden
             
             // Load journey data into map
             if (this.app.mapController) {
@@ -220,7 +230,7 @@ export class JourneyController {
                 
                 // Set up segment-aware animation in MapRenderer - THIS IS CRITICAL
                 this.app.mapController.setupSegmentAnimation(journeyData.segments, segmentTiming);
-                console.log('✅ MapRenderer setupSegmentAnimation completed with detailed timing');
+
             } else {
                 console.error('MapController not available for segment animation setup');
             }
@@ -259,7 +269,7 @@ export class JourneyController {
             });
             document.dispatchEvent(journeyLoadedEvent);
             
-            console.log('✅ Journey data loaded successfully with full timing synchronization');
+
             
         } catch (error) {
             console.error('Error loading journey data:', error);
@@ -269,7 +279,7 @@ export class JourneyController {
 
     // Handle segment timing updates
     handleSegmentTimingUpdate(updateData) {
-        console.log('🎯 JOURNEY CONTROLLER: Handling segment timing update:', updateData);
+
         
         // Update current track data with new timing
         if (this.app.currentTrackData) {
@@ -368,12 +378,12 @@ export class JourneyController {
         `;
         timingPanel.style.display = 'block';
         
-        console.log('Timing breakdown panel updated');
+
     }
 
     // Update timing display
     updateTimingDisplay(segmentTiming) {
-        console.log('🎯 JOURNEY CONTROLLER: Updating timing display with:', segmentTiming);
+
         
         // Update total time in stats
         const totalTimeElement = document.getElementById('totalTime');
@@ -384,7 +394,7 @@ export class JourneyController {
         // Show timing breakdown
         this.showTimingBreakdown(segmentTiming);
         
-        console.log('✅ Timing display updated');
+
     }
 
     // Calculate bounds for journey coordinates
@@ -490,7 +500,7 @@ export class JourneyController {
             const segmentTime = this.app.convertLinearProgressToSegmentTime(progress);
             if (this.app.mapRenderer.setJourneyElapsedTime && segmentTime !== null) {
                 this.app.mapRenderer.setJourneyElapsedTime(segmentTime);
-                console.log(`Timeline seeking: linear progress ${progress.toFixed(3)} → segment time ${segmentTime.toFixed(1)}s`);
+
             }
         }
         
@@ -509,14 +519,14 @@ export class JourneyController {
             }
         }
         
-        console.log('Timeline seek completed to:', progress.toFixed(3));
+
         
         // Don't automatically resume playback after timeline seek
     }
 
     // Rebuild journey from segments
     rebuildJourneyFromSegments(segments) {
-        console.log('Rebuilding journey from segments:', segments);
+
         
         if (!this.journeyBuilder) return;
         
@@ -529,7 +539,7 @@ export class JourneyController {
 
     // Synchronize all timing displays
     synchronizeAllTimingDisplays(segmentTiming) {
-        console.log('🎯 JOURNEY CONTROLLER: Synchronizing timing displays:', segmentTiming);
+
         
         // Update total time display
         if (segmentTiming.totalDuration) {
@@ -577,7 +587,7 @@ export class JourneyController {
             indicator.style.left = `${indicatorPosition}px`;
         }
         
-        console.log(`Timeline indicator updated: ${actualElapsedTime.toFixed(1)}s / ${totalDuration.toFixed(1)}s (${(timeProgress * 100).toFixed(1)}%)`);
+
     }
 
     // Utility method to format time

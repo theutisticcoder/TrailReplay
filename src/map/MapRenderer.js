@@ -474,7 +474,7 @@ export class MapRenderer {
         // If not currently animating/playing, save this as the user's preferred base icon
         // This ensures it persists when playback starts
         if (!this.isAnimating) {
-            console.log('💾 Setting user base icon to:', icon);
+
             this.userSelectedBaseIcon = icon;
         }
         
@@ -490,7 +490,7 @@ export class MapRenderer {
 
     // Clear user's custom base icon and return to activity-based icon
     clearUserBaseIcon() {
-        console.log('🔄 Clearing user base icon, returning to activity-based icon');
+
         this.userSelectedBaseIcon = null;
         const activityIcon = this.getBaseIcon(); // Will now return activity-based icon
         this.setCurrentIcon(activityIcon);
@@ -616,7 +616,7 @@ export class MapRenderer {
 
     setShowEndStats(enabled) {
         this.showEndStats = enabled;
-        console.log('🎯 End stats visibility set to:', enabled);
+
     }
 
     setAnimationSpeed(speed) {
@@ -747,7 +747,7 @@ export class MapRenderer {
         
         // If in follow-behind mode, automatically set up the camera for this track
         if (this.cameraMode === 'followBehind') {
-            console.log('🎬 Track loaded - setting up follow-behind camera automatically');
+
             setTimeout(() => {
                 this.followBehindCamera.initialize();
             }, 1500); // Wait for map bounds fitting to complete
@@ -878,7 +878,7 @@ export class MapRenderer {
         
         // If in follow-behind mode and should trigger cinematic start
         if (this.cameraMode === 'followBehind' && this.followBehindCamera.shouldTriggerCinematic() && this.animationProgress <= 0.05) {
-            console.log('🎬 Starting follow-behind with pre-animation zoom-in');
+
             this.followBehindCamera.setCinematicStart(false); // Prevent multiple triggers
             
             // Wait for cinematic zoom-in to complete BEFORE starting trail animation
@@ -888,7 +888,7 @@ export class MapRenderer {
             } else {
                 await this.followBehindCamera.startCinematicSequence();
             }
-            console.log('🎬 Pre-animation zoom-in complete, now starting trail animation');
+
         }
         
         // Now start the actual trail animation
@@ -962,7 +962,7 @@ export class MapRenderer {
             
             // If in follow-behind mode, trigger zoom-out to show whole track after a brief pause
             if (this.cameraMode === 'followBehind') {
-                console.log('🎬 Animation complete, starting zoom-out sequence');
+
                 setTimeout(() => {
                     this.followBehindCamera.zoomOutToWholeTrack();
                 }, this.followBehindCamera.getZoomOutDelay());
@@ -1057,7 +1057,7 @@ export class MapRenderer {
         
         // If in follow-behind mode, reset camera to starting position (instantly, no animation)
         if (this.cameraMode === 'followBehind') {
-            console.log('🎬 Animation reset - setting starting position instantly');
+
             setTimeout(() => {
                 this.followBehindCamera.setStartingPosition(true); // true = instant, no animation
             }, 100);
@@ -1339,23 +1339,20 @@ export class MapRenderer {
         window.addEventListener('resize', () => {
             clearTimeout(resizeTimeout);
             resizeTimeout = setTimeout(() => {
-                console.log('🔄 Window resized, updating map layout');
+
                 this.detectAndSetMapLayout();
             }, 250); // 250ms debounce
         });
 
-        console.log('📏 Resize listener setup for dynamic layout detection');
+
     }
 
     // Function to detect and set map layout based on aspect ratio
     detectAndSetMapLayout() {
         const overlay = document.getElementById('liveStatsOverlay');
         if (!overlay) {
-            console.log('🎯 Layout detection skipped: overlay not found');
             return;
         }
-
-        console.log('🎯 Detecting map layout based on aspect ratio');
 
         // Detect layout based on screen size and map aspect ratio
         const mapContainer = this.map.getContainer();
@@ -1364,34 +1361,26 @@ export class MapRenderer {
         const aspectRatio = mapWidth / mapHeight;
         const isMobile = window.innerWidth <= 768;
 
-        console.log('📐 Map dimensions:', mapWidth, 'x', mapHeight, 'Aspect ratio:', aspectRatio.toFixed(2));
-
         // Remove any existing layout classes
         overlay.classList.remove('mobile-layout', 'square-layout', 'horizontal-layout', 'with-speed');
 
         // Determine layout based on conditions
         if (isMobile) {
             overlay.classList.add('mobile-layout');
-            console.log('📱 Applied mobile layout');
         } else if (aspectRatio >= 0.8 && aspectRatio <= 1.2) {
             // Square-ish aspect ratio (0.8 to 1.2)
             overlay.classList.add('square-layout');
-            console.log('⬜ Applied square layout (aspect ratio:', aspectRatio.toFixed(2), ')');
         } else {
             // Horizontal/widescreen aspect ratio
             overlay.classList.add('horizontal-layout');
-            console.log('⬌ Applied horizontal layout (aspect ratio:', aspectRatio.toFixed(2), ')');
         }
     }
 
     triggerStatsEndAnimation() {
         const overlay = document.getElementById('liveStatsOverlay');
         if (!overlay || !this.showEndStats) {
-            console.log('🎯 End stats animation skipped:', !overlay ? 'overlay not found' : 'disabled by user');
             return;
         }
-
-        console.log('🎯 Triggering stats end animation');
 
         // Use the new layout detection function
         this.detectAndSetMapLayout();
@@ -1409,7 +1398,7 @@ export class MapRenderer {
         const overlay = document.getElementById('liveStatsOverlay');
         if (!overlay) return;
         
-        console.log('🎯 Resetting stats end animation');
+
         
         // Remove the end animation class and layout classes to return to normal state
         overlay.classList.remove('end-animation', 'mobile-layout', 'square-layout', 'horizontal-layout', 'with-speed');
@@ -1926,30 +1915,21 @@ export class MapRenderer {
 
     // Camera mode methods
     setCameraMode(mode) {
-        console.log('📹 setCameraMode called with:', mode);
-        console.log('📹 Current state:', {
-            hasMap: !!this.map,
-            hasTrackData: !!this.trackData,
-            animationProgress: this.animationProgress,
-            is3DMode: this.is3DMode
-        });
+
+
         
         this.cameraMode = mode;
-        console.log('📹 Camera mode set to:', mode);
         
         if (mode === 'followBehind') {
-            console.log('📹 Entering follow-behind mode');
-            
             // Disable map interactions when in follow-behind mode
             this.disableMapInteractions();
-            console.log('📹 Map interactions disabled');
             
             // Force auto-follow to be enabled
             const autoFollowToggle = document.getElementById('autoZoom');
             if (autoFollowToggle && !autoFollowToggle.checked) {
                 autoFollowToggle.checked = true;
                 this.autoZoom = true;
-                console.log('📹 Auto-follow enabled for follow-behind mode');
+
             }
             
             // Disable the auto-follow toggle to prevent user from turning it off

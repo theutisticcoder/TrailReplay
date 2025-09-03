@@ -77,9 +77,7 @@ export class VideoExportController {
     ensureInitialAspectRatio(retryCount = 0) {
         const maxRetries = 10; // Maximum 10 retries to prevent infinite loop
         
-        if (retryCount === 0) {
-            console.log('🔄 Ensuring initial aspect ratio is applied...');
-        }
+        // Only log on first attempt to reduce noise
         
         // Stop retrying after max attempts
         if (retryCount >= maxRetries) {
@@ -123,8 +121,6 @@ export class VideoExportController {
         }
 
         // Success! Apply the aspect ratio
-        console.log(`✅ Map container ready with dimensions: ${containerRect.width}x${containerRect.height}`);
-        
         // Ensure live stats are visible
         const liveStatsOverlay = document.getElementById('liveStatsOverlay');
         if (liveStatsOverlay) {
@@ -132,7 +128,6 @@ export class VideoExportController {
         }
 
         const selectedAspect = this.getSelectedAspectRatio();
-        console.log(`📐 Applying initial aspect ratio: ${selectedAspect}`);
         this.resizeContainerForAspectRatio(selectedAspect);
         
         // Additional delay to ensure stats visibility after container resize
@@ -145,7 +140,6 @@ export class VideoExportController {
      * Apply default aspect ratio when container isn't ready
      */
     applyDefaultAspectRatio() {
-        console.log('📐 Applying default aspect ratio (fallback)');
         const selectedAspect = this.getSelectedAspectRatio();
         
         // Try to apply anyway - sometimes the container becomes ready after this
@@ -154,7 +148,6 @@ export class VideoExportController {
             if (mapContainer) {
                 const containerRect = mapContainer.getBoundingClientRect();
                 if (containerRect.width > 0 && containerRect.height > 0) {
-                    console.log('✅ Container became ready, applying aspect ratio');
                     this.resizeContainerForAspectRatio(selectedAspect);
                     setTimeout(() => {
                         this.ensureStatsVisibility();
@@ -391,7 +384,7 @@ export class VideoExportController {
         // Also listen for track load events to apply aspect ratio when map is ready
         if (this.app && this.app.addEventListener) {
             this.app.addEventListener('journeyDataLoaded', () => {
-                console.log('🎯 Track loaded, applying aspect ratio...');
+
                 setTimeout(() => {
                     this.ensureInitialAspectRatio();
                 }, 500);
@@ -410,11 +403,10 @@ export class VideoExportController {
      * Setup aspect ratio change handlers
      */
     setupAspectRatioHandlers() {
-        console.log('🔧 Setting up aspect ratio handlers...');
+
         
         const aspectRatioInputs = document.querySelectorAll('input[name="aspectRatio"]');
-        console.log(`Found ${aspectRatioInputs.length} aspect ratio inputs`);
-        
+
         if (aspectRatioInputs.length === 0) {
             console.warn('⚠️ No aspect ratio inputs found - UI may not be rendered yet');
             // Try again after a short delay, but with a maximum number of retries
@@ -434,10 +426,9 @@ export class VideoExportController {
         this.aspectRetryCount = 0;
         
         aspectRatioInputs.forEach((input, index) => {
-            console.log(`Setting up handler for aspect ratio input ${index}: ${input.value}`);
             input.addEventListener('change', () => {
                 if (input.checked) {
-                    console.log(`📐 Aspect ratio changed to: ${input.value}`);
+
                     this.resizeContainerForAspectRatio(input.value);
                     // Force stats visibility after aspect ratio change
                     setTimeout(() => {
@@ -449,19 +440,19 @@ export class VideoExportController {
 
         // Set initial aspect ratio (square by default)
         const selectedAspect = this.getSelectedAspectRatio();
-        console.log(`📐 Setting initial aspect ratio: ${selectedAspect}`);
+
         
         // Apply the initial resize immediately
         this.resizeContainerForAspectRatio(selectedAspect);
         
-        console.log('✅ Aspect ratio handlers setup complete');
+
     }
 
     /**
      * Setup listeners for track loading events to ensure stats visibility
      */
     setupTrackLoadListeners() {
-        console.log('🔧 Setting up track load listeners for stats visibility...');
+
         
         // Listen for file input changes (when user loads a track)
         const fileInput = document.getElementById('upload');
@@ -476,7 +467,7 @@ export class VideoExportController {
         
         // Listen for any journey updates
         document.addEventListener('journeyDataLoaded', () => {
-            console.log('🎯 Journey data loaded, ensuring stats visibility...');
+
             // Only try to ensure stats visibility if container is ready
             const mapContainer = document.querySelector('.map-container');
             if (mapContainer) {
@@ -486,21 +477,21 @@ export class VideoExportController {
                         this.ensureStatsVisibility();
                     }, 1000);
                 } else {
-                    console.log('📦 Map container not ready yet, skipping stats visibility check');
+
                 }
             }
         });
         
         // Also listen for window resize to adjust stats positioning
         window.addEventListener('resize', () => {
-            console.log('📏 Window resized, adjusting stats positioning...');
+
             setTimeout(() => {
                 const selectedAspect = this.getSelectedAspectRatio();
                 this.resizeContainerForAspectRatio(selectedAspect);
             }, 200);
         });
         
-        console.log('✅ Track load listeners setup complete');
+
     }
 
     /**
@@ -546,8 +537,8 @@ export class VideoExportController {
 
         let targetWidth, targetHeight;
 
-        console.log(`🔄 Resizing container for ${aspectRatio} aspect ratio`);
-        console.log(`Available space: ${availableWidth}x${availableHeight}`);
+
+
 
         switch (aspectRatio) {
             case '16:9':
@@ -597,8 +588,8 @@ export class VideoExportController {
         videoCaptureContainer.style.marginLeft = `${offsetX}px`;
         videoCaptureContainer.style.marginTop = `${offsetY}px`;
 
-        console.log(`✅ Container resized to: ${targetWidth}x${targetHeight}`);
-        console.log(`Container positioned with offset: ${offsetX}x${offsetY}`);
+
+
 
         // Trigger map resize to fit new container and ensure stats are visible
         setTimeout(() => {
@@ -613,7 +604,7 @@ export class VideoExportController {
     resizeMapToContainer() {
         try {
             if (this.app.mapRenderer && this.app.mapRenderer.map) {
-                console.log('🗺️ Resizing map to fit container...');
+
                 
                 // Trigger map resize
                 this.app.mapRenderer.map.resize();
@@ -622,7 +613,7 @@ export class VideoExportController {
                 this.app.mapRenderer.map.getCanvas().style.width = '100%';
                 this.app.mapRenderer.map.getCanvas().style.height = '100%';
                 
-                console.log('✅ Map resized successfully');
+
             }
         } catch (error) {
             console.warn('Failed to resize map:', error);
@@ -636,7 +627,7 @@ export class VideoExportController {
         const maxRetries = 5; // Maximum 5 retries to prevent infinite loop
         
         if (retryCount === 0) {
-            console.log('🔧 Ensuring stats visibility...');
+
         }
         
         if (retryCount >= maxRetries) {
@@ -659,7 +650,7 @@ export class VideoExportController {
         liveStatsOverlay.style.display = 'block';
         
         // Force positioning regardless of current state to ensure visibility
-        console.log('📍 Positioning stats in top-right corner of the map...');
+
         
         // Clear any existing positioning styles first
         liveStatsOverlay.style.position = '';
@@ -693,7 +684,7 @@ export class VideoExportController {
         
         // Move the stats element inside the video capture container if it's not already there
         if (liveStatsOverlay.parentElement !== videoCaptureContainer) {
-            console.log('📦 Moving stats overlay into video capture container...');
+
             videoCaptureContainer.appendChild(liveStatsOverlay);
         }
         
@@ -711,7 +702,7 @@ export class VideoExportController {
                                statsRect.top <= containerRect.top + 100; // Within 100px of top
             
             if (isInTopRight) {
-                console.log('✅ Stats successfully positioned in top-right corner');
+
             } else {
                 console.warn('⚠️ Stats may not be in the correct position');
             }
@@ -786,7 +777,7 @@ export class VideoExportController {
             const selectedAspect = this.getSelectedAspectRatio();
             AnalyticsTracker.trackVideoExport(mode, selectedAspect);
             
-            console.log(`🎬 Starting ${this.exportModes[mode].name} export`);
+
             
             if (mode === 'webm') {
                 await this.exportAutoWebM();
@@ -805,7 +796,7 @@ export class VideoExportController {
      * Export video in WebM format (canvas capture)
      */
     async exportAutoWebM() {
-        console.log('🔧 Starting WebM export...');
+
         
         this.createProgressModal();
         this.updateProgress(5, 'Preparing for WebM export...');
@@ -889,10 +880,10 @@ export class VideoExportController {
 
             // Step 6: Setup high-performance rendering
             this.updateProgress(60, 'Setting up high-performance rendering...');
-            console.log('🎬 Starting high-performance rendering setup...');
+
             try {
                 await this.setupHighPerformanceRendering();
-                console.log('✅ High-performance rendering setup complete');
+
             } catch (error) {
                 console.warn('⚠️ High-performance rendering setup failed, but continuing anyway:', error.message);
                 // Don't throw - the map might still work fine for recording
@@ -900,15 +891,15 @@ export class VideoExportController {
 
             // Step 7: Phase 1 - Capture high-quality frames during animation playback
             this.updateProgress(65, 'Phase 1: Capturing high-quality frames...');
-            console.log('🎬 Starting Phase 1: Frame capture...');
+
             await this.captureAnimationFrames();
-            console.log('✅ Phase 1 complete: All frames captured');
+
 
             // Step 8: Phase 2 - Create video from captured frames
             this.updateProgress(85, 'Phase 2: Creating video from frames...');
-            console.log('🎬 Starting Phase 2: Video creation...');
+
             await this.createVideoFromFrames();
-            console.log('✅ Phase 2 complete: Video created');
+
 
             this.updateProgress(100, 'MP4 export complete!');
 
@@ -1107,7 +1098,7 @@ export class VideoExportController {
         try {
             // Optimize map rendering for recording
             const map = this.app.mapRenderer.map;
-            console.log('🗺️ Configuring map for high-performance rendering...');
+
             
             // Increase render resolution for better quality
             map.getCanvas().style.transformOrigin = 'top left';
@@ -1119,7 +1110,7 @@ export class VideoExportController {
             map.setMaxZoom(18);
             map.setMinZoom(1);
             
-            console.log('🗺️ Map configuration complete, waiting for map ready...');
+
             
             // Wait for any pending operations with multiple check methods
             await new Promise((resolve, reject) => {
@@ -1630,7 +1621,7 @@ export class VideoExportController {
                         const zoomInElapsed = performance.now() - zoomInStart;
                         if (zoomInElapsed >= zoomInDuration) {
                             // Start main animation
-                            console.log(`✅ Zoom-in complete after ${zoomInElapsed.toFixed(0)}ms, starting main animation phase`);
+
                             phase = 'main';
                             mainPhaseStartTime = performance.now(); // Track when main phase starts
                             // Reset animation first to ensure clean start
@@ -1683,9 +1674,8 @@ export class VideoExportController {
                         }
                         
                         if (mainPhaseComplete) {
-                            console.log(`✅ Main animation phase complete after ${mainPhaseElapsed.toFixed(1)}s (target: ${mainAnimationDuration.toFixed(1)}s)`);
-                            console.log(`  - Animation progress was: ${(progress * 100).toFixed(1)}%`);
-                            console.log(`  - Animation done status: ${animationDone}`);
+
+
                             // Start zoom-out phase
                             phase = 'zoomOut';
                             zoomOutStart = performance.now();

@@ -149,7 +149,7 @@ export function setupEventListeners(app) {
     // Camera mode dropdown
     const cameraModeSelect = byId('cameraMode');
     if (cameraModeSelect) {
-        console.log('🎬 Setting up camera mode event listener');
+
         
         // Function to update UI based on camera mode
         const updateCameraModeUI = (mode) => {
@@ -167,7 +167,7 @@ export function setupEventListeners(app) {
         };
         
         cameraModeSelect.addEventListener('change', (e) => {
-            console.log('🎬 Camera mode changed to:', e.target.value);
+
             app.map.setCameraMode(e.target.value);
             
             // Update UI elements
@@ -178,7 +178,7 @@ export function setupEventListeners(app) {
         const initialValue = cameraModeSelect.value;
         updateCameraModeUI(initialValue);
         
-        console.log('🎬 Camera mode event listener set up successfully');
+
     } else {
         console.warn('🎬 Camera mode dropdown not found in DOM');
     }
@@ -186,12 +186,12 @@ export function setupEventListeners(app) {
     // Follow-behind zoom preset dropdown
     const followBehindZoomSelect = byId('followBehindZoom');
     if (followBehindZoomSelect) {
-        console.log('🎬 Setting up follow-behind zoom preset event listener');
+
         followBehindZoomSelect.addEventListener('change', (e) => {
-            console.log('🎬 Follow-behind zoom preset changed to:', e.target.value);
+
             app.map.setFollowBehindZoomPreset(e.target.value);
         });
-        console.log('🎬 Follow-behind zoom preset event listener set up successfully');
+
     }
 
     // 3D terrain toggle

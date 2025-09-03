@@ -16,17 +16,27 @@ export class StatsController {
     updateStats(stats) {
         if (!stats) return;
 
-        // Recalculate stats from current trackPoints if available (may have been modified)
-        this.recalculateStatsFromTrackPoints(stats);
+        // For journeys, use the aggregated stats directly (they've already been calculated)
+        // For single tracks, recalculate from trackPoints if available
+        if (!this.app.currentTrackData?.isJourney) {
+            this.recalculateStatsFromTrackPoints(stats);
+        }
+
+        // Ensure we have valid stats for all fields
+        this.ensureCompleteStats(stats);
+
+
 
         // Format and update the display values
         const distanceText = this.app.gpxParser.formatDistance(stats.totalDistance);
         const elevationText = this.app.gpxParser.formatElevation(stats.elevationGain);
         const durationText = this.formatDurationMinutes(stats.totalDuration);
         const speedText = this.formatSpeed(stats.avgSpeed);
-        const paceText = this.formatPace(stats.avgSpeed);
+        const paceText = this.formatPaceValue(stats.avgPace); // Use avgPace directly (already in min/km)
         const maxElevationText = this.app.gpxParser.formatElevation(stats.maxElevation);
         const minElevationText = this.app.gpxParser.formatElevation(stats.minElevation);
+
+
 
         // Update the DOM elements
         const totalDistanceEl = document.getElementById('totalDistance');
@@ -298,6 +308,40 @@ export class StatsController {
         const seconds = Math.round((paceMinPerKm - minutes) * 60);
 
         return `${minutes}:${seconds.toString().padStart(2, '0')} min/km`;
+    }
+
+    // Format pace value directly (when pace is already in min/km)
+    formatPaceValue(paceMinPerKm) {
+        if (!paceMinPerKm || paceMinPerKm === 0) return '0:00 min/km';
+
+        // Format as MM:SS
+        const minutes = Math.floor(paceMinPerKm);
+        const seconds = Math.round((paceMinPerKm - minutes) * 60);
+
+        return `${minutes}:${seconds.toString().padStart(2, '0')} min/km`;
+    }
+
+    // Ensure all stats fields are properly calculated
+    ensureCompleteStats(stats) {
+        if (!stats) return;
+
+        // Calculate average speed if not present or if we have distance and duration
+        if ((!stats.avgSpeed || stats.avgSpeed === 0) && stats.totalDistance > 0 && stats.totalDuration > 0) {
+            stats.avgSpeed = stats.totalDistance / stats.totalDuration; // km/h (totalDuration should already be in hours)
+        }
+
+        // Ensure avgPace is calculated (it might be stored as avgPace or need to be calculated from avgSpeed)
+        if ((!stats.avgPace || stats.avgPace === 0) && stats.avgSpeed > 0) {
+            stats.avgPace = (1 / stats.avgSpeed) * 60; // min/km
+        }
+
+
+
+        // Ensure duration is in hours format (not seconds)
+        if (stats.totalDuration && stats.totalDuration > 24) {
+            // If duration is in seconds, convert to hours
+            stats.totalDuration = stats.totalDuration / 3600;
+        }
     }
 
     // Recalculate stats from current trackPoints data (useful after journey transformations)

@@ -181,8 +181,13 @@ export class JourneyCore {
                 };
                 journey.segments.push(journeySegment);
                 
-                journey.stats.totalDistance += jbSegment.data.stats.totalDistance;
-                journey.stats.elevationGain += jbSegment.data.stats.elevationGain;
+                journey.stats.totalDistance += jbSegment.data.stats.totalDistance || 0;
+                journey.stats.elevationGain += jbSegment.data.stats.elevationGain || 0;
+
+                // Also aggregate duration from individual track stats
+                if (jbSegment.data.stats.totalDuration) {
+                    journey.stats.totalDuration += jbSegment.data.stats.totalDuration;
+                }
                 
             } else if (jbSegment.type === 'transportation') {
                 let routeCoordinates = [];
@@ -248,10 +253,13 @@ export class JourneyCore {
             }
         });
 
+        // Calculate aggregate stats for the combined journey
+        this.calculateAggregateStats(journey);
+
         // MainApp's calculateSegmentTiming will now determine the true totalDuration
         // based on the userTime values it receives in journey.segments.
         console.log('JourneyCore: Built complete journey with segments containing userTime:', journey.segments.map(s => ({type: s.type, userTime: s.userTime})));
-        
+
         this.currentJourney = journey;
         return journey;
     }
@@ -270,6 +278,76 @@ export class JourneyCore {
         // Simple calculation: 3 seconds per km for all transportation modes
         const animationTime = Math.max(10, Math.round(distanceKm * 3)); // Minimum 10 seconds
         return animationTime;
+    }
+
+    // Calculate aggregate stats for a complete journey (distance, duration, speed, pace)
+    calculateAggregateStats(journey) {
+        if (!journey || !journey.segments || journey.segments.length === 0) {
+            console.warn('Cannot calculate aggregate stats: invalid journey');
+            return;
+        }
+
+        let totalDistance = 0;
+        let totalDuration = 0;
+        let totalElevationGain = 0;
+        let minElevation = Infinity;
+        let maxElevation = -Infinity;
+
+        // Aggregate stats from all segments
+        journey.segments.forEach(segment => {
+            if (segment.type === 'track' && segment.data && segment.data.stats) {
+                const stats = segment.data.stats;
+                totalDistance += stats.totalDistance || 0;
+                totalElevationGain += stats.elevationGain || 0;
+
+                // Track duration if available
+                if (stats.totalDuration) {
+                    totalDuration += stats.totalDuration;
+                }
+
+                // Track elevation range
+                if (stats.minElevation !== undefined) {
+                    minElevation = Math.min(minElevation, stats.minElevation);
+                }
+                if (stats.maxElevation !== undefined) {
+                    maxElevation = Math.max(maxElevation, stats.maxElevation);
+                }
+            }
+        });
+
+        // Calculate derived stats
+        let avgSpeed = 0;
+        let avgPace = 0;
+
+        if (totalDuration > 0 && totalDistance > 0) {
+            // Speed in km/h (totalDuration is already in hours from aggregation)
+            avgSpeed = totalDistance / totalDuration;
+
+            // Pace in min/km (time per distance)
+            avgPace = (totalDuration / totalDistance) * 60;
+
+
+        }
+
+        // Update journey stats
+        journey.stats = {
+            ...journey.stats,
+            totalDistance: totalDistance,
+            totalDuration: totalDuration,
+            elevationGain: totalElevationGain,
+            avgSpeed: avgSpeed,
+            avgPace: avgPace,
+            minElevation: minElevation !== Infinity ? minElevation : undefined,
+            maxElevation: maxElevation !== -Infinity ? maxElevation : undefined
+        };
+
+        console.log('JourneyCore: Calculated aggregate stats:', {
+            totalDistance: totalDistance.toFixed(2) + ' km',
+            totalDuration: totalDuration.toFixed(2) + ' hours',
+            avgSpeed: avgSpeed.toFixed(2) + ' km/h',
+            avgPace: avgPace.toFixed(2) + ' min/km',
+            elevationGain: totalElevationGain.toFixed(0) + ' m'
+        });
     }
 
     // Calculate overall journey statistics

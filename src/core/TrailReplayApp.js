@@ -132,7 +132,7 @@ export class TrailReplayApp {
         // Setup annotation click event listener
         document.addEventListener('annotationClick', (e) => {
             const progress = e.detail.progress;
-            console.log('Annotation click at progress:', progress);
+
             
             // Initialize currentAnnotation if not exists
             if (!this.currentAnnotation) {
@@ -257,10 +257,10 @@ export class TrailReplayApp {
         
         if (trackId) {
             delete this.cachedElevationProfiles[trackId];
-            console.log(`Cleared elevation profile cache for: ${trackId}`);
+
         } else {
             this.cachedElevationProfiles = {};
-            console.log('Cleared all elevation profile cache');
+
         }
     }
 
@@ -337,7 +337,7 @@ export class TrailReplayApp {
             const actualProgress = progress;
             
             if (expectedProgress !== null && Math.abs(expectedProgress - actualProgress) > 0.05) {
-                console.log(`⚠️  Time/Position sync mismatch: time=${journeyTime.toFixed(1)}s → expected progress=${expectedProgress.toFixed(3)}, actual progress=${actualProgress.toFixed(3)}, diff=${Math.abs(expectedProgress - actualProgress).toFixed(3)}`);
+
             }
         }
     }
@@ -436,21 +436,12 @@ export class TrailReplayApp {
     // Generate elevation profile SVG path
     generateElevationProfile() {
         if (!this.currentTrackData || !this.currentTrackData.trackPoints) {
-            console.log('❌ No track data available for elevation profile');
+
             return;
         }
 
-        console.log('🏔️ Generating elevation profile for track with', this.currentTrackData.trackPoints.length, 'points');
-        
-        // Debug elevation data
-        const elevationData = this.currentTrackData.trackPoints.map(point => point.elevation || 0);
-        const hasElevation = elevationData.some(ele => ele > 0);
-        console.log('🏔️ Elevation data check:', {
-            hasElevation,
-            minElevation: Math.min(...elevationData),
-            maxElevation: Math.max(...elevationData),
-            sampleElevations: elevationData.slice(0, 5)
-        });
+
+
 
         // Create a unique cache key - for journeys, include segment composition
         let trackId;
@@ -473,7 +464,7 @@ export class TrailReplayApp {
         if (this.cachedElevationProfiles && this.cachedElevationProfiles[trackId]) {
             this.elevationProfile = this.cachedElevationProfiles[trackId];
             document.getElementById('elevationPath').setAttribute('d', this.elevationProfile.pathData);
-            console.log('Using cached elevation profile for:', trackId);
+
             this.updateElevationLabels();
             return;
         }
@@ -503,7 +494,7 @@ export class TrailReplayApp {
             const elevationPath = document.getElementById('elevationPath');
             if (elevationPath) {
                 elevationPath.setAttribute('d', pathData);
-                console.log('✅ Flat elevation path updated successfully');
+
             } else {
                 console.error('❌ Could not find elevationPath element for flat profile');
             }
@@ -524,12 +515,12 @@ export class TrailReplayApp {
             const elevationContainer = document.querySelector('.elevation-profile-container');
             if (elevationContainer) {
                 elevationContainer.style.display = 'block';
-                console.log('✅ Elevation profile container made visible (flat profile)');
+
             } else {
                 console.error('❌ Could not find elevation profile container for flat profile');
             }
             
-            console.log('Generated flat elevation profile (no elevation variation)');
+
             this.updateElevationLabels();
             return;
         }
@@ -588,7 +579,7 @@ export class TrailReplayApp {
         const elevationPath = document.getElementById('elevationPath');
         if (elevationPath) {
             elevationPath.setAttribute('d', pathData);
-            console.log('✅ Elevation path updated successfully');
+            
         } else {
             console.error('❌ Could not find elevationPath element');
         }
@@ -613,13 +604,13 @@ export class TrailReplayApp {
         }
         this.cachedElevationProfiles[trackId] = this.elevationProfile;
 
-        console.log(`Generated elevation profile: ${elevations.length} points (optimized to ${pathPoints.length}), range: ${elevationRange.toFixed(1)}m`);
+
         
         // Ensure elevation profile container is visible
         const elevationContainer = document.querySelector('.elevation-profile-container');
         if (elevationContainer) {
             elevationContainer.style.display = 'block';
-            console.log('✅ Elevation profile container made visible');
+
         } else {
             console.error('❌ Could not find elevation profile container');
         }
@@ -678,7 +669,7 @@ export class TrailReplayApp {
             }
         }
         
-        console.log(`Elevation labels updated: Start ${Math.round(startElevation)}m, Peak ${Math.round(maxElevation)}m`);
+
     }
 
     // Convert linear progress (0-1) to segment timing for journeys
@@ -790,7 +781,7 @@ export class TrailReplayApp {
     updateTimelineProgressIndicator(progress) {
         // Placeholder for timeline progress indicator update
         // Implementation will be added when timeline features are needed
-        console.log('Timeline progress indicator updated:', progress);
+
     }
 
     // Calculate detailed segment timing for journeys
@@ -801,7 +792,7 @@ export class TrailReplayApp {
         let transportDuration = 0;
         const detailedSegmentTimings = []; // This will be MapRenderer's segmentTimings.segments
 
-        console.log('MAIN APP: Calculating detailed segment timing for MapRenderer using JourneyBuilder defaults...');
+
 
         // First pass: calculate total coordinates to determine progress ratios
         let totalCoordinates = 0;
@@ -865,12 +856,7 @@ export class TrailReplayApp {
             currentCoordIndex += currentSegmentLength;
         });
 
-        console.log('MAIN APP: Detailed segment timing calculation result:', {
-            totalDuration: `${totalDuration}s`,
-            trackDuration: `${trackDuration}s`,
-            transportDuration: `${transportDuration}s`,
-            segmentCount: detailedSegmentTimings.length
-        });
+
 
         return {
             totalDuration,
@@ -882,7 +868,7 @@ export class TrailReplayApp {
 
     // Handle segment timing updates from journey controller
     handleSegmentTimingUpdate(updateData) {
-        console.log('🎯 MAIN APP: Handling segment timing update:', updateData);
+
 
         if (!updateData || !updateData.segments) {
             console.warn('Invalid segment timing update data');
@@ -892,7 +878,7 @@ export class TrailReplayApp {
         // Calculate detailed timing for MapRenderer
         const detailedSegmentTimingForMapRenderer = this.calculateSegmentTiming(updateData.segments);
         
-        console.log('🎯 MAIN APP: Recalculated detailed timing for MapRenderer:', detailedSegmentTimingForMapRenderer);
+
 
         // Update all timing-related state
         this.state.totalAnimationTime = detailedSegmentTimingForMapRenderer.totalDuration;
@@ -904,7 +890,7 @@ export class TrailReplayApp {
 
         // Update MapRenderer with new timing
         if (this.mapRenderer) {
-            console.log('🎯 MAIN APP: Updating MapRenderer with new segment timing');
+
             this.mapRenderer.setupSegmentAnimation(updateData.segments, detailedSegmentTimingForMapRenderer);
         }
 
@@ -916,12 +902,12 @@ export class TrailReplayApp {
             this.journeyController.updateTimingDisplay(detailedSegmentTimingForMapRenderer);
         }
 
-        console.log('🎯 MAIN APP: Segment timing update complete');
+
     }
 
     // Synchronize all timing displays
     synchronizeAllTimingDisplays(segmentTiming) {
-        console.log('🔄 Synchronizing all timing displays with:', segmentTiming.totalDuration, 'seconds');
+
 
         const formattedTime = this.formatTimeInSeconds(segmentTiming.totalDuration);
         
@@ -939,7 +925,7 @@ export class TrailReplayApp {
         // Validate all displays are synchronized
         this.validateAllTimingDisplaysSync(segmentTiming);
         
-        console.log('✅ All timing displays synchronized');
+
     }
 
     // Validate timing synchronization across all components
@@ -965,7 +951,7 @@ export class TrailReplayApp {
             console.warn('⚠️  Timing synchronization issues detected:', issues);
             return false;
         } else {
-            console.log('✅ All timing displays are synchronized');
+
             return true;
         }
     }
