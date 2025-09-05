@@ -21,8 +21,8 @@ const FOLLOW_BEHIND_PRESETS = {
 const FOLLOW_BEHIND_SETTINGS = {
     // Animation timing
     CINEMATIC_DURATION: 2000,   // Duration of cinematic zoom-in BEFORE animation starts (ms)
-    ZOOM_OUT_DURATION: 3000,    // Duration of end-of-animation zoom-out (ms)
-    ZOOM_OUT_DELAY: 1000,       // Delay before zoom-out starts (ms)
+    ZOOM_OUT_DURATION: 5000,    // Duration of end-of-animation zoom-out (ms) - increased for stats visibility
+    ZOOM_OUT_DELAY: 2000,       // Delay before zoom-out starts (ms) - increased for stats visibility
     
     // Camera movement smoothing
     CAMERA_UPDATE_DURATION: 100,  // Duration for smooth camera updates during animation (ms)
@@ -536,14 +536,31 @@ export class FollowBehindCamera {
      * Get cinematic duration for video export timing
      */
     getCinematicDuration() {
-        return FOLLOW_BEHIND_SETTINGS.CINEMATIC_DURATION;
+        const baseDuration = FOLLOW_BEHIND_SETTINGS.CINEMATIC_DURATION;
+        const animationSpeed = this.mapRenderer.getAnimationSpeed ? this.mapRenderer.getAnimationSpeed() : 1.0;
+
+        // Scale duration by animation speed for video export consistency
+        // If animation runs at 0.5x speed, zoom effects should also be 2x slower
+        const speedMultiplier = 1.0 / Math.max(animationSpeed, 0.1);
+
+        console.log(`🎬 FollowBehindCamera: Scaling cinematic duration by ${speedMultiplier}x (${baseDuration}ms → ${baseDuration * speedMultiplier}ms)`);
+
+        return baseDuration * speedMultiplier;
     }
-    
+
     /**
      * Get zoom-out duration for video export timing
      */
     getZoomOutDuration() {
-        return FOLLOW_BEHIND_SETTINGS.ZOOM_OUT_DURATION;
+        const baseDuration = FOLLOW_BEHIND_SETTINGS.ZOOM_OUT_DURATION;
+        const animationSpeed = this.mapRenderer.getAnimationSpeed ? this.mapRenderer.getAnimationSpeed() : 1.0;
+
+        // Scale duration by animation speed for video export consistency
+        const speedMultiplier = 1.0 / Math.max(animationSpeed, 0.1);
+
+        console.log(`🎬 FollowBehindCamera: Scaling zoom-out duration by ${speedMultiplier}x (${baseDuration}ms → ${baseDuration * speedMultiplier}ms)`);
+
+        return baseDuration * speedMultiplier;
     }
     
     /**

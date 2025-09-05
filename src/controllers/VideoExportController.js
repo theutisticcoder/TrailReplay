@@ -1491,6 +1491,9 @@ export class VideoExportController {
 
         // 5. Draw any active annotations
         await this.drawActiveAnnotations();
+
+        // 6. Draw final animation stats if animation is complete
+        await this.drawFinalAnimationStats(this.recordingContext);
     }
 
     /**
@@ -1917,17 +1920,7 @@ export class VideoExportController {
      * Draw progress marker on elevation profile
      */
     drawProgressMarker(context, x, y, width, height, progress) {
-        const markerX = x + (width * progress);
-        const markerY = y + (height / 2);
-        
-        // Draw marker circle
-        context.beginPath();
-        context.arc(markerX, markerY, 4, 0, 2 * Math.PI);
-        context.fillStyle = '#FFFFFF';
-        context.fill();
-        context.strokeStyle = '#C1652F';
-        context.lineWidth = 2;
-        context.stroke();
+        // Marker drawing removed to match live animation
     }
 
     /**
@@ -1951,16 +1944,6 @@ export class VideoExportController {
         context.lineWidth = 1;
         context.strokeRect(x, barY, width, barHeight);
 
-        // Marker
-        const markerX = x + (width * progress);
-        const markerY = barY + (barHeight / 2);
-        context.beginPath();
-        context.arc(markerX, markerY, 4, 0, 2 * Math.PI);
-        context.fillStyle = '#FFFFFF';
-        context.fill();
-        context.strokeStyle = '#C1652F';
-        context.lineWidth = 2;
-        context.stroke();
     }
 
     /**
@@ -2161,10 +2144,6 @@ export class VideoExportController {
                 // Draw the progress overlay
                 this.drawSVGPath(context, progressPathData, profileX, profileY, profileWidth, profileHeight, '#C1652F', 'rgba(193, 101, 47, 0.8)');
                 
-                // Draw progress marker if animation is in progress
-                if (progress > 0) {
-                    this.drawProgressMarker(context, profileX, profileY, profileWidth, profileHeight, progress);
-                }
                 return;
             }
         }
@@ -2200,15 +2179,202 @@ export class VideoExportController {
      * Draw final animation stats if animation is complete
      */
     async drawFinalAnimationStats(context) {
+        // Only show final stats when animation is actually complete (progress >= 1.0)
+        const animationProgress = this.getAnimationProgress();
+        if (animationProgress < 1.0) {
+            return; // Only show stats at the very end of the animation
+        }
+
+        // Check if we should show end stats
+        const showEndStats = this.app.map?.showEndStats ?? true;
+        if (!showEndStats) {
+            return; // Don't draw if end stats are disabled
+        }
+
+        // Get selected stats from the app
+        const selectedStats = this.app.getSelectedEndStats ?
+            this.app.getSelectedEndStats() :
+            ['distance', 'elevation'];
+
+
+        if (selectedStats.length === 0) {
+            return; // No stats selected
+        }
+
+        // Draw stats directly on the canvas like other overlays
+        const { width: videoWidth, height: videoHeight } = this.recordingDimensions;
+        const ctx = context;
+
+        // Check aspect ratio to match live animation layout
+        const videoContainer = this.videoCaptureContainer;
+        const isLandscape = videoContainer && videoContainer.classList.contains('aspect-landscape');
+        const isSquare = videoContainer && videoContainer.classList.contains('aspect-square');
+        const isMobile = videoContainer && videoContainer.classList.contains('aspect-mobile');
+
+        // Calculate stats panel dimensions and position to match live animation
+        let statsWidth, statsHeight, cols;
+
+        if (isMobile) {
+            // Mobile: single column, flexible width
+            statsWidth = Math.min(300, videoWidth * 0.9);
+            statsHeight = Math.min(500, videoHeight * 0.8);
+            cols = 1;
+        } else if (isSquare) {
+            // Square: 2 columns
+            statsWidth = Math.min(500, videoWidth * 0.8);
+            statsHeight = Math.min(400, videoHeight * 0.6);
+            cols = 2;
+        } else {
+            // Landscape/Default: 3 columns
+            statsWidth = Math.min(600, videoWidth * 0.8);
+            statsHeight = Math.min(400, videoHeight * 0.6);
+            cols = 3;
+        }
+
+        const statsX = (videoWidth - statsWidth) / 2;
+        const statsY = (videoHeight - statsHeight) / 2;
+
+        // No background for the overlay (matches live animation)
+        // Draw title (no title in live animation, but keeping for clarity)
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 24px Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(t('stats.title'), videoWidth / 2, statsY + 30);
+
+        // Calculate grid layout for stats
+        const numStats = selectedStats.length;
+        const rows = Math.ceil(numStats / cols);
+
+        // Add gaps to match CSS (12px for desktop/square, 6px for mobile)
+        const gap = isMobile ? 6 : 12;
+        const totalGapWidth = (cols - 1) * gap;
+        const totalGapHeight = (rows - 1) * gap;
+
+        const statWidth = (statsWidth - totalGapWidth) / cols;
+        const statHeight = (statsHeight - 60 - totalGapHeight) / rows; // Subtract title space and gaps
+
+        // Get stat values from DOM elements
+        const getStatValue = (statKey) => {
+            const elementMap = {
+                distance: 'totalDistance',
+                elevation: 'elevationGain',
+                duration: 'duration',
+                speed: 'averageSpeed',
+                pace: 'averagePace',
+                maxelevation: 'maxElevation',
+                minelevation: 'minElevation'
+            };
+
+            const elementId = elementMap[statKey];
+            if (elementId) {
+                const element = document.getElementById(elementId);
+                return element ? element.textContent : 'N/A';
+            }
+            return 'N/A';
+        };
+
+        const getStatLabel = (statKey) => {
+            const translationMap = {
+                distance: 'stats.distance',
+                elevation: 'stats.elevation',
+                duration: 'stats.duration',
+                speed: 'stats.averageSpeed',
+                pace: 'stats.averagePace',
+                maxelevation: 'stats.maxElevation',
+                minelevation: 'stats.minElevation'
+            };
+
+            const translationKey = translationMap[statKey];
+            if (translationKey) {
+                return t(translationKey);
+            }
+            return statKey;
+        };
+
+        // Draw each stat
+        selectedStats.forEach((statKey, index) => {
+            const col = index % cols;
+            const row = Math.floor(index / cols);
+
+            const statX = statsX + (col * (statWidth + gap));
+            const statY = statsY + 60 + (row * (statHeight + gap)); // 60px for title
+
+            const statValue = getStatValue(statKey);
+            const statLabel = getStatLabel(statKey);
+
+
+            // Match live animation styles exactly
+            if (isMobile) {
+                // Mobile layout: horizontal flex layout
+                const boxPadding = 12;
+                const boxWidth = statWidth - (boxPadding * 2);
+                const boxHeight = 50; // Fixed height for mobile
+
+                // Draw stat box background with transparent blur effect (matches .final-stat-box with backdrop-filter)
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+                ctx.fillRect(statX + boxPadding, statY + boxPadding, boxWidth, boxHeight);
+
+                // Draw stat box border (matches .final-stat-box)
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(statX + boxPadding, statY + boxPadding, boxWidth, boxHeight);
+
+                // Draw stat label (left side, matches .aspect-mobile .final-stat-box .final-stat-label)
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = '500 12px Arial, sans-serif';
+                ctx.textAlign = 'left';
+                ctx.fillText(statLabel, statX + boxPadding + 10, statY + boxPadding + 20);
+
+                // Draw stat value (right side, matches .aspect-mobile .final-stat-box .final-stat-value)
+                ctx.fillStyle = '#4CAF50';
+                ctx.font = '700 14px Arial, sans-serif';
+                ctx.textAlign = 'right';
+                ctx.fillText(statValue, statX + statWidth - boxPadding - 10, statY + boxPadding + 20);
+
+            } else {
+                // Desktop/Square layout: vertical centered layout
+                const boxPadding = 10;
+                const boxWidth = statWidth - (boxPadding * 2);
+                const boxHeight = statHeight - (boxPadding * 2);
+
+                // Draw stat box background with transparent blur effect (matches .final-stat-box with backdrop-filter)
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+                ctx.fillRect(statX + boxPadding, statY + boxPadding, boxWidth, boxHeight);
+
+                // Draw stat box border (matches .final-stat-box)
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(statX + boxPadding, statY + boxPadding, boxWidth, boxHeight);
+
+                // Add rounded corners (matches border-radius: 6px)
+                // Note: Canvas doesn't have built-in rounded rect, so we'll approximate with the border
+
+                // Draw stat label (matches .final-stat-label)
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = '14px Arial, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(statLabel, statX + statWidth / 2, statY + boxPadding + 25);
+
+                // Draw stat value (matches .final-stat-value)
+                ctx.fillStyle = '#4CAF50';
+                ctx.font = 'bold 18px Arial, sans-serif';
+                ctx.fillText(statValue, statX + statWidth / 2, statY + boxPadding + 50);
+            }
+        });
+
+    }
+
+    async drawFallbackStats(context) {
+        // Fallback method in case html2canvas fails
         const liveStatsOverlay = document.getElementById('liveStatsOverlay');
         if (!liveStatsOverlay || !liveStatsOverlay.classList.contains('end-animation')) {
-            return; // Only draw if animation is complete and end-animation class is present
+            return;
         }
 
         const { width, height } = this.recordingDimensions;
 
         // Get selected stats from the app's stats selection system, or show all stats by default
-        const selectedStats = this.app.getSelectedEndStats ? this.app.getSelectedEndStats() : ['distance', 'elevation', 'duration', 'speed', 'pace', 'maxelevation', 'minelevation'];
+        const selectedStats = this.app.getSelectedEndStats ? this.app.getSelectedEndStats() : ['distance', 'elevation'];
 
         // Get the final stats values
         const statsElements = {
@@ -2570,20 +2736,6 @@ export class VideoExportController {
             ctx.fillStyle = '#C1652F';
             const progressWidth = Math.max(2, barWidth * progress); // Minimum 2px width
             ctx.fillRect(barX, barY, progressWidth, barHeight);
-
-            // Draw progress marker (circle) at current position - always visible
-            const markerX = barX + (barWidth * progress);
-            const markerY = barY + (barHeight / 2);
-            const markerRadius = 4;
-
-            // Draw marker circle with outline
-            ctx.beginPath();
-            ctx.arc(markerX, markerY, markerRadius, 0, 2 * Math.PI);
-            ctx.fillStyle = '#FFFFFF';
-            ctx.fill();
-            ctx.strokeStyle = '#C1652F';
-            ctx.lineWidth = 2;
-            ctx.stroke();
         }
     }
 
@@ -3028,27 +3180,40 @@ export class VideoExportController {
             // Get durations from FollowBehindCamera settings if available
             if (this.app.mapRenderer && this.app.mapRenderer.followBehindCamera) {
                 const camera = this.app.mapRenderer.followBehindCamera;
-                
+
                 // Default follow-behind camera durations (in seconds)
                 const zoomInDuration = camera.getCinematicDuration ? camera.getCinematicDuration() / 1000 : 2.0; // 2 seconds
-                const zoomOutDuration = camera.getZoomOutDuration ? camera.getZoomOutDuration() / 1000 : 3.0; // 3 seconds
-                
+                const zoomOutDuration = camera.getZoomOutDuration ? camera.getZoomOutDuration() / 1000 : 5.0; // 5 seconds
+
+                // Scale durations by animation speed for video export consistency
+                // If animation runs at 0.5x speed, zoom effects should also be 2x slower
+                const animationSpeed = this.app.mapRenderer.getAnimationSpeed ? this.app.mapRenderer.getAnimationSpeed() : 1.0;
+                const speedMultiplier = 1.0 / Math.max(animationSpeed, 0.1); // Prevent division by zero
+
+                console.log(`🎬 Scaling zoom durations by animation speed: ${animationSpeed}x (multiplier: ${speedMultiplier}x)`);
+
                 return {
-                    zoomIn: zoomInDuration,
-                    zoomOut: zoomOutDuration
+                    zoomIn: zoomInDuration * speedMultiplier,
+                    zoomOut: zoomOutDuration * speedMultiplier
                 };
             }
-            
-            // Fallback durations
+
+            // Fallback durations with speed scaling
+            const animationSpeed = this.app.mapRenderer?.getAnimationSpeed ? this.app.mapRenderer.getAnimationSpeed() : 1.0;
+            const speedMultiplier = 1.0 / Math.max(animationSpeed, 0.1);
+
             return {
-                zoomIn: 2.0,  // 2 seconds for initial cinematic zoom-in
-                zoomOut: 3.0  // 3 seconds for final zoom-out
+                zoomIn: 2.0 * speedMultiplier,  // Scaled zoom-in duration
+                zoomOut: 5.0 * speedMultiplier  // Scaled zoom-out duration
             };
         } catch (error) {
             console.warn('Error getting cinematic durations:', error);
+            const animationSpeed = this.app.mapRenderer?.getAnimationSpeed ? this.app.mapRenderer.getAnimationSpeed() : 1.0;
+            const speedMultiplier = 1.0 / Math.max(animationSpeed, 0.1);
+
             return {
-                zoomIn: 2.0,
-                zoomOut: 3.0
+                zoomIn: 2.0 * speedMultiplier,
+                zoomOut: 5.0 * speedMultiplier
             };
         }
     }
@@ -3195,13 +3360,17 @@ export class VideoExportController {
                 pictureAnnotationTime = this.app.mapRenderer.pictureAnnotations.getTotalPictureDisplayTime();
             }
             
-            const totalVideoDuration = baseTrailDuration + cinematicDurations.zoomIn + cinematicDurations.zoomOut + pictureAnnotationTime;
-            
+            // Add extra time for final stats visibility
+            const statsDisplayTime = 6.0; // 6 seconds for stats to be visible at the end
+
+            const totalVideoDuration = baseTrailDuration + cinematicDurations.zoomIn + cinematicDurations.zoomOut + pictureAnnotationTime + statsDisplayTime;
+
             console.log(`🎬 Total video duration calculation:`);
             console.log(`  - Initial zoom-in: ${cinematicDurations.zoomIn}s`);
             console.log(`  - Trail animation: ${baseTrailDuration}s`);
             console.log(`  - Picture annotations: ${pictureAnnotationTime}s`);
             console.log(`  - Final zoom-out: ${cinematicDurations.zoomOut}s`);
+            console.log(`  - Stats display time: ${statsDisplayTime}s`);
             console.log(`  - TOTAL: ${totalVideoDuration}s`);
             
             return totalVideoDuration;
