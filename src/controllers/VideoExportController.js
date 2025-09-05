@@ -540,31 +540,47 @@ export class VideoExportController {
 
 
 
+        // Update container classes based on aspect ratio
+        if (videoCaptureContainer) {
+            videoCaptureContainer.classList.remove('aspect-landscape', 'aspect-square', 'aspect-mobile');
+            switch (aspectRatio) {
+                case '16:9':
+                    videoCaptureContainer.classList.add('aspect-landscape');
+                    break;
+                case '1:1':
+                    videoCaptureContainer.classList.add('aspect-square');
+                    break;
+                case '9:16':
+                    videoCaptureContainer.classList.add('aspect-mobile');
+                    break;
+            }
+        }
+
         switch (aspectRatio) {
             case '16:9':
                 // Landscape - fit to available width, calculate height
                 targetWidth = availableWidth;
                 targetHeight = Math.round(targetWidth * (9/16));
-                
+
                 // If height exceeds available space, fit to height instead
                 if (targetHeight > availableHeight) {
                     targetHeight = availableHeight;
                     targetWidth = Math.round(targetHeight * (16/9));
                 }
                 break;
-                
+
             case '1:1':
                 // Square - use the smaller dimension
                 const squareSize = Math.min(availableWidth, availableHeight);
                 targetWidth = squareSize;
                 targetHeight = squareSize;
                 break;
-                
+
             case '9:16':
                 // Portrait - fit to available height, calculate width
                 targetHeight = availableHeight;
                 targetWidth = Math.round(targetHeight * (9/16));
-                
+
                 // If width exceeds available space, fit to width instead
                 if (targetWidth > availableWidth) {
                     targetWidth = availableWidth;
@@ -2190,44 +2206,94 @@ export class VideoExportController {
         }
 
         const { width, height } = this.recordingDimensions;
-        
+
+        // Get selected stats from the app's stats selection system, or show all stats by default
+        const selectedStats = this.app.getSelectedEndStats ? this.app.getSelectedEndStats() : ['distance', 'elevation', 'duration', 'speed', 'pace', 'maxelevation', 'minelevation'];
+
         // Get the final stats values
-        const distanceElement = document.getElementById('liveDistance');
-        const elevationElement = document.getElementById('liveElevation');
-        
-        if (!distanceElement || !elevationElement) return;
+        const statsElements = {
+            distance: document.getElementById('totalDistance'),
+            elevation: document.getElementById('elevationGain'),
+            duration: document.getElementById('duration'),
+            speed: document.getElementById('averageSpeed'),
+            pace: document.getElementById('averagePace'),
+            maxelevation: document.getElementById('maxElevation'),
+            minelevation: document.getElementById('minElevation')
+        };
 
-        // Calculate position for final stats (centered, prominent)
-        const statsWidth = 300;
-        const statsHeight = 120;
-        const x = (width - statsWidth) / 2;
-        const y = height * 0.1; // 10% from top
+        // Filter only selected stats that exist
+        const availableStats = selectedStats.filter(stat => statsElements[stat] && statsElements[stat].textContent);
 
-        // Draw background with blur effect (transparent background)
-        context.fillStyle = 'rgba(255, 255, 255, 0.1)';
-        context.fillRect(x, y, statsWidth, statsHeight);
+        if (availableStats.length === 0) return;
 
-        // Draw border
-        context.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-        context.lineWidth = 1;
-        context.strokeRect(x, y, statsWidth, statsHeight);
+        // Calculate layout for stats boxes
+        const boxWidth = 200;
+        const boxHeight = 80;
+        const padding = 20;
+        const boxesPerRow = Math.min(3, availableStats.length);
+        const totalRows = Math.ceil(availableStats.length / boxesPerRow);
 
-        // Draw stats text
-        context.font = 'bold 24px Arial';
-        context.fillStyle = 'rgba(255, 255, 255, 0.95)';
-        context.strokeStyle = 'rgba(0, 0, 0, 0.8)';
-        context.lineWidth = 3;
-        context.textAlign = 'center';
+        const totalWidth = (boxWidth * boxesPerRow) + (padding * (boxesPerRow - 1));
+        const totalHeight = (boxHeight * totalRows) + (padding * (totalRows - 1));
 
-        // Draw distance
-        const distanceText = `Distance: ${distanceElement.textContent}`;
-        context.strokeText(distanceText, x + statsWidth/2, y + 40);
-        context.fillText(distanceText, x + statsWidth/2, y + 40);
+        const startX = (width - totalWidth) / 2;
+        const startY = height * 0.15; // 15% from top
 
-        // Draw elevation
-        const elevationText = `Elevation: ${elevationElement.textContent}`;
-        context.strokeText(elevationText, x + statsWidth/2, y + 80);
-        context.fillText(elevationText, x + statsWidth/2, y + 80);
+        // Draw each stat box
+        availableStats.forEach((statKey, index) => {
+            const row = Math.floor(index / boxesPerRow);
+            const col = index % boxesPerRow;
+
+            const x = startX + (col * (boxWidth + padding));
+            const y = startY + (row * (boxHeight + padding));
+
+            // Draw background with blur effect
+            context.fillStyle = 'rgba(255, 255, 255, 0.15)';
+            context.fillRect(x, y, boxWidth, boxHeight);
+
+            // Draw border
+            context.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+            context.lineWidth = 2;
+            context.strokeRect(x, y, boxWidth, boxHeight);
+
+            // Draw inner shadow effect
+            context.strokeStyle = 'rgba(0, 0, 0, 0.3)';
+            context.lineWidth = 1;
+            context.strokeRect(x + 2, y + 2, boxWidth - 4, boxHeight - 4);
+
+            // Draw stats text
+            context.font = 'bold 18px Arial';
+            context.fillStyle = 'rgba(255, 255, 255, 0.95)';
+            context.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+            context.lineWidth = 2;
+            context.textAlign = 'center';
+
+            // Get stat label and value
+            const element = statsElements[statKey];
+            let label = '';
+            let value = element.textContent;
+
+            // Set appropriate labels
+            switch(statKey) {
+                case 'distance': label = 'Distance'; break;
+                case 'elevation': label = 'Elevation'; break;
+                case 'duration': label = 'Duration'; break;
+                case 'speed': label = 'Avg Speed'; break;
+                case 'pace': label = 'Avg Pace'; break;
+                case 'maxelevation': label = 'Max Elev'; break;
+                case 'minelevation': label = 'Min Elev'; break;
+                default: label = statKey;
+            }
+
+            // Draw label
+            context.strokeText(label, x + boxWidth/2, y + 25);
+            context.fillText(label, x + boxWidth/2, y + 25);
+
+            // Draw value
+            context.font = 'bold 22px Arial';
+            context.strokeText(value, x + boxWidth/2, y + 55);
+            context.fillText(value, x + boxWidth/2, y + 55);
+        });
 
         // Reset text alignment
         context.textAlign = 'left';

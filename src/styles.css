@@ -2960,7 +2960,244 @@ body.route-drawing-active .transportation-options {
         position: relative;
         margin-bottom: 1rem;
     }
-    
+
+}
+
+/* Stats Selection Styles */
+.stats-checkboxes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--evergreen);
+}
+
+.checkbox-group label {
+    font-size: 0.9rem;
+    color: var(--evergreen);
+    cursor: pointer;
+    user-select: none;
+    margin-left: 0.5rem;
+    display: inline-block;
+    vertical-align: middle;
+    font-weight: 500;
+    line-height: 1.2;
+}
+
+@media (max-width: 768px) {
+    .stats-checkboxes {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Final Stats End Animation Styles */
+.live-stats-overlay {
+    transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+}
+
+.live-stats-overlay.end-animation {
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) scale(1) !important;
+    z-index: 10000 !important;
+    background: transparent !important;
+    border-radius: 12px !important;
+    padding: 16px !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    border: none !important;
+    max-width: 95% !important;
+    width: auto !important;
+    min-width: 500px !important;
+    max-height: none !important;
+    opacity: 1 !important;
+}
+
+.live-stats-overlay.end-animation .live-stats-content {
+    display: none !important;
+}
+
+.live-stats-overlay .final-stats-content {
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+}
+
+.live-stats-overlay.end-animation .final-stats-content {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 12px !important;
+    max-width: 100% !important;
+    margin: 0 auto !important;
+    opacity: 1 !important;
+    transform: scale(1) !important;
+}
+
+.final-stat-box {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 6px !important;
+    padding: 10px !important;
+    text-align: center !important;
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+    backdrop-filter: blur(4px) !important;
+    opacity: 0;
+    transform: translateY(20px) scale(0.9);
+}
+
+.live-stats-overlay.end-animation .final-stat-box:nth-child(1) {
+    animation: statBoxAppear 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.1s forwards;
+}
+
+.live-stats-overlay.end-animation .final-stat-box:nth-child(2) {
+    animation: statBoxAppear 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.2s forwards;
+}
+
+.live-stats-overlay.end-animation .final-stat-box:nth-child(3) {
+    animation: statBoxAppear 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.3s forwards;
+}
+
+.live-stats-overlay.end-animation .final-stat-box:nth-child(4) {
+    animation: statBoxAppear 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.4s forwards;
+}
+
+.live-stats-overlay.end-animation .final-stat-box:nth-child(5) {
+    animation: statBoxAppear 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.5s forwards;
+}
+
+.live-stats-overlay.end-animation .final-stat-box:nth-child(6) {
+    animation: statBoxAppear 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.6s forwards;
+}
+
+.live-stats-overlay.end-animation .final-stat-box:nth-child(7) {
+    animation: statBoxAppear 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.7s forwards;
+}
+
+@keyframes statBoxAppear {
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.final-stat-box:hover {
+    background: rgba(255, 255, 255, 0.15) !important;
+    transform: translateY(-2px) !important;
+}
+
+.final-stat-label {
+    font-size: 12px !important;
+    color: rgba(255, 255, 255, 0.8) !important;
+    margin-bottom: 4px !important;
+    font-weight: 500 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+}
+
+.final-stat-value {
+    font-size: 16px !important;
+    color: rgba(255, 255, 255, 0.95) !important;
+    font-weight: 700 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
+}
+
+.final-stats-content {
+    display: none;
+}
+
+/* Mobile responsive for end animation */
+@media (max-width: 768px) {
+    .live-stats-overlay.end-animation {
+        min-width: 280px !important;
+        padding: 12px !important;
+        max-width: 95% !important;
+        max-height: none !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        backdrop-filter: none !important;
+        border: none !important;
+    }
+
+    .live-stats-overlay.end-animation .final-stats-content {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px !important;
+    }
+
+    .final-stat-box {
+        padding: 8px !important;
+        background: rgba(255, 255, 255, 0.05) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        backdrop-filter: blur(4px) !important;
+    }
+
+    .final-stat-label {
+        font-size: 10px !important;
+    }
+
+    .final-stat-value {
+        font-size: 13px !important;
+    }
+}
+
+/* Square aspect ratio layout (1:1) */
+.aspect-square .live-stats-overlay.end-animation .final-stats-content {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+}
+
+/* Mobile aspect ratio layout (9:16 - narrow containers) */
+.aspect-mobile .live-stats-overlay.end-animation {
+    min-width: 200px !important;
+    padding: 10px !important;
+}
+
+.aspect-mobile .live-stats-overlay.end-animation .final-stats-content {
+    grid-template-columns: 1fr !important;
+    gap: 6px !important;
+}
+
+.aspect-mobile .final-stat-box {
+    padding: 12px !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    text-align: left !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(4px) !important;
+}
+
+.aspect-mobile .final-stat-box .final-stat-label {
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    margin-bottom: 0 !important;
+    flex: 1 !important;
+}
+
+.aspect-mobile .final-stat-box .final-stat-value {
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    text-align: right !important;
+    flex: 1 !important;
+}
+
+/* Landscape aspect ratio layout (16:9) - uses default 3-column layout */
+.aspect-landscape .live-stats-overlay.end-animation .final-stats-content {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 12px !important;
 }
 
 

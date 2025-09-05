@@ -525,6 +525,41 @@
                                 </div>
                             </div>
 
+                            <!-- Stats Selection -->
+                            <div id="statsSelectionContainer" class="control-group" style="display: none; margin-top: 1rem;">
+                                <label style="margin-bottom: 0.5rem; display: block;">Select Stats to Show at End:</label>
+                                <div class="stats-checkboxes">
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="statDistance" checked>
+                                        <label for="statDistance" data-i18n="stats.distance">📏 Total Distance</label>
+                                    </div>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="statElevation" checked>
+                                        <label for="statElevation" data-i18n="stats.elevation">↗️ Total Elevation Gain</label>
+                                    </div>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="statDuration" checked>
+                                        <label for="statDuration" data-i18n="stats.duration">⏱️ Duration</label>
+                                    </div>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="statSpeed" checked>
+                                        <label for="statSpeed" data-i18n="stats.averageSpeed">💨 Average Speed</label>
+                                    </div>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="statPace" checked>
+                                        <label for="statPace" data-i18n="stats.averagePace">👟 Average Pace</label>
+                                    </div>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="statMaxElevation" checked>
+                                        <label for="statMaxElevation" data-i18n="stats.maxElevation">🏔️ Maximum Elevation</label>
+                                    </div>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="statMinElevation" checked>
+                                        <label for="statMinElevation" data-i18n="stats.minElevation">📉 Minimum Elevation</label>
+                                    </div>
+                                </div>
+                            </div>
+
                         </div>
 
                         <!-- Comparison Mode - DISABLED FOR NOW -->
@@ -572,18 +607,51 @@
                             <div class="elevation-profile-container">
                                 <!-- Live Stats integrated into elevation profile -->
                                 <div id="liveStatsOverlay" class="live-stats-overlay">
-                                    <div class="live-stat-item">
-                                        <span class="live-stat-label">D:</span>
-                                        <span class="live-stat-full-label" data-i18n="controls.distance"></span>
-                                        <span class="live-stat-value" id="liveDistance">0.0 km</span>
-                                    </div>
-                                    <div class="live-stat-item">
-                                        <span class="live-stat-label">E:</span>
-                                        <span class="live-stat-full-label" data-i18n="controls.elevation"></span>
-                                        <span class="live-stat-value" id="liveElevation">0 m</span>
+                                    <!-- Live stats for during playback -->
+                                    <div class="live-stats-content">
+                                        <div class="live-stat-item">
+                                            <span class="live-stat-label">D:</span>
+                                            <span class="live-stat-full-label" data-i18n="controls.distance"></span>
+                                            <span class="live-stat-value" id="liveDistance">0.0 km</span>
+                                        </div>
+                                        <div class="live-stat-item">
+                                            <span class="live-stat-label">E:</span>
+                                            <span class="live-stat-full-label" data-i18n="controls.elevation"></span>
+                                            <span class="live-stat-value" id="liveElevation">0 m</span>
+                                        </div>
                                     </div>
 
-
+                                    <!-- Final stats for end animation -->
+                                    <div class="final-stats-content">
+                                        <div class="final-stat-box" data-stat="distance">
+                                            <div class="final-stat-label" data-i18n="stats.distance">Distance</div>
+                                            <div class="final-stat-value" id="finalDistance">0.0 km</div>
+                                        </div>
+                                        <div class="final-stat-box" data-stat="elevation">
+                                            <div class="final-stat-label" data-i18n="stats.elevation">Elevation</div>
+                                            <div class="final-stat-value" id="finalElevation">0 m</div>
+                                        </div>
+                                        <div class="final-stat-box" data-stat="duration">
+                                            <div class="final-stat-label" data-i18n="stats.duration">Duration</div>
+                                            <div class="final-stat-value" id="finalDuration">0h 0m</div>
+                                        </div>
+                                        <div class="final-stat-box" data-stat="speed">
+                                            <div class="final-stat-label" data-i18n="stats.averageSpeed">Avg Speed</div>
+                                            <div class="final-stat-value" id="finalSpeed">0 km/h</div>
+                                        </div>
+                                        <div class="final-stat-box" data-stat="pace">
+                                            <div class="final-stat-label" data-i18n="stats.averagePace">Avg Pace</div>
+                                            <div class="final-stat-value" id="finalPace">0:00 min/km</div>
+                                        </div>
+                                        <div class="final-stat-box" data-stat="maxelevation">
+                                            <div class="final-stat-label" data-i18n="stats.maxElevation">Max Elev</div>
+                                            <div class="final-stat-value" id="finalMaxElevation">0 m</div>
+                                        </div>
+                                        <div class="final-stat-box" data-stat="minelevation">
+                                            <div class="final-stat-label" data-i18n="stats.minElevation">Min Elev</div>
+                                            <div class="final-stat-value" id="finalMinElevation">0 m</div>
+                                        </div>
+                                    </div>
                                 </div>
                                 
                                 <div class="elevation-progress-bar" id="progressBar">

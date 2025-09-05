@@ -1,4 +1,4 @@
-import { initializeTranslations, t } from '../translations.js';
+import { initializeTranslations, t, updatePageTranslations } from '../translations.js';
 import { FileController } from '../controllers/FileController.js';
 import { MapController } from '../controllers/MapController.js';
 import { PlaybackController } from '../controllers/PlaybackController.js';
@@ -41,6 +41,13 @@ export class TrailReplayApp {
         this.comparisonMode = false;
         this.comparisonTrackData = null;
         this.comparisonGpxParser = null;
+
+        // Stats selection properties
+        this.selectedEndStats = ['distance', 'elevation', 'duration', 'speed', 'pace', 'maxelevation', 'minelevation'];
+
+        // Bind methods
+        this.getSelectedEndStats = this.getSelectedEndStats.bind(this);
+        this.updateSelectedStats = this.updateSelectedStats.bind(this);
         
 
 
@@ -80,6 +87,9 @@ export class TrailReplayApp {
         // Initialize translations
         initializeTranslations();
 
+        // Update page translations
+        updatePageTranslations();
+
         // Update placeholders with translations after a brief delay
         setTimeout(() => this.updatePlaceholders(), 100);
 
@@ -110,6 +120,9 @@ export class TrailReplayApp {
         // Set up UI wiring
         setupEventListeners(this);
         setupModals(this);
+
+        // Initialize stats selection
+        this.initializeStatsSelection();
         
         // Initialize progress bar interactions after DOM is ready
         this.progress.initialize();
@@ -1279,6 +1292,52 @@ export class TrailReplayApp {
         this.mapRenderer.addComparisonTrack(this.comparisonTrackData);
         
         console.log('Comparison mode enabled');
+    }
+
+    // Stats selection methods
+    getSelectedEndStats() {
+        return this.selectedEndStats;
+    }
+
+    updateSelectedStats() {
+        const checkboxes = document.querySelectorAll('#statsSelectionContainer input[type="checkbox"]');
+        this.selectedEndStats = Array.from(checkboxes)
+            .filter(checkbox => checkbox.checked)
+            .map(checkbox => checkbox.id.replace('stat', '').toLowerCase());
+
+        console.log('Updated selected stats:', this.selectedEndStats);
+        console.log('Checkboxes found:', checkboxes.length);
+        checkboxes.forEach(cb => {
+            console.log(`${cb.id}: ${cb.checked}`);
+        });
+    }
+
+    initializeStatsSelection() {
+        const showEndStatsToggle = document.getElementById('showEndStats');
+        const statsContainer = document.getElementById('statsSelectionContainer');
+
+        if (showEndStatsToggle && statsContainer) {
+            // Show/hide stats selection based on toggle
+            const updateStatsVisibility = () => {
+                if (showEndStatsToggle.checked) {
+                    statsContainer.style.display = 'block';
+                } else {
+                    statsContainer.style.display = 'none';
+                }
+            };
+
+            showEndStatsToggle.addEventListener('change', updateStatsVisibility);
+            updateStatsVisibility(); // Initial state
+        }
+
+        // Add event listeners to stat checkboxes
+        const statCheckboxes = document.querySelectorAll('#statsSelectionContainer input[type="checkbox"]');
+        statCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', () => this.updateSelectedStats());
+        });
+
+        // Initialize selected stats from current checkboxes
+        this.updateSelectedStats();
     }
 
     disableComparisonMode() {
