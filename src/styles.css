@@ -3927,7 +3927,12 @@ body.high-quality-recording .map canvas {
     .header {
         padding: 1rem 0;
     }
-    
+
+    .logo-container {
+        margin-top: 2rem; /* Move logo down to avoid collision with donate button */
+        margin-bottom: 0.75rem;
+    }
+
     .logo-image {
         height: 100px;
     }
