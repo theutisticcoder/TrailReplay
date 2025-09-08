@@ -1,6 +1,9 @@
 // Simple translation system
 import { AnalyticsTracker } from './utils/analytics.js';
 
+// Current language state
+let currentLanguage = 'en';
+
 export const translations = {
     en: {
         subtitle: "Replay the story your trails told",
@@ -1742,10 +1745,874 @@ export const translations = {
             acceptAnalytics: "Aceptar Analíticas",
             declineAnalytics: "Rechazar Analíticas"
         }
+    },
+
+    ca: {
+            subtitle: "Reprodueix la història que van explicar els teus camins",
+            support: "Suport",
+            acknowledgments: {
+                title: "Agraïments",
+                intro: "TrailReplay està orgullosament construït sobre les espatlles de gegants del programari lliure. Agraïm als següents projectes i comunitats:",
+                maplibre: "Biblioteca JavaScript de codi obert per a mapes interactius i visualització 3D al navegador. Alimenta tot el renderitzat i animació de mapes a TrailReplay.",
+                osm: "Projecte col·laboratiu per crear un mapa lliure i editable del món. Proporciona les dades base de mapes per a TrailReplay.",
+                opentopo: "Rajoles topogràfiques obertes basades en dades d'OSM. Utilitzades per a visualització de terreny i activitats a l'aire lliure.",
+                ors: "Motor i API de rutes de codi obert basat en OSM. Utilitzat per calcular rutes entre punts.",
+                turf: "Anàlisi geoespacial avançada per a JavaScript. Utilitzat per càlculs de distància, geometria i operacions espacials.",
+                langBtn: "English",
+                back: "← Tornar a TrailReplay"
+            },
+            
+            // Tutorial and examples
+            tutorial: {
+                link: "📚 Tutorial i Exemples",
+                title: "Tutorial Complet i Guia de Funcions",
+                welcomeTitle: "Benvingut a TrailReplay",
+                welcomeSubtitle: "Transforma les teves dades GPX de sender en belles animacions 3D interactives",
+                welcomeDescription: "TrailReplay és una aplicació web potent però senzilla que converteix les teves dades GPS de sender en històries visuals impressionants. Tant si ets corredor, ciclista, excursionista o atleta multideporte, TrailReplay t'ajuda a reviure i compartir les teves aventures a l'aire lliure a través de mapes animats, estadístiques detallades i vídeos exportables.",
+                proTip: "💡 Consell Professional:",
+                proTipText: "TrailReplay funciona completament al teu navegador - no s'envien dades als servidors, garantint la teva privadesa i permetent ús offline!",
+                
+                // GPX Download Guide section
+                gpxDownloadTitle: "Com Descarregar Fitxers GPX",
+                gpxDownloadSubtitle: "Guia completa per exportar els teus tracks GPS des de plataformes populars",
+                gpxDownloadDescription: "Abans de poder crear animacions de camins, necessitaràs fitxers GPX de les teves activitats GPS. Hem creat una guia completa que et mostra com descarregar fitxers GPX des de les plataformes més populars com Wikiloc, Strava, Garmin Connect i moltes altres.",
+                viewGpxGuide: "📥 Veure Guia Completa de Descàrrega GPX",
+                gpxGuideTip: "💡 Consell Ràpid:",
+                gpxGuideTipText: "La guia cobreix Wikiloc i Strava en detall, a més de consells per a altres plataformes com Garmin Connect, Apple Health, Google Fit i més.",
+                
+                // Sample files section
+                sampleFiles: "Descarregar Fitxers GPX d'Exemple",
+                sampleFilesSubtitle: "Prova TrailReplay amb aquestes activitats d'exemple",
+                exampleActivities: "🏃‍♂️ Activitats d'Exemple",
+                sampleDescription: "Descarrega aquests fitxers GPX d'exemple per explorar totes les funcions de TrailReplay:",
+                downloadRunning: "🏃‍♂️ Ruta de Córrer (5km)",
+                downloadCycling: "🚴‍♂️ Ruta de Ciclisme (25km)",
+                downloadHiking: "🥾 Excursió de Muntanya (8km)",
+                downloadMulti: "🏆 Viatge Multi-Esport",
+                
+                // Demo video section
+                demoVideoTitle: "Vegeu el Que Podeu Crear",
+                demoVideoSubtitle: "Exemple d'una animació 3D de sender feta amb TrailReplay",
+                demoCaption: "Aquest exemple mostra el tipus d'animació immersiva de camins 3D que pots crear amb les teves pròpies dades GPX utilitzant les funcions potents de TrailReplay.",
+                videoNotSupported: "El teu navegador no suporta reproducció de vídeo. Pots descarregar el vídeo d'exemple en el seu lloc.",
+                
+                // Core features
+                coreFeatures: "Resum de Funcions Principals",
+                coreFeaturesSubtitle: "Tot el que pots fer amb TrailReplay",
+                multiFileTitle: "📁 Càrrega Multi-Fitxer",
+                multiFileDescription: "Carrega múltiples fitxers GPX per crear viatges complexos. Perfecte per aventures multi-dies o comparar diferents rutes.",
+                journeyBuilderTitle: "🧩 Constructor de Viatges",
+                journeyBuilderDescription: "Combina múltiples tracks en un sol viatge amb segments de transport personalitzats entre activitats.",
+                animationTitle: "🎬 Animació 3D",
+                animationDescription: "Observa com el teu sender cobra vida amb animacions 3D suaus, icones personalitzables i estadístiques en temps real.",
+                videoExportTitle: "📹 Exportació de Vídeo",
+                videoExportDescription: "Exporta la teva animació de sender com a fitxer de vídeo per compartir a xarxes socials o desar com a record.",
+                annotationsTitle: "📝 Anotacions de Sender",
+                annotationsDescription: "Afegeix notes, fotos i punts d'interès a ubicacions específiques al llarg del teu sender per a la narració d'històries.",
+                iconTimelineTitle: "🔄 Línia de Temps d'Icones",
+                iconTimelineDescription: "Canvia les icones d'activitat durant l'animació per representar diferents activitats o condicions.",
+                mapStylesTitle: "🗺️ Estils de Mapa Múltiples",
+                mapStylesDescription: "Tria entre estils de mapa de satèl·lit, terreny o carrer. Activa el terreny 3D per a la visualització dramàtica de l'elevació.",
+                liveStatsTitle: "📊 Estadístiques en Viu",
+                liveStatsDescription: "Dades de distància, elevació i temps en temps real que s'actualitzen mentre es reprodueix l'animació.",
+                multiLanguageTitle: "🌍 Multi-Idioma",
+                multiLanguageDescription: "Suport complet per anglès i castellà amb detecció automàtica d'idioma.",
+                
+                // Getting started
+                gettingStarted: "Com Començar",
+                gettingStartedSubtitle: "La teva primera animació TrailReplay en 5 minuts",
+                step1Title: "Carrega el Teu Fitxer GPX",
+                step1Description: "Arrossega i deixa anar un fitxer GPX a l'àrea de càrrega, o fes clic \"Tria Fitxers\" per navegar. Pots carregar múltiples fitxers alhora.",
+                step2Title: "Construeix el Teu Viatge",
+                step2Description: "Els teus tracks carregats apareixen al Constructor de Viatges. Reordena'ls arrossegant, i afegeix segments de transport entre tracks si cal.",
+                step3Title: "Personalitza la Visualització",
+                step3Description: "Tria el teu estil de mapa, color de sender, icones d'activitat i configuracions d'animació. Activa el terreny 3D per efecte dramàtic.",
+                step4Title: "Reprodueix la Teva Animació",
+                step4Description: "Fes clic al botó de Reproduir per iniciar l'animació. Utilitza la barra de progrés per saltar a moments específics.",
+                step5Title: "Afegeix Anotacions (Opcional)",
+                step5Description: "Fes clic \"Afegeix Nota\" per afegir anotacions en punts específics. Apareixeran durant la reproducció de l'animació.",
+                step6Title: "Exporta el Teu Vídeo",
+                step6Description: "Fes clic \"Exporta Vídeo\" per desar la teva animació com a fitxer WebM per compartir.",
+                
+                // Advanced features
+                advancedFeatures: "Funcions Avançades",
+                advancedFeaturesSubtitle: "Consells d'usuari avançat i funcionalitat avançada",
+                backToApp: "← Tornar a l'App TrailReplay",
+                journeyBuilderAdvancedTitle: "🧩 Constructor de Viatges Avançat",
+                journeyBuilderAdvancedDesc: "El Constructor de Viatges et permet crear viatges multi-activitat complexos:",
+                reorderTracks: "<strong>Reordenar Tracks:</strong> Arrossega tracks per canviar la seqüència del teu viatge",
+                customTiming: "<strong>Temps Personalitzat:</strong> Substitueix càlculs de temps automàtics amb durades personalitzades",
+                transportationSegments: "<strong>Segments de Transport:</strong> Afegeix segments de cotxe, vaixell, avió, tren o caminar entre tracks",
+                autoPreview: "<strong>Previsualització Automàtica:</strong> Els canvis s'apliquen automàticament a la visualització",
+                dynamicIconChangesTitle: "🔄 Canvis d'Icona Dinàmics",
+                dynamicIconChangesDesc: "Explica la teva història amb icones canviants:",
+                addIconChange: "Fes clic \"Afegir Canvi d'Icona\" i després fes clic al mapa o barra de progrés",
+                chooseNewIcon: "Tria una icona nova que representi diferents activitats o condicions",
+                perfectFor: "Perfecte per triatlons, curses d'aventura, o canvis de temps",
+                smartAnnotationsTitle: "📝 Anotacions Intel·ligents",
+                smartAnnotationsDesc: "Afegeix context al teu sender:",
+                choosePresetIcons: "Tria d'icones preestablertes (📍 ubicació, ⚠️ avís, 📸 foto, etc.)",
+                addTitles: "Afegeix títols i descripcions a cada anotació",
+                annotationsAppear: "Les anotacions apareixen automàticament durant l'animació",
+                clickAnnotations: "Fes clic a les anotacions de la llista per saltar a aquest punt",
+                videoExportOptionsTitle: "🎥 Opcions d'Exportació de Vídeo",
+                videoExportOptionsDesc: "Exportacions de vídeo de qualitat professional:",
+                webmFormat: "<strong>Format WebM:</strong> Vídeos web d'alta qualitat",
+                cleanInterface: "<strong>Interfície Neta:</strong> Els elements d'UI s'amaguen durant l'exportació",
+                fps: "<strong>30 FPS:</strong> Animació suau a 30 fotogrames per segon",
+                customBitrate: "<strong>Taxa de Bits Personalitzada:</strong> 2.5 Mbps per a un balanç òptim qualitat/mida",
+                videoExportTipsTitle: "⚠️ Consells d'Exportació de Vídeo:",
+                videoExportTips: "Per obtenir els millors resultats, deixa que el mapa es carregui completament abans d'exportar. Si veus àrees blanques (rajoles de càrrega), espera un moment o alenteix la velocitat d'animació.",
+                mapCustomizationTitle: "Personalització del Mapa",
+                mapCustomizationDesc: "Fes que la teva visualització sigui perfecta per a la teva història",
+                mapStyles: "Estils de Mapa",
+                mapStylesDesc: "<strong>🛰️ Satèl·lit:</strong> Imatgeria de satèl·lit d'alta resolució<br><strong>🗻 Terreny:</strong> Topografia amb ombrejat d'elevació<br><strong>🗺️ Carrer:</strong> Mapa detallat a nivell de carrer",
+                terrain3d: "Terreny 3D",
+                terrain3dDesc: "Activa el terreny 3D per a una visualització dramàtica de l'elevació. Tria entre fonts de dades Mapzen Terrarium (global) o OpenTopography SRTM.",
+                trailStyling: "Estil del Sender",
+                trailStylingDesc: "Personalitza el color del sender amb opcions preestablertes o colors personalitzats. Ajusta la mida dels marcadors i activa/desactiva cercles de fons.",
+                autoFollow: "Seguiment Automàtic",
+                autoFollowDesc: "La càmera segueix automàticament el marcador animat, o desactiva per a una vista fixa de tot el sender.",
+                troubleshootingTitle: "Resolució de Problemes i Consells",
+                troubleshootingDesc: "Problemes comuns i com solucionar-los",
+                fileUploadIssues: "📁 Problemes de Càrrega de Fitxers",
+                fileFormat: "<strong>Format:</strong> Només s'admeten fitxers GPX (no TCX, FIT, o altres formats)",
+                fileSize: "<strong>Mida:</strong> Fitxers molt grans (>1000 punts) poden alentir el rendiment",
+                fileContent: "<strong>Contingut:</strong> Els fitxers GPX han de contenir punts de track amb coordenades i marques de temps",
+                videoExportIssues: "🎥 Problemes d'Exportació de Vídeo",
+                whiteAreas: "<strong>Àrees Blanques:</strong> Espera que els tiles del mapa es carreguin abans d'exportar",
+                browserSupport: "<strong>Navegadors Compatibles:</strong> Chrome i Firefox funcionen millor per exportar vídeo",
+                performance: "<strong>Rendiment:</strong> Tanca altres pestanyes del navegador per millorar la gravació",
+                mapDisplayIssues: "🗺️ Problemes de Visualització del Mapa",
+                slowLoading: "<strong>Càrrega Lenta:</strong> Desactiva el terreny 3D si el mapa carrega lent",
+                missingTiles: "<strong>Rajoles Faltants:</strong> Verifica la teva connexió a internet",
+                poorPerformance: "<strong>Rendiment Pobre:</strong> Prova canviant a un estil de mapa més simple",
+                performanceTipsTitle: "💡 Consells de Rendiment:",
+                simplifyFiles: "Simplifica fitxers GPX grans reduint punts de ruta",
+                satelliteView: "Usa vista satèl·lit per a millor impacte visual",
+                recordAtLowerSpeed: "Grava vídeos a menor velocitat d'animació per a major suavitat",
+                clearCache: "Neteja la memòria cau del navegador si tens problemes",
+                technicalDetailsTitle: "Detalls Tècnics",
+                technicalDetailsDesc: "Com funciona TrailReplay internament",
+                techStack: "🔧 Stack Tecnològic",
+                maplibre: "<strong>MapLibre GL JS:</strong> Mapeig i visualització 3D de codi obert",
+                threejs: "<strong>Three.js:</strong> Capacitats gràfiques 3D addicionals",
+                mediaRecorder: "<strong>MediaRecorder API:</strong> Gravació de vídeo nativa del navegador",
+                turfjs: "<strong>Turf.js:</strong> Càlculs i anàlisis geoespacials",
+                webWorkers: "<strong>Web Workers:</strong> Processament en segon pla per a fitxers grans",
+                privacySecurity: "🔒 Privadesa i Seguretat",
+                clientSide: "<strong>Sólo al Client:</strong> Tot el processament ocorre al teu navegador",
+                noDataUpload: "<strong>Sense Pujada de Dades:</strong> Els teus fitxers GPX mai surten del teu dispositiu",
+                noTracking: "<strong>Sense Seguiment:</strong> Sense analítiques ni rastreig d'usuari",
+                openSource: "<strong>Codi Obert:</strong> Tot el codi és públic",
+                browserSupport: "🌐 Navegadors Compatibles",
+                chrome: "<strong>Chrome 80+:</strong> Suport complet de funcions incloent exportació de vídeo",
+                firefox: "<strong>Firefox 75+:</strong> Suport complet de funcions",
+                safari: "<strong>Safari 14+:</strong> Funcions bàsiques (l'exportació de vídeo pot ser limitada)",
+                edge: "<strong>Edge 80+:</strong> Suport complet de funcions",
+                elevationDataChanged: "Canviat a dades d'elevació {source}",
+                terrainSourceSwitched: "Font de terreny canviada a {source}",
+                openTopoUnavailable: "OpenTopography no disponible, canviat a Mapzen",
+                mapzenWorking: "Dades d'elevació Mapzen carregant correctament"
+            },
+            
+            // GPX Download Guide
+            gpxGuide: {
+                link: "📥 Guia de Descàrrega GPX",
+                welcomeTitle: "Com Descarregar Fitxers GPX",
+                welcomeSubtitle: "Guia completa per exportar els teus tracks GPS des de plataformes populars",
+                welcomeDescription: "Per crear impressionants animacions de camins amb TrailReplay, necessitaràs fitxers GPX de les teves activitats GPS. Aquesta guia et mostra com descarregar fitxers GPX des de les plataformes més populars, començant amb Wikiloc i Strava.",
+                proTip: "💡 Consell Professional:",
+                proTipText: "Els fitxers GPX contenen les dades del teu track GPS amb coordenades, marques de temps i informació d'elevació. Són el format estàndard per compartir tracks GPS entre diferents aplicacions.",
+                
+                // Wikiloc section
+                wikilocTitle: "Wikiloc",
+                wikilocSubtitle: "La plataforma d'activitats a l'aire lliure més gran del món",
+                wikilocDescription: "Wikiloc és una de les plataformes més populars per a activitats a l'aire lliure, amb milions de camins compartits per la comunitat. Aquí t'expliquem com descarregar fitxers GPX de les teves activitats a Wikiloc:",
+                wikilocStep1Title: "Inicia sessió al teu compte de Wikiloc",
+                wikilocStep1Desc: "Ves a wikiloc.com i inicia sessió amb el teu nom d'usuari i contrasenya.",
+                wikilocStep2Title: "Navega a les teves activitats",
+                wikilocStep2Desc: "Fes clic a la teva foto de perfil a l'extrem superior dret, després selecciona \"Els meus tracks\" del menú desplegable.",
+                wikilocStep3Title: "Selecciona l'activitat que vols descarregar",
+                wikilocStep3Desc: "Troba l'activitat que vols exportar i fes clic al seu títol per obrir la vista detallada.",
+                wikilocStep4Title: "Descarrega el fitxer GPX",
+                wikilocStep4Desc: "A la pàgina de l'activitat, busca el botó \"Descarregar\" (generalment a l'àrea superior dreta). Fes clic i selecciona el format \"GPX\" de les opcions.",
+                wikilocStep5Title: "Desa el fitxer",
+                wikilocStep5Desc: "El fitxer GPX es descarregarà al teu ordinador. Ara pots pujar-lo a TrailReplay per crear el teu vídeo de camí animat.",
+                wikilocTipTitle: "💡 Consells de Wikiloc:",
+                wikilocTip1: "També pots descarregar fitxers GPX de camins públics d'altres usuaris",
+                wikilocTip2: "Wikiloc ofereix comptes gratuïts i premium amb diferents límits de descàrrega",
+                wikilocTip3: "Els fitxers GPX inclouen dades d'elevació, cosa que fa que les animacions 3D siguin excel·lents",
+                
+                // Strava section
+                stravaTitle: "Strava",
+                stravaSubtitle: "Plataforma popular de seguiment de fitness per a atletes",
+                stravaDescription: "Strava és àmpliament utilitzada per corredors, ciclistes i altres atletes per rastrejar les seves activitats. Aquí t'expliquem com exportar els teus fitxers GPX des de Strava:",
+                stravaStep1Title: "Inicia sessió al teu compte de Strava",
+                stravaStep1Desc: "Ves a strava.com i inicia sessió amb les teves credencials.",
+                stravaStep2Title: "Ves a les teves activitats",
+                stravaStep2Desc: "Fes clic a la teva foto de perfil a l'extrem superior dret, després selecciona \"Les meves activitats\" o ves directament al teu tauler.",
+                stravaStep3Title: "Selecciona una activitat",
+                stravaStep3Desc: "Troba l'activitat que vols exportar i fes clic per obrir la vista detallada.",
+                stravaStep4Title: "Exporta el fitxer GPX",
+                stravaStep4Desc: "A la pàgina de l'activitat, fes clic al menú de tres punts (⋮) a l'extrem superior dret, després selecciona \"Exportar Original\" o \"Exportar GPX\".",
+                stravaStep5Title: "Descarrega i desa",
+                stravaStep5Desc: "El fitxer GPX es descarregarà al teu ordinador. Ara pots utilitzar-lo amb TrailReplay per crear belles animacions de camins.",
+                stravaExportInfo: "Strava ofereix dues opcions d'exportació: \"Exportar GPX\" per a un fitxer GPX estàndard, i \"Exportar Original\" per obtenir el format de fitxer exacte que vas pujar originalment (que pot ser GPX, TCX o FIT).",
+                stravaTipTitle: "💡 Consells de Strava:",
+                stravaTip1: "Usa \"Exportar GPX\" per a un fitxer GPX estàndard que funciona amb TrailReplay",
+                stravaTip2: "Usa \"Exportar Original\" per obtenir el format de fitxer exacte que vas pujar originalment",
+                stravaTip3: "Els membres Premium de Strava tenen accés a més opcions d'exportació",
+                stravaTip4: "També pots exportar activitats d'altres usuaris si són públiques",
+                
+                // Other platforms section
+                otherPlatformsTitle: "Altres Plataformes Populars",
+                otherPlatformsSubtitle: "Com descarregar fitxers GPX des d'altres plataformes de fitness i activitats a l'aire lliure",
+                garminTitle: "Garmin Connect",
+                garminDesc: "Exporta activitats des de dispositius Garmin a través de la plataforma web Connect o l'aplicació mòbil.",
+                appleHealthTitle: "Apple Health",
+                appleHealthDesc: "Exporta dades d'entrenament des de l'aplicació Apple Health, tot i que l'exportació GPX requereix aplicacions de tercers.",
+                googleFitTitle: "Google Fit",
+                googleFitDesc: "Exporta dades de fitness a través de Google Takeout, tot i que el format GPX pot requerir conversió.",
+                runkeeperTitle: "Runkeeper",
+                runkeeperDesc: "Exporta activitats com a fitxers GPX a través de la interfície web o configuracions de l'aplicació mòbil.",
+                alltrailsTitle: "AllTrails",
+                alltrailsDesc: "Descarrega fitxers GPX des de mapes de camins i les teves activitats gravades a través de la plataforma web.",
+                polarTitle: "Polar Flow",
+                polarDesc: "Exporta activitats des de dispositius Polar a través de la plataforma web Flow o l'aplicació mòbil.",
+                generalTipTitle: "💡 Consells Generals per a Totes les Plataformes:",
+                generalTip1: "La majoria de les plataformes requereixen que iniciïs sessió per descarregar les teves pròpies activitats",
+                generalTip2: "Busca opcions \"Exportar\", \"Descarregar\" o \"GPX\" als menús d'activitats",
+                generalTip3: "Algunes plataformes poden requerir una subscripció premium per a l'exportació GPX",
+                generalTip4: "Sempre verifica la configuració de privadesa de la plataforma abans de compartir activitats",
+                
+                // File format section
+                fileFormatTitle: "Entenent els Fitxers GPX",
+                fileFormatSubtitle: "Què hi ha dins d'un fitxer GPX i per què funciona amb TrailReplay",
+                whatIsGPXTitle: "¿Què és un fitxer GPX?",
+                whatIsGPXDesc: "GPX (GPS Exchange Format) és un estàndard obert per emmagatzemar dades de tracks GPS. És un fitxer XML que conté:",
+                gpxElement1: "<strong>Punts de track:</strong> Coordenades de latitud, longitud i elevació",
+                gpxElement2: "<strong>Marques de temps:</strong> Quan es va gravar cada punt",
+                gpxElement3: "<strong>Metadades:</strong> Nom de l'activitat, descripció i informació del dispositiu",
+                gpxElement4: "<strong>Waypoints:</strong> Ubicacions importants al llarg de la teva ruta",
+                trailreplayCompatibleTitle: "✅ Compatible amb TrailReplay:",
+                trailreplayCompatibleDesc: "TrailReplay llegeix tots els fitxers GPX estàndard i utilitza els punts de track per crear animacions suaus. ¡Com més punts de track, més suau serà la teva animació!",
+                fileQualityTitle: "Obtenint els Millors Fitxers GPX de Qualitat",
+                fileQualityDesc: "Per a la millor experiència amb TrailReplay, busca fitxers GPX amb:",
+                qualityTip1: "<strong>Alta densitat de punts:</strong> Més punts de track = animacions més suaus",
+                qualityTip2: "<strong>Marques de temps precises:</strong> Ajuda a TrailReplay a crear temps realistes",
+                qualityTip3: "<strong>Dades d'elevació:</strong> Permet la visualització de terreny 3D",
+                qualityTip4: "<strong>Dades netes:</strong> Menys errors GPS i valors atípics",
+                
+                // Next steps section
+                nextStepsTitle: "¿Llest per Crear la teva Animació de Camí?",
+                nextStepsSubtitle: "Ara que tens els teus fitxers GPX, és hora de donar-los vida",
+                nextStepsDesc: "Una vegada que hagis descarregat els teus fitxers GPX des de la teva plataforma preferida, estàs llest per crear impressionants animacions de camins amb TrailReplay:",
+                nextStep1Title: "Puja els teus fitxers GPX",
+                nextStep1Desc: "Ves a TrailReplay i arrossega i deixa anar els teus fitxers GPX a l'àrea de càrrega.",
+                nextStep2Title: "Construeix el teu viatge",
+                nextStep2Desc: "Organitza els teus tracks al Constructor de Viatges i afegeix segments de transport si és necessari.",
+                nextStep3Title: "Personalitza la teva animació",
+                nextStep3Desc: "Tria estils de mapa, colors i configuracions d'animació perquè coincideixin amb la teva història.",
+                nextStep4Title: "Exporta el teu vídeo",
+                nextStep4Desc: "Crea un bell vídeo per compartir la teva aventura amb amics i família.",
+                needHelpTitle: "¿Necessites Ajuda?",
+                needHelpDesc: "Consulta el nostre tutorial complet i exemples per a instruccions detallades sobre com utilitzar les funcions de TrailReplay.",
+                backToApp: "← Tornar a l'App TrailReplay"
+            },
+
+            upload: {
+                title: "Pujar Fitxers GPX i Fotos",
+                description: "Afegeix múltiples rutes GPX i imatges per crear el teu viatge",
+                button: "Triar Fitxers",
+                urlLabel: "Enganxa la teva URL:",
+                loadFromUrl: "🔗 Obrir Pàgina de Descàrrega",
+                urlPlaceholder: "https://www.strava.com/activities/123456 o https://www.wikiloc.com/trails/view/123456 o altres plataformes",
+                stravaInstructions: "A Strava: Fes clic a 3 punts (⋯) al costat del títol de l'activitat → Exportar GPX",
+                wikilocInstructions: "A Wikiloc: Fes clic a la pestanya 'Fitxer' → Descarregar GPX",
+                externalImport: "Importar des de Fonts Externes",
+                hideExternalImport: "Amagar Importació Externa",
+    
+                // Platform instruction cards
+                platformInstructions: {
+                    strava: {
+                        title: "Strava",
+                        step1: "Enganxa la URL de l'activitat:",
+                        step2: "Fes clic a \"🔗 Obrir Pàgina de Descàrrega\"",
+                        step3: "A Strava: Fes clic a 3 punts (⋯) al costat del títol de l'activitat",
+                        step4: "Selecciona \"Exportar GPX\"",
+                        step5: "Puja el fitxer descarregat",
+                        tryIt: "Prova:",
+                        exampleActivity: "Activitat UTMB 2021"
+                    },
+                    wikiloc: {
+                        title: "Wikiloc",
+                        step1: "Enganxa la URL del sender:",
+                        step2: "Fes clic a \"🔗 Obrir Pàgina de Descàrrega\"",
+                        step3: "A Wikiloc: Fes clic a la pestanya \"Fitxer\"",
+                        step4: "Fes clic a \"Descarregar GPX\"",
+                        step5: "Puja el fitxer descarregat",
+                        otherExamples: "Altres exemples:",
+                        santFeliuRace: "Cursa Sant Feliu",
+                        anotherTrail: "Un altre sender"
+                    },
+                    otherPlatforms: {
+                        title: "Altres Plataformes",
+                        step1: "Enganxa qualsevol URL de plataforma GPS",
+                        step2: "Fes clic a \"🔗 Obrir Pàgina de Descàrrega\"",
+                        step3: "Busca l'opció \"Exportar\" o \"Descarregar GPX\"",
+                        step4: "Selecciona format GPX si està disponible",
+                        step5: "Puja el fitxer descarregat",
+                        supported: "Compatibles:",
+                        supportedPlatforms: "Garmin, AllTrails, Komoot, Suunto, Polar, Coros, Endomondo, Nike, Adidas, Fitbit, Dropbox, Google Drive"
+                    }
+                },
+    
+                // Status messages
+                urlStatus: {
+                    exampleLoaded: "URL d'exemple carregada!",
+                    platformDetected: "Plataforma detectada:",
+                    clickToTest: "Fes clic a \"🔗 Obrir Pàgina de Descàrrega\" per provar la funcionalitat.",
+                    openingPage: "⏳ Obrint...",
+                    openingText: "Obrint...",
+                    pageOpened: "Pàgina oberta amb èxit!"
+                }
+            },
+            
+    
+    
+            landing: {
+                hero: {
+                    title: 'Converteix Fitxers GPX en Vídeos Animats Impressionants',
+                    description: 'Transforma els teus fitxers GPX en bells vídeos de camins animats en línia. Conversor gratuït de GPX a vídeo perfecte per corredors, ciclistes i excursionistes. Crea mapes animats professionals dels teus tracks GPS amb terreny 3D, estils personalitzats i animacions fluides - no requereix descàrrega de programari.'
+                },
+                features: {
+                    conversion: 'Conversió GPX a Vídeo',
+                    maps: 'Mapes Animats 3D',
+                    free: '100% Gratuït'
+                },
+                cta: {
+                    start: 'Comença a Convertir els Teus Fitxers GPX',
+                    tutorial: 'Veure Tutorial i Exemples',
+                    gpxGuide: '📥 Guia de Descàrrega GPX'
+                },
+                benefits: {
+                    title: '¿Per Què Triar El Nostre Conversor de GPX a Vídeo?',
+                    athletes: {
+                        title: 'Perfecte per a Atletes',
+                        description: 'Crea increibles videos de running, videos de ciclisme i videos de senderisme des dels teus tracks GPS. Comparteix les teves rutes d\'entrenament i experiencies de curses amb belles visualitzacions animades.',
+                    },
+                    quality: {
+                        title: 'Qualitat Professional',
+                        description: 'Genera videos de camins animats d\'alta qualitat amb terreny 3D, multiples estils de mapa i moviments de camera suaus. Perfecte per a xarxes socials, presentacions o records personals.',
+                    },
+                    easy: {
+                        title: 'Fàcil d\'Usar',
+                        description: 'Simplement puja els teus fitxers GPX i mira\'ls transformar-se en videos atractius. No es requereix coneixement tecnic - el nostre conversor GPX en linia fa tota la feina.',
+                    },
+    
+                },
+                useCases: {
+                    title: 'Perfecte per a:',
+                    marathon: 'Vídeos d\'Entrenament de Marató',
+                    cycling: 'Visualització de Rutes de Ciclisme',
+                    hiking: 'Documentació de Camins',
+                    race: 'Vídeos de Repetició de Curses',
+                    travel: 'Històries de Rutes de Viatge',
+                    fitness: 'Seguiment de Progrés Fitness'
+                },
+                howItWorks: {
+                    title: 'Com Funciona',
+                    step1: {
+                        title: 'Puja Fitxers GPX',
+                        description: 'Puja els teus fitxers GPX des del teu rellotge GPS, telèfon, o qualsevol font. Suporta múltiples tracks i anotacions d\'imatges.'
+                    },
+                    step2: {
+                        title: 'Personaliza y Previsualiza',
+                        description: 'Elige estilos de mapa, ajusta modos de cámara, añade anotaciones, y previsualiza tu sendero animado en tiempo real con terreno 3D.'
+                    },
+                    step3: {
+                        title: 'Exporta y Comparte',
+                        description: 'Exporta tu sendero animado como un video de alta calidad y compártelo en redes sociales, con amigos, o úsalo para presentaciones.'
+                    }
+                }
+            },
+            
+            controls: {
+                activity: "Tipus d'Activitat:",
+                terrain: "Estil de Terreny:",
+                totalTime: "Temps Total:",
+                pathColor: "Color del Camí",
+                showMarker: "Mostrar Marcador",
+                markerSize: "Mida del Marcador",
+                currentIcon: "Icona Actual",
+                changeIcon: "Canviar",
+                autoFollow: "Seguiment Automàtic",
+                showCircle: "Mostrar Cercle",
+
+                // Stats Labels
+                        distance: "Distància",
+            elevation: "Elevació",
+            showEndStats: "Mostrar Estadístiques Finals",
+
+                // Comparison Mode
+                comparisonSettings: "🏃‍♂️ Mode Comparació",
+                enableComparison: "Habilitar Comparació",
+                secondTrack: "Segona Ruta",
+                loadTrack: "Carregar Ruta",
+
+                // Control Section Headers
+                markerSettings: "🎯 Configuració del Marcador",
+                cameraSettings: "🎬 Configuració de la Càmera",
+                mapTerrainSettings: "🗺️ Mapa i Terreny",
+                statsSettings: "📊 Configuració d'Estadístiques",
+
+                play: "Reproduir",
+                pause: "Pausar",
+                reset: "Reiniciar",
+                addIconChange: "🔄 Canviar Icona",
+                addAnnotation: "📍 Afegir Nota",
+                export: "📹 Exportar Vídeo",
+                videoExport: "Exportar Vídeo",
+                exportHelp: "ℹ️ Opcions d'Exportació",
+                exportHelpHide: "ℹ️ Ocultar Opcions",
+                
+                // Manual recording instructions
+                manualRecordingTitle: "🎥 Mode Manual amb Estadístiques",
+                manualRecordingInstructions: "Instruccions per a Gravació de Qualitat Perfecta:",
+                manualRecordingWindows: "Windows:",
+                manualRecordingWindowsKeys: "<kbd>Win</kbd> + <kbd>G</kbd> → Barra de Joc → Gravar",
+                manualRecordingMac: "Mac:",
+                manualRecordingMacKeys: "<kbd>⌘</kbd> + <kbd>⇧</kbd> + <kbd>5</kbd> → Gravar Porció Seleccionada",
+                manualRecordingHighlight: "📱 ¡El ressaltat taronja mostra exactament què capturar!",
+                manualRecordingHighlightDesc: "Això assegura que obtinguis totes les estadístiques, perfil d'elevació i overlays en qualitat perfecta.",
+                manualRecordingWhatHappens: "Què passa després:",
+                manualRecordingStep1: "Els tiles del mapa es precarregaran per a una gravació fluida",
+                manualRecordingStep2: "L'àrea de gravació es ressaltarà en taronja",
+                manualRecordingStep3: "L'animació començarà automàticament amb totes les estadístiques",
+                        manualRecordingStep4: "Usa el gravador de pantalla del teu sistema per capturar l'àrea ressaltada",
+            manualRecordingStep5: "Prem Escape en qualsevol moment per sortir del mode de gravació manual",
+            manualRecordingCancel: "Cancel·lar",
+                manualRecordingStart: "🎬 Iniciar Preparació",
+    
+                exportAutoTitle: "🔧 Gravació Automàtica (WebM)",
+                exportAutoDesc: "Gravació automàtica amb overlays renderitzats en canvas. Funciona en tots els navegadors (format WebM).",
+                exportCropTitle: "🚀 Gravació Automàtica (MP4)",
+                exportCropDesc: "⚠️ EXPERIMENTAL: Només Chrome 126+. Usa CropTarget API experimental. Pot no funcionar correctament - usa mode WebM si trobes problemes.",
+                exportManualTitle: "🎥 Mode Manual amb Estadístiques",
+                exportManualDesc: "Millor qualitat amb totes les estadístiques i overlays. Usa el gravador de pantalla del teu sistema per capturar l'àrea destacada mentre es reprodueix l'animació.",
+                exportAutoWebm: "🔧 Auto (WebM)",
+                exportAutoCrop: "🚀 Auto (MP4)",
+                exportManual: "🎥 Mode Manual amb Estadístiques",
+                manualWindows: "Windows:",
+                manualMac: "Mac:",
+                autoZoom: "Auto Zoom",
+                terrain3d: "Terreny 3D",
+                terrainSource: "Dades d'Elevació",
+                showStats: "Mostrar Estadístiques en Viu",
+                gpxOnlyStats: "No comptar distàncies en transfers",
+                language: "Idioma",
+                cameraMode: "Mode de Càmera",
+                cameraStandard: "🎥 Mode Manual",
+                cameraFollowBehind: "🎬 Seguir Darrere",
+                followBehindZoom: "Distància de Seguiment",
+                followBehindVeryClose: "🔍 Molt A prop",
+                followBehindMedium: "📍 Mitjà",
+                followBehindFar: "🌍 Lluny",
+                cancelIconChange: "Cancel·lar Canvi d'Icona"
+            },
+            
+            cameraInfo: {
+                title: "Controls de Càmera del Mapa",
+                buttonText: "ℹ️ Controls de Càmera",
+                desktop: {
+                    title: "💻 Controls d'Escriptori",
+                    pan: "Desplaçar: Clic i arrossegar per moure el mapa",
+                    zoom: "Zoom: Roda del ratolí o tecles +/-",
+                    rotate: "Rotar: Clic dret i arrossegar, o Maj + clic i arrossegar",
+                    tilt: "Inclinar: Ctrl + clic i arrossegar (mode 3D)"
+                },
+                mobile: {
+                    title: "📱 Controls Mòbils",
+                    pan: "Desplaçar: Tocar i arrossegar amb un dit",
+                    zoom: "Zoom: Pellizcar amb dos dits per acostar/allunyar",
+                    rotate: "Rotar: Tocar i arrossegar amb dos dits",
+                    tilt: "Inclinar: Tocar amb dos dits i moure amunt/avall (mode 3D)"
+                }
+            },
+            
+            iconSelection: {
+                title: "Seleccionar Icona"
+            },
+
+            iconChange: {
+                title: "Afegir Canvi d'Icona",
+                instruction: "Fes clic al mapa o a la barra de progrés per establir la posició on ha de canviar l'icona.",
+                newIcon: "Nova Icona"
+            },
+
+            iconChanges: {
+                title: "Cronologia de Canvis d'Icona"
+            },
+
+            annotations: {
+                title: "Anotacions del Camí",
+                addTitle: "Afegir Anotació",
+                clickToAdd: "Fes clic al mapa per afegir una anotació",
+                noAnnotations: "No s'han afegit anotacions encara"
+            },
+
+            stats: {
+                title: "Estadístiques del Camí",
+                distance: "Distància Total",
+                duration: "Durada",
+                elevation: "Ganancia d'Elevació",
+                averageSpeed: "Velocitat promig",
+                averagePace: "Ritme promig",
+                maxElevation: "Elevació Màxima",
+                minElevation: "Elevació Mínima",
+                speed: "Velocitat promig",
+                currentDistance: "Distància",
+                currentElevation: "Elevació",
+                currentSpeed: "Velocidad"
+            },
+            
+            messages: {
+                fileLoaded: "¡Fitxer GPX carregat amb èxit!",
+                fileError: "Error en carregar el fitxer GPX. Si us plau intenta-ho de nou.",
+                noTrackPoints: "No s'han trobat punts de ruta al fitxer GPX.",
+                exportStarted: "Iniciant exportació de vídeo...",
+                exportComplete: "¡Exportació de vídeo completada!",
+                annotationAdded: "Anotació del camí afegida",
+                pictureAnnotationAdded: "Anotació d'imatge afegida",
+                iconChangeAdded: "Canvi d'icona afegit",
+                clickMapToAnnotate: "Fes clic al mapa per afegir una anotació",
+                clickMapForIconChange: "Fes clic al mapa per afegir un canvi d'icona",
+                noTrackForExport: "No hi ha cap ruta carregada. Carrega un fitxer GPX abans d'exportar.",
+                mediaDeviceNotSupported: "La gravació de vídeo no és compatible amb el teu navegador.",
+                mapNotReady: "El mapa no està llest per exportar el vídeo.",
+                exportVideoPrepare: "Preparant l'exportació del vídeo. Si us plau espera...",
+                exportVideoRecording: "Gravando animació... Si us plau espera fins que acabi.",
+                exportError: "Error durant l'exportació del vídeo",
+
+                // Video export confirmation dialog
+                exportVideoTitle: "Exportar Vídeo d'Animació de Ruta",
+                exportVideoWhatHappens: "Això és el que passarà durant l'exportació:",
+                exportVideoStep1: "La interfície de la pàgina s'amagarà temporalment per a una gravació neta",
+                exportVideoStep2: "El teu zoom actual i orientació de càmera es preservaran",
+                exportVideoStep3: "La teva animació de ruta es reproduirà automàticament de principi a fi",
+                exportVideoStep4: "L'animació es gravarà com a un fitxer de vídeo d'alta qualitat",
+                exportVideoStep5: "Quan acabi, el vídeo es descarregarà automàticament",
+                exportVideoImportant: "Important:",
+                exportVideoStayActive: "Mantén aquesta pestanya del navegador activa durant la gravació per a millors resultats. El procés típicament pren 30-90 segons.",
+                exportVideoQuality: "Qualitat del Vídeo:",
+                exportVideoQualityDesc: "Format WebM de 30 FPS amb el teu zoom actual i configuració de càmera preservada",
+                exportVideoStart: "🎬 Començar Gravació",
+                exportVideoKeepTabActive: "Mantén aquesta pestanya del navegador activa",
+                exportVideoCloseOtherApps: "Tanca altres aplicacions pesades",
+                exportVideoLetComplete: "Deixa que el procés acabi sense interrupcions",
+                
+                multipleTracksLoaded: "Múltiples tracks carregats! Desplaça't cap avall al Constructor de Viatges per organitzar-los i afegir transport entre tracks.",
+                errorProcessingFiles: "Error processant fitxers:",
+                processingFiles: "Processant fitxers...",
+
+                // 3D Terrain messages
+                terrain3dEnabledDefault: "¡Terreny 3D activat per defecte! El mapa té una lleugera inclinació 3D amb dades d'elevació.",
+                terrain3dEnabled: "¡Terreny 3D activat! El mapa ara té una lleugera inclinació 3D amb dades d'elevació.",
+                terrain3dNotSupported: "El terreny 3D no és compatible amb el teu navegador/dispositiu",
+                terrain3dDisabled: "Terreny 3D desactivat",
+                elevationDataOpenTopo: "Utilitzant dades d'elevació OpenTopography (subtil)",
+                elevationDataMapzen: "Utilitzant dades d'elevació Mapzen (per defecte)",
+                elevationDataChanged: "Canviat a dades d'elevació {source}",
+
+                // File processing messages
+                notGpxFile: "no és un fitxer GPX",
+                errorProcessingFile: "Error processant",
+                filesLoadedSuccessfully: "fitxer(s) GPX carregat(s) amb èxit!",
+                canvasStreamNotSupported: "El navegador no suporta canvas.captureStream()",
+                
+                // Journey Builder messages
+                invalidTrackData: "Dades de ruta invàlides rebudes",
+                trackAddedAutoPreview: "¡Ruta afegida! El viatge es previsualitzarà automàticament.",
+                trackAddedUpdating: "¡Ruta afegida! Actualitzant viatge...",
+                errorUpdatingSegmentTiming: "Error actualitzant temps del segment",
+                openingMapPreview: "Obrint vista prèvia del mapa per habilitar dibuix de ruta...",
+                clickMapToDraw: "Fes clic al mapa per dibuixar el teu {mode}. Prem Escape o fes clic a \"Finalitzar Ruta\" quan acabis.",
+                routeDrawingCancelled: "Dibuix de ruta cancel·lat",
+                routeMustHaveTwoPoints: "La ruta ha de tenir almenys 2 punts",
+                routeCompleted: "¡{mode} completat en {time} segons!",
+                noJourneyToPreview: "No hi ha viatge per previsualitzar. Afegeix rutes i transport.",
+                selectNewTransportMode: "Selecciona un nou mode de transport",
+                transportationRemoved: "Transport eliminat",
+                errorParsingFile: "Error analitzant",
+                additionalTracksAdded: "ruta(es) addicional(s) afegida(es)!",
+                errorAddingTracks: "Error afegint rutes",
+                segmentTotalTime: "Segmento: {segmentTime}s | Total: {totalTime}s",
+                
+                // Map and journey messages
+                mapNotReadyForRouteDrawing: "Mapa no llest per dibuix de ruta",
+                journeyUpdatedNewOrder: "Viatge actualitzat amb nou ordre de segments",
+                errorUpdatingJourney: "Error actualitzant viatge",
+                journeyPreviewLoaded: "¡Vista prèvia del viatge carregada!",
+                errorLoadingJourneyData: "Error carregant dades del viatge",
+
+                // Input placeholders
+                annotationTitlePlaceholder: "Títol de l'anotació...",
+                annotationDescriptionPlaceholder: "Descripció (opcional)...",
+                journeyAnimationTiming: "Cronologia d'Animació del Viatge",
+                timingTracks: "Rutes:",
+                timingTransportation: "Transport:",
+                timingNote: "💡 Ajusta els temps dels segments individuals al Constructor de Viatges amunt",
+                gpxOnlyStatsEnabled: "Distàncies de transfers excloses d'estadístiques",
+                gpxOnlyStatsDisabled: "Totes les distàncies incloses en estadístiques",
+                iconChangeMoved: "¡Marcador de canvi d'icona mogut!",
+                annotationMoved: "¡Marcador de nota mogut!"
+            },
+            
+            journey: {
+                title: "Constructor de Viatges",
+                tracks: "Rutes i Imatges Pujades",
+                segments: "Segments del Viatge",
+                autoUpdating: "Actualitzant viatge automàticament...",
+                journeyUpdated: "¡Viatge actualitzat!",
+                noTracks: "Puja fitxers GPX per començar a construir el teu viatge",
+                addTransportation: "Afegir transport entre rutes",
+                clearAll: "🗑️ Netejar Tot",
+                autoPreview: "Actualitzant viatge automàticament...",
+
+                // Transportation modes
+                transportCar: "🚗 Cotxe",
+                transportBoat: "⛵ Barco",
+                transportPlane: "✈️ Avió",
+                transportTrain: "🚂 Tren",
+                transportWalk: "🚶‍♂️ Caminar"
+            },
+            
+            // Footer elements
+            footer: {
+                copyright: "TrailReplay - Narració de camins de codi obert",
+                techStack: "Construït amb MapLibre GL JS, Three.js, dades d'elevació i molts projectes open source increïbles.",
+                acknowledgments: "Veure tots els agraïments",
+                github: "Veure a GitHub",
+                instagram: "Seguir a Instagram",
+                coffee: "Convida'm a un cafè"
+            },
+            
+            // Feedback
+            feedback: {
+                link: "Comentaris",
+                title: "Enviar Comentaris",
+                name: "El teu nom",
+                email: "Email (opcional)",
+                message: "El teu missatge",
+                send: "Enviar",
+                sending: "Enviant...",
+                success: "¡Gràcies pels teus comentaris!",
+                error: "Alguna cosa ha sortit malament. Intenta-ho de nou més tard.",
+                validation: {
+                    messageShort: "Missatge massa curt"
+                }
+            },
+            
+            // Modal buttons
+            buttons: {
+                save: "Guardar",
+                cancel: "Cancel·lar",
+                close: "Tancar",
+                choose: "Triar",
+                chooseIcon: "Triar Icona",
+                delete: "Eliminar"
+            },
+
+            // Status messages
+            status: {
+                cancel: "✖️ Cancel·lar",
+                autoUpdatingJourney: "Actualitzant viatge automàticament...",
+                journeyUpdated: "¡Viatge actualitzat!"
+            },
+            
+            // Journey Builder UI
+            journeyBuilder: {
+                addMoreTracks: "Afegir Més Rutes",
+                clickToUploadAdditionalGPXFiles: "Fes clic per pujar fitxers GPX i imatges addicionals",
+                moveUp: "Moure Amunt",
+                moveDown: "Moure Avall",
+                remove: "Eliminar",
+                journeyTiming: "📊 Temps del Viatge",
+                tracks: "Rutes",
+                transportation: "Transport",
+                animationTime: "Temps d'Animació",
+                seconds: "segons",
+                edit: "Editar",
+                addTransport: "Afegir Transport",
+                chooseHowToTravelBetweenTracks: "Tria com viatjar entre rutes",
+                journeyTimeline: "🎬 Cronologia del Viatge",
+                duration: "Durada",
+                editTiming: "Editar Temps",
+                totalDuration: "Durada Total",
+                currentDuration: "Durada Actual",
+                useCustomTiming: "Utilitzar Temps Personalitzat",
+                resetToDefault: "Restablir per Defecte",
+                distance: "Distància",
+                transportMode: "Mode de Transport",
+                defaultDuration: "Durada per Defecte",
+                customDuration: "Durada Personalitzada",
+                durationInMinutes: "Durada en minuts",
+                leaveEmptyForDefault: "Deixar buit per defecte",
+                transportationOptions: "Opcions de Transport",
+                routeOptions: "Opcions de Ruta",
+                directRoute: "Ruta Directa",
+                directRouteDescription: "Connexió en línia recta",
+                calculateRoute: "Calcular Ruta",
+                calculateRouteDescription: "Utilitzar servei de rutes",
+                drawRoute: "Dibuixar Ruta",
+                drawRouteDescription: "Dibuixar ruta personalitzada al mapa",
+                timing: "Temps",
+                editTransport: "Editar Transport",
+                drawRouteBtn: "Dibuixar Ruta",
+                needTwoTracksForTransport: "Es necessiten almenys 2 rutes per afegir transport",
+                mapNotAvailable: "Mapa no disponible per dibuixar rutes",
+                transport: {
+                    car: "Cotxe",
+                    walking: "Caminant",
+                    cycling: "Ciclisme",
+                    bus: "Autobús",
+                    train: "Tren",
+                    plane: "Avión",
+                    boat: "Barco",
+                    walk: "Caminar"
+                }
+            },
+            
+            // Exportación de Video
+            videoExport: {
+                title: "Exportació de Vídeo",
+                exportHelp: "Ajuda d'Exportació",
+                autoWebM: "Gravació Automàtica (WebM)",
+                autoMP4: "Gravació Automàtica (MP4)",
+                manualMode: "Gravació Manual de Pantalla",
+                webMDescription: "Gravació automàtica amb superposicions renderitzades en canvas. Funciona en tots els navegadors.",
+                mp4Description: "Generació avançada de MP4 del costat del client amb renderitzat de canvas. Optimitzat per qualitat i compatibilitat. Detecta automàticament el millor còdec i configuració per al teu dispositiu.",
+                manualDescription: "La millor qualitat amb totes les estadístiques i superposicions. Usa el gravador de pantalla del teu sistema per capturar l'àrea ressaltada mentre l'animació es reprodueix.",
+                gameBarRecord: "Game Bar → Gravar",
+                recordSelectedPortion: "Gravar Porció Seleccionada",
+                videoRatio: "Proporció de Vídeo",
+                landscape: "16:9 Horitzontal",
+                square: "1:1 Quadrat",
+                mobile: "9:16 Mòbil",
+                autoWebMShort: "Auto (WebM)",
+                autoMP4Short: "Auto (MP4)",
+                manualModeShort: "Mode Manual",
+                
+                // Mensajes
+                exportInProgress: "Exportació de Vídeo en Progrés",
+                initializing: "Inicialitzant...",
+                keepTabActive: "Mantén aquesta pestanya del navegador activa",
+                closeOtherApps: "Tanca altres aplicacions per al millor rendiment",
+                doNotResizeWindow: "No redimensionis ni minimitzis aquesta finestra",
+                letComplete: "Deixa que l'exportació es completi sense interrupcions",
+                cancelExport: "Cancel·lar Exportació",
+                exportCancelled: "Exportació de vídeo cancel·lada per l'usuari",
+                noTrackData: "No hi ha dades de ruta disponibles per exportar",
+                browserNotSupported: "Gravació de mitjans no compatible amb aquest navegador",
+                mapNotReady: "Mapa no llest per exportar",
+                exportError: "Error d'exportació: {error}",
+                mp4NotSupported: "MP4 no directament compatible, utilitzant format WebM en el seu lloc",
+                mp4ExportFailed: "Error en exportació MP4: {error}",
+                exportComplete: "¡Exportació completa!",
+                mp4ExportSuccess: "Vídeo MP4 exportat amb èxit: {filename} ({size})",
+                downloadFailed: "Error en descarregar fitxer MP4",
+                manualRecordingActive: "🎥 Gravació manual activa - Prem Escape o Reset per sortir en qualsevol moment",
+                manualRecordingFailed: "Error en configuració de gravació manual: {error}",
+                cannotResizeWindow: "No es pot redimensionar la finestra durant l'exportació de vídeo",
+                warningBeforeClose: "Exportació de vídeo en progrés. Estàs segur que vols sortir?",
+                keepWindowVisible: "Mantén aquesta finestra visible per a la millor qualitat d'exportació de vídeo",
+
+                // Diálogo de confirmación
+                beforeExporting: "Abans d'exportar",
+                ensurePerformance: "Assegura un bon rendiment del sistema",
+                closeUnnecessaryApps: "Tanca aplicacions innecessàries",
+                keepTabActiveDuringExport: "Mantén aquesta pestanya del navegador activa durant l'exportació",
+                doNotResizeWindowConfirm: "No redimensionis ni minimitzis aquesta finestra durant l'exportació",
+                cancel: "Cancel·lar",
+                startExport: "Iniciar Exportació",
+                
+                // Diálogo de grabación manual
+                manualRecordingInstructions: "Instruccions de Gravació Manual",
+                howToRecord: "Com gravar",
+                highlightOrange: "L'àrea de gravació es ressaltarà en taronja",
+                useSystemRecorder: "Usa el gravador de pantalla del teu sistema per capturar l'àrea ressaltada",
+                animationAutoStart: "L'animació iniciarà automàticament amb totes les estadístiques visibles",
+                recordUntilComplete: "Grava fins que l'animació es completi",
+                escapeToExit: "Prem Escape o Reset per sortir del mode de gravació en qualsevol moment",
+                screenRecordingShortcuts: "Atajos de gravació de pantalla",
+                useFullscreen: "Usa el mode de pantalla completa per a la millor qualitat",
+                ensureGoodPerformance: "Assegura un bon rendiment del sistema",
+                startPreparation: "Iniciar Preparació",
+                manualRecordingExited: "Mode de gravació manual finalitzat"
+            },
+            acknowledgments: {
+                title: "Agraïments",
+                intro: "TrailReplay està orgullosament construït sobre les espatlles de gegants del programari lliure. Agraïm als següents projectes i comunitats:",
+                maplibre: "Biblioteca JavaScript de codi obert per a mapes interactius i visualització 3D al navegador. Alimenta tot el renderitzat i animació de mapes a TrailReplay.",
+                osm: "Projecte col·laboratiu per crear un mapa lliure i editable del món. Proporciona les dades base de mapes per a TrailReplay.",
+                opentopo: "Rajoles topogràfiques obertes basades en dades d'OSM. Utilitzades per a visualització de terreny i activitats a l'aire lliure.",
+                ors: "Motor i API de rutes de codi obert basat en OSM. Utilitzat per calcular rutes entre punts.",
+                turf: "Anàlisi geoespacial avançada per a JavaScript. Utilitzat per càlculs de distància, geometria i operacions espacials.",
+                langBtn: "English",
+                back: "← Tornar a TrailReplay"
+            }
+            ,
+            legal: {
+                privacy: {
+                    title: "Política de Privadesa",
+                    updated: "Última actualització: 2025-01-01",
+                    intro: "TrailReplay processa els fitxers GPX íntegrament al teu navegador. No s'envien fitxers al servidor tret d'indicació expressa. La connexió amb Strava és opcional i només s'utilitza per importar les teves activitats quan l'autoritzen.",
+                    data1: "Fitxers GPX: processats localment al teu navegador; no s'envien per defecte.",
+                    data2: "Dades de Strava: en connectar, sol·licitem accés de lectura a les teves activitats per importar rutes. Els tokens es guarden al teu navegador i pots revocar l'accés en qualsevol moment tancant sessió o des del teu compte de Strava.",
+                    data3: "Missatges de comentaris: si envies comentaris, processem el contingut del missatge i l'email opcional per respondre.",
+                    thirdPartiesTitle: "Tercers",
+                    third1: "Strava: utilitzat per a OAuth i importació d'activitats segons el teu consentiment.",
+                    third2: "Resend: utilitzat per enviar emails de comentaris.",
+                    choicesTitle: "Les Teves Opcions",
+                    choice1: "Pots desconnectar Strava en qualsevol moment des de l'app (Tancar sessió) o al teu compte de Strava.",
+                    choice2: "Pots enviar comentaris sense proporcionar email; si el proporciones, només s'utilitza per respondre."
+                },
+                terms: {
+                    title: "Termes d'Ús",
+                    updated: "Última actualització: 2025-01-01",
+                    useTitle: "Ús del Servei",
+                    useDesc: "TrailReplay et permet visualitzar dades GPX i crear animacions. Has de ser titular o tenir drets sobre les dades que importis. El servei s'ofereix \"tal qual\", sense garanties.",
+                    stravaTitle: "Integració amb Strava",
+                    stravaDesc: "En connectar el teu compte de Strava concedeixes accés de lectura a les teves activitats per importar dades GPS. No modifiquem el teu contingut de Strava. Pots revocar l'accés en qualsevol moment.",
+                    privacyTitle: "Privadesa",
+                    privacyDesc: "Consulta la nostra Política de Privadesa per a més detalls sobre les dades que processem."
+                }
+            },
+            privacy: {
+                cookieTitle: "Utilitzem analítiques per millorar la teva experiència",
+                cookieMessage: "Utilitzem Google Analytics per entendre com utilitzes TrailReplay i millorar l'aplicació. No es recopilen dades personals.",
+                accept: "Acceptar",
+                decline: "Rebutjar",
+                learnMore: "Més Informació",
+                privacyTitle: "Privadesa i Analítiques",
+                whatWeCollect: "Què recopilem",
+                collect1: "Com utilitzes les funcions de TrailReplay (reproduir, pausar, exportar, etc.)",
+                collect2: "Patrons d'ús general i funcions populars",
+                collect3: "Informació tècnica com tipus de navegador i mida de pantalla",
+                whatWeDontCollect: "Què NO recopilem",
+                dontCollect1: "Els teus tracks GPS o dades d'ubicació personal",
+                dontCollect2: "Informació personal com noms o emails",
+                dontCollect3: "Qualsevol dada que pugui identificar-te personalment",
+                whyWeCollect: "Per què recopilem aquestes dades",
+                whyCollectText: "Utilitzem aquesta informació per entendre quines funcions són més útils i millorar TrailReplay per a tothom.",
+                yourChoice: "La teva elecció",
+                yourChoiceText: "Pots rebutjar les analítiques i TrailReplay funcionarà exactament igual. Pots canviar d'opinió en qualsevol moment a la configuració.",
+                acceptAnalytics: "Acceptar Analítiques",
+                declineAnalytics: "Rebutjar Analítiques"
+            }
     }
 };
-
-let currentLanguage = 'en';
 
 export function setLanguage(lang) {
     if (translations[lang]) {

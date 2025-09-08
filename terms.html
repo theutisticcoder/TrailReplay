@@ -61,7 +61,7 @@
                 const languageSelect = document.getElementById('languageSelect');
                 if (languageSelect) {
                     const lang = localStorage.getItem('trailReplayLang') || navigator.language.slice(0,2) || 'en';
-                    languageSelect.value = lang.startsWith('es') ? 'es' : 'en';
+                    languageSelect.value = lang.startsWith('es') ? 'es' : lang.startsWith('ca') ? 'ca' : 'en';
                     languageSelect.addEventListener('change', (e) => setLanguage(e.target.value));
                 }
             });
