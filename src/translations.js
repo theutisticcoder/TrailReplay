@@ -6,6 +6,27 @@ let currentLanguage = 'en';
 
 export const translations = {
     en: {
+        controls: {
+            pathColor: "Trail Color:",
+            track1Letters: "Track Letters",
+            showTrackLettersTitle: "Show letters on main track",
+            comparisonSettings: "🏃‍♂️ Comparison Mode",
+            enableComparison: "Enable Comparison",
+            comparisonInstructionsTitle: "How to use:",
+            comparisonInstructionsStep1: "1. Load main GPX track",
+            comparisonInstructionsStep2: "2. Select comparison GPX file",
+            comparisonInstructionsStep3: "3. Customize names & colors below",
+            comparisonTracksTitle: "Tracks:",
+            comparisonTracksTrack1: "• Track 1: Main track (color is customizable)",
+            comparisonTracksTrack2: "• Track 2: Comparison track",
+            secondTrack: "Second Track",
+            selectTrack: "Select GPX File",
+            track2Name: "Track 2 Name",
+            comparisonColorTitle: "Track 2 Color",
+            comparisonColorReset: "Reset",
+            comparisonNamesTrack1Placeholder: "Track 1",
+            comparisonNamesTrack2Placeholder: "Track 2"
+        },
         subtitle: "Replay the story your trails told",
         support: "Support",
         acknowledgments: {
@@ -407,6 +428,10 @@ export const translations = {
             autoFollow: "Auto Follow",
             showCircle: "Show Circle",
             showMarker: "Show Marker",
+            
+            // Track 1 letters UI
+            track1Letters: "Track Letters",
+            showTrackLettersTitle: "Show letters on main track",
 
             // Control Section Headers
             markerSettings: "🎯 Marker Settings",
@@ -424,7 +449,27 @@ export const translations = {
             comparisonSettings: "🏃‍♂️ Comparison Mode",
             enableComparison: "Enable Comparison",
             secondTrack: "Second Track",
+            selectTrack: "Select GPX File",
             loadTrack: "Load Track",
+
+            // Comparison Instructions
+            comparisonInstructionsTitle: "How to use:",
+            comparisonInstructionsStep1: "1. Load main GPX track",
+            comparisonInstructionsStep2: "2. Select comparison GPX file",
+            comparisonInstructionsStep3: "3. Customize names & colors below",
+
+            // Comparison Tracks
+            comparisonTracksTitle: "Tracks:",
+            comparisonTracksTrack1: "• Track 1: Main track (color is customizable)",
+            comparisonTracksTrack2: "• Track 2: Comparison track",
+
+            // Comparison Customization
+            comparisonNamesTitle: "Track Names",
+            comparisonNamesTrack1Placeholder: "Track 1",
+            comparisonNamesTrack2Placeholder: "Track 2",
+            track2Name: "Track 2 Name",
+            comparisonColorTitle: "Track 2 Color",
+            comparisonColorReset: "Reset",
             
             play: "Play",
             pause: "Pause",
@@ -890,6 +935,27 @@ export const translations = {
         }
     },
     es: {
+        controls: {
+            pathColor: "Color de la ruta:",
+            track1Letters: "Letras de la ruta",
+            showTrackLettersTitle: "Mostrar letras en la ruta principal",
+            comparisonSettings: "🏃‍♂️ Modo de comparación",
+            enableComparison: "Activar comparación",
+            comparisonInstructionsTitle: "Cómo usar:",
+            comparisonInstructionsStep1: "1. Carga la ruta GPX principal",
+            comparisonInstructionsStep2: "2. Selecciona el archivo GPX de comparación",
+            comparisonInstructionsStep3: "3. Personaliza nombres y colores abajo",
+            comparisonTracksTitle: "Rutas:",
+            comparisonTracksTrack1: "• Ruta 1: Ruta principal (color personalizable)",
+            comparisonTracksTrack2: "• Ruta 2: Ruta de comparación",
+            secondTrack: "Segunda ruta",
+            selectTrack: "Seleccionar archivo GPX",
+            track2Name: "Nombre de la ruta 2",
+            comparisonColorTitle: "Color de la ruta 2",
+            comparisonColorReset: "Restablecer",
+            comparisonNamesTrack1Placeholder: "Ruta 1",
+            comparisonNamesTrack2Placeholder: "Ruta 2"
+        },
         subtitle: "Revive la historia que contaron tus senderos",
         support: "Apoyar",
         acknowledgments: {
@@ -1292,6 +1358,10 @@ export const translations = {
             autoFollow: "Seguimiento Automático",
             showCircle: "Mostrar Círculo",
             
+            // UI de letras de ruta 1
+            track1Letters: "Letras de la ruta",
+            showTrackLettersTitle: "Mostrar letras en la ruta principal",
+            
             // Stats Labels
                     distance: "Distancia",
         elevation: "Elevación",
@@ -1301,7 +1371,27 @@ export const translations = {
             comparisonSettings: "🏃‍♂️ Modo Comparación",
             enableComparison: "Habilitar Comparación",
             secondTrack: "Segunda Ruta",
+            selectTrack: "Seleccionar Archivo GPX",
             loadTrack: "Cargar Ruta",
+
+            // Comparison Instructions
+            comparisonInstructionsTitle: "Cómo usar:",
+            comparisonInstructionsStep1: "1. Cargar ruta GPX principal",
+            comparisonInstructionsStep2: "2. Seleccionar archivo GPX de comparación",
+            comparisonInstructionsStep3: "3. Personalizar nombres y colores abajo",
+
+            // Comparison Tracks
+            comparisonTracksTitle: "Rutas:",
+            comparisonTracksTrack1: "• Ruta 1: Ruta principal (color personalizable)",
+            comparisonTracksTrack2: "• Ruta 2: Ruta de comparación",
+
+            // Comparison Customization
+            comparisonNamesTitle: "Nombres de Rutas",
+            comparisonNamesTrack1Placeholder: "Ruta 1",
+            comparisonNamesTrack2Placeholder: "Ruta 2",
+            track2Name: "Nombre de la ruta 2",
+            comparisonColorTitle: "Color de Ruta 2",
+            comparisonColorReset: "Restablecer",
 
             // Control Section Headers
             markerSettings: "🎯 Configuración del Marcador",
@@ -2167,6 +2257,10 @@ export const translations = {
                 changeIcon: "Canviar",
                 autoFollow: "Seguiment Automàtic",
                 showCircle: "Mostrar Cercle",
+                
+                // UI de lletres de la ruta principal
+                track1Letters: "Lletres de la ruta",
+                showTrackLettersTitle: "Mostra les lletres a la ruta principal",
 
                 // Stats Labels
                         distance: "Distància",
@@ -2177,7 +2271,27 @@ export const translations = {
                 comparisonSettings: "🏃‍♂️ Mode Comparació",
                 enableComparison: "Habilitar Comparació",
                 secondTrack: "Segona Ruta",
+                selectTrack: "Seleccionar Fitxer GPX",
                 loadTrack: "Carregar Ruta",
+
+                // Comparison Instructions
+                comparisonInstructionsTitle: "Com utilitzar:",
+                comparisonInstructionsStep1: "1. Carregar ruta GPX principal",
+                comparisonInstructionsStep2: "2. Seleccionar fitxer GPX de comparació",
+                comparisonInstructionsStep3: "3. Personalitzar noms i colors a baix",
+
+                // Comparison Tracks
+                comparisonTracksTitle: "Rutes:",
+                comparisonTracksTrack1: "• Ruta 1: Ruta principal (color personalitzable)",
+                comparisonTracksTrack2: "• Ruta 2: Ruta de comparació",
+
+                // Comparison Customization
+                comparisonNamesTitle: "Noms de Rutes",
+                comparisonNamesTrack1Placeholder: "Ruta 1",
+                comparisonNamesTrack2Placeholder: "Ruta 2",
+                track2Name: "Nom de la ruta 2",
+                comparisonColorTitle: "Color de Ruta 2",
+                comparisonColorReset: "Restablir",
 
                 // Control Section Headers
                 markerSettings: "🎯 Configuració del Marcador",

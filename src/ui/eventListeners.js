@@ -5,6 +5,139 @@ import { byId } from '../utils/dom.js';
  * the controllers – the UI layer never reaches into internals.
  */
 export function setupEventListeners(app) {
+    console.log('🚀 Setting up event listeners...');
+
+    // Function to set up comparison event listeners
+    const setupComparisonListeners = () => {
+        console.log('🔄 Setting up comparison event listeners...');
+
+        // File input change listener - automatically load track when selected
+        const comparisonFileInput = byId('comparisonFile');
+        if (comparisonFileInput) {
+            console.log('✅ Found comparisonFileInput, setting up automatic load listener');
+            comparisonFileInput.addEventListener('change', (e) => {
+                const files = e.target.files;
+                console.log('📁 File input changed:', files);
+                console.log('📁 Number of files selected:', files ? files.length : 0);
+
+                if (files && files.length > 0) {
+                    const file = files[0];
+                    console.log('📄 Selected file:', file.name, 'Size:', file.size, 'Type:', file.type);
+                    console.log('🔄 Automatically loading comparison track...');
+
+                    // Automatically load the selected track
+                    app.loadComparisonTrack(file).catch(error => {
+                        console.error('❌ Error auto-loading comparison track:', error);
+                        alert('Error loading comparison track: ' + error.message);
+                    });
+                }
+            });
+        } else {
+            console.log('❌ Could not find comparisonFileInput element');
+        }
+
+        // Comparison mode toggle
+        const enableComparisonToggle = byId('enableComparison');
+        console.log('🔍 Looking for enableComparisonToggle:', enableComparisonToggle);
+        if (enableComparisonToggle) {
+            console.log('✅ Found enableComparisonToggle, setting up event listener');
+            enableComparisonToggle.addEventListener('change', (e) => {
+                console.log('🔄 Comparison toggle changed:', e.target.checked);
+                const comparisonFileGroup = byId('comparisonFileGroup');
+                console.log('📁 Comparison file group:', comparisonFileGroup);
+                if (e.target.checked) {
+                    comparisonFileGroup.style.display = 'block';
+                    console.log('📂 Showing comparison file group');
+                } else {
+                    comparisonFileGroup.style.display = 'none';
+                    console.log('📂 Hiding comparison file group');
+                    // Disable comparison mode if active
+                    if (app.comparisonMode) {
+                        app.disableComparisonMode();
+                    }
+                }
+            });
+        } else {
+            console.log('❌ Could not find enableComparisonToggle element');
+        }
+
+
+        // Track customization controls
+        const track1NameInput = byId('track1Name');
+        const track2NameInput = byId('track2Name');
+        const track2ColorPicker = byId('track2Color');
+        const track2ColorHex = byId('track2ColorHex');
+        const resetTrack2ColorBtn = byId('resetTrack2Color');
+        const applyTrackChangesBtn = byId('applyTrackChanges');
+
+        // Track name inputs - real-time updates
+        if (track1NameInput) {
+            track1NameInput.addEventListener('input', (e) => {
+                app.updateTrackName(1, e.target.value);
+            });
+        }
+
+        if (track2NameInput) {
+            track2NameInput.addEventListener('input', (e) => {
+                app.updateTrackName(2, e.target.value);
+            });
+        }
+
+        // Color picker - sync with hex input
+        if (track2ColorPicker) {
+            track2ColorPicker.addEventListener('input', (e) => {
+                const color = e.target.value;
+                track2ColorHex.value = color;
+                app.updateTrackColor(2, color);
+            });
+        }
+
+        // Hex input - sync with color picker
+        if (track2ColorHex) {
+            track2ColorHex.addEventListener('input', (e) => {
+                const color = e.target.value;
+                if (/^#[0-9A-F]{6}$/i.test(color)) {
+                    track2ColorPicker.value = color;
+                    app.updateTrackColor(2, color);
+                }
+            });
+        }
+
+        // Reset color button
+        if (resetTrack2ColorBtn) {
+            resetTrack2ColorBtn.addEventListener('click', () => {
+                const defaultColor = '#DC2626';
+                track2ColorPicker.value = defaultColor;
+                track2ColorHex.value = defaultColor;
+                app.updateTrackColor(2, defaultColor);
+            });
+        }
+
+        // Apply changes button
+        if (applyTrackChangesBtn) {
+            applyTrackChangesBtn.addEventListener('click', () => {
+                const track1Name = track1NameInput.value || 'Track 1';
+                const track2Name = track2NameInput.value || 'Track 2';
+                const track2Color = track2ColorPicker.value;
+
+                app.applyTrackCustomizations({
+                    track1Name,
+                    track2Name,
+                    track2Color
+                });
+            });
+        }
+
+    };
+
+    // Set up comparison listeners immediately
+    setupComparisonListeners();
+
+    // Also set them up after a delay in case DOM isn't ready
+    setTimeout(() => {
+        console.log('🔄 Setting up comparison listeners after delay...');
+        setupComparisonListeners();
+    }, 1000);
 
     // File picker / drag-and-drop
     const fileInput = byId('gpxFileInput');
@@ -115,36 +248,6 @@ export function setupEventListeners(app) {
 
 
 
-    // Comparison mode toggle
-    const enableComparisonToggle = byId('enableComparison');
-    if (enableComparisonToggle) {
-        enableComparisonToggle.addEventListener('change', (e) => {
-            const comparisonFileGroup = byId('comparisonFileGroup');
-            if (e.target.checked) {
-                comparisonFileGroup.style.display = 'block';
-            } else {
-                comparisonFileGroup.style.display = 'none';
-                // Disable comparison mode if active
-                if (app.comparisonMode) {
-                    app.disableComparisonMode();
-                }
-            }
-        });
-    }
-
-    // Load comparison track
-    const loadComparisonBtn = byId('loadComparisonBtn');
-    if (loadComparisonBtn) {
-        loadComparisonBtn.addEventListener('click', () => {
-            const fileInput = byId('comparisonFile');
-            const file = fileInput.files[0];
-            if (file) {
-                app.loadComparisonTrack(file);
-            } else {
-                alert('Please select a GPX file first.');
-            }
-        });
-    }
 
     // Camera mode dropdown
     const cameraModeSelect = byId('cameraMode');

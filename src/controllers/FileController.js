@@ -73,34 +73,51 @@ export class FileController {
                     this.app.updateStats(trackData.stats);
                     
                     console.log('GPX file loaded successfully');
-                    
-                    // Add to journey builder if we have journey functionality
-                    if (this.app.journey) {
+
+                    // Only add to journey builder if NOT in comparison mode
+                    // Comparison mode requires tracks to remain as individual entities
+                    if (this.app.journey && !this.app.comparisonMode) {
                         console.log('Adding track to journey builder...');
                         this.app.journey.addTrack(trackData, file.name);
+                    } else if (this.app.comparisonMode) {
+                        console.log('⚠️ Skipping journey builder - comparison mode is active');
+                        console.log('📊 Track loaded for comparison mode:', {
+                            points: trackData.trackPoints.length,
+                            hasTimeData: trackData.trackPoints.some(p => p.time),
+                            startTime: trackData.stats.startTime,
+                            endTime: trackData.stats.endTime
+                        });
                     }
                 }
             } else {
-                // Multiple files - process all and add to journey builder
-                console.log(`Processing ${gpxFiles.length} GPX files for journey...`);
-                
-                let processedCount = 0;
-                for (const file of gpxFiles) {
-                    try {
-                        const trackData = await this.gpxParser.parseFile(file);
-                        if (trackData && this.app.journey) {
-                            this.app.journey.addTrack(trackData, file.name);
-                            processedCount++;
+                // Multiple files - check if this might be for comparison mode
+                console.log(`Processing ${gpxFiles.length} GPX files...`);
+
+                // If we have exactly 2 files and comparison mode is enabled, handle specially
+                if (gpxFiles.length === 2 && this.app.comparisonMode) {
+                    console.log('Detected 2 files with comparison mode - processing for comparison');
+                    await this.handleComparisonFiles(gpxFiles);
+                } else {
+                    // Process as journey
+                    console.log('Processing as journey...');
+                    let processedCount = 0;
+                    for (const file of gpxFiles) {
+                        try {
+                            const trackData = await this.gpxParser.parseFile(file);
+                            if (trackData && this.app.journey) {
+                                this.app.journey.addTrack(trackData, file.name);
+                                processedCount++;
+                            }
+                        } catch (error) {
+                            console.error(`Error processing file ${file.name}:`, error);
+                            this.app.showMessage?.(`Error loading ${file.name}: ${error.message}`, 'error');
                         }
-                    } catch (error) {
-                        console.error(`Error processing file ${file.name}:`, error);
-                        this.app.showMessage?.(`Error loading ${file.name}: ${error.message}`, 'error');
                     }
                 }
-                
+
                 if (processedCount > 0) {
                     console.log(`${processedCount} files added to journey builder`);
-                    
+
                     // Show journey planning guidance
                     this.showJourneyPlanningGuidance();
                 } else {
@@ -110,9 +127,54 @@ export class FileController {
         } catch (error) {
             console.error('Error loading GPX files:', error);
             this.app.showMessage?.('Error processing GPX files: ' + error.message, 'error');
-        } finally {
-            this.app.showLoading(false);
         }
+    }
+
+    // Special handling for comparison files - preserves time data
+    async handleComparisonFiles(gpxFiles) {
+        console.log('🔄 Handling comparison files with time data preservation...');
+
+        try {
+            // Load first file as main track
+            const firstFile = gpxFiles[0];
+            const firstTrackData = await this.gpxParser.parseFile(firstFile);
+
+            if (firstTrackData) {
+                console.log('✅ Loaded first track for comparison:', firstTrackData.stats);
+                this.app.currentTrackData = firstTrackData;
+
+                // Load track data to map
+                this.app.map.loadTrackData(firstTrackData);
+
+                // Show visualization section
+                this.app.showVisualizationSection();
+
+                // Update stats
+                this.app.updateStats(firstTrackData.stats);
+
+                // Generate elevation profile
+                this.app.generateElevationProfile();
+                this.app.updateStats(firstTrackData.stats);
+            }
+
+            // Load second file as comparison track
+            const secondFile = gpxFiles[1];
+            const secondTrackData = await this.gpxParser.parseFile(secondFile);
+
+            if (secondTrackData) {
+                console.log('✅ Loaded second track for comparison:', secondTrackData.stats);
+
+                // Load comparison track directly - bypass journey processing to preserve time data
+                await this.app.loadComparisonTrack(secondFile);
+            }
+
+        } catch (error) {
+            console.error('Error in comparison file handling:', error);
+            this.app.showMessage?.('Error processing comparison files: ' + error.message, 'error');
+        }
+
+        // Hide loading indicator
+        this.app.showLoading(false);
     }
 
     async handleImageFiles(imageFiles) {

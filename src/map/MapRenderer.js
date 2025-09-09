@@ -32,6 +32,11 @@ export class MapRenderer {
         // Comparison mode properties
         this.comparisonTrackData = null;
         this.comparisonGpxParser = null;
+        this.timeOverlap = null;
+
+        // Track colors for comparison mode
+        this.mainTrackColor = '#2563EB'; // Blue for main track
+        this.comparisonTrackColor = '#DC2626'; // Red for comparison track
         this.currentIcon = '🏃‍♂️';
         this.userSelectedBaseIcon = null; // Stores user's custom base icon choice
         this.gpxParser = new GPXParser();
@@ -88,6 +93,7 @@ export class MapRenderer {
             container: this.container,
             style: {
                 version: 8,
+                glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
                 sources: {
                     'osm': {
                         type: 'raster',
@@ -327,6 +333,40 @@ export class MapRenderer {
 
         // Create and add activity icon layer
         this.createAndAddActivityIcon();
+
+        // Add track label for main track
+        this.map.addSource('main-track-label', {
+            type: 'geojson',
+            data: {
+                type: 'Feature',
+                properties: {
+                    label: 'Track 1'
+                },
+                geometry: {
+                    type: 'Point',
+                    coordinates: [0, 0]
+                }
+            }
+        });
+
+        this.map.addLayer({
+            id: 'main-track-label',
+            type: 'symbol',
+            source: 'main-track-label',
+            layout: {
+                'text-field': 'Track 1',
+                'text-size': 10,
+                'text-offset': [0, 2.5], // Position above the marker
+                'text-allow-overlap': true,
+                'text-ignore-placement': true,
+                'text-anchor': 'center'
+            },
+            paint: {
+                'text-color': this.mainTrackColor,
+                'text-halo-color': '#FFFFFF',
+                'text-halo-width': 2
+            }
+        });
 
         // Add annotations layer (hidden initially)
         this.map.addLayer({
@@ -760,6 +800,11 @@ export class MapRenderer {
     }
 
     updateCurrentPosition() {
+        // Debug: Track animation calls
+        if (this.animationProgress > 0 && this.animationProgress < 0.01) {
+            console.log('🎬 updateCurrentPosition called at animation start');
+        }
+
         // Ensure GPX parser is ready
         if (!this.ensureGPXParserReady()) {
             return;
@@ -802,6 +847,9 @@ export class MapRenderer {
         });
 
         // Update comparison position if in comparison mode
+        if (this.comparisonMode && this.animationProgress < 0.01) {
+            console.log('🔄 Calling updateComparisonPosition from animation loop');
+        }
         this.updateComparisonPosition();
 
         // Update completed trail
@@ -838,24 +886,41 @@ export class MapRenderer {
 
         // Auto zoom to follow the marker (always if auto zoom is enabled and we're animating)
         if (this.autoZoom && this.isAnimating) {
+            // Calculate center point for dual marker centering in comparison mode
+            const centerPoint = this.calculateDualMarkerCenter(currentPoint);
+
             if (this.cameraMode === 'followBehind') {
                 // Follow-behind camera mode: delegate to FollowBehindCamera
                 this.followBehindCamera.updateCameraPosition();
             } else if (this.is3DMode) {
                 // Standard 3D mode, maintain the camera angle while following
                 this.map.easeTo({
-                    center: [currentPoint.lon, currentPoint.lat],
+                    center: [centerPoint.lon, centerPoint.lat],
                     duration: this.performanceMode ? 50 : 100, // Faster transitions during recording
                     pitch: this.map.getPitch(), // Maintain current pitch
                     bearing: this.map.getBearing() // Maintain current bearing
                 });
             } else {
-                // Normal 2D following
+                // Normal 2D following with dual marker centering
                 this.map.easeTo({
-                    center: [currentPoint.lon, currentPoint.lat],
+                    center: [centerPoint.lon, centerPoint.lat],
                     duration: this.performanceMode ? 50 : 100 // Faster transitions during recording
                 });
             }
+        }
+
+        // Update main track label position
+        if (this.map.getSource('main-track-label')) {
+            this.map.getSource('main-track-label').setData({
+                type: 'Feature',
+                geometry: {
+                    type: 'Point',
+                    coordinates: [currentPoint.lon, currentPoint.lat]
+                },
+                properties: {
+                    label: 'Track 1'
+                }
+            });
         }
 
         // Ensure activity icon layer exists and is visible
@@ -2670,17 +2735,38 @@ export class MapRenderer {
     }
 
     // Comparison Mode Methods
-    addComparisonTrack(comparisonTrackData) {
+    addComparisonTrack(comparisonTrackData, timeOverlap = null) {
+        console.log('🔧 Setting up comparison track...');
+        console.log('📊 Received data:', {
+            hasComparisonTrackData: !!comparisonTrackData,
+            timeOverlap: timeOverlap,
+            timeOverlapType: typeof timeOverlap,
+            hasOverlap: timeOverlap?.hasOverlap,
+            spatialOnly: timeOverlap?.spatialOnly,
+            overlapDuration: timeOverlap?.overlapDuration
+        });
+
         this.comparisonTrackData = comparisonTrackData;
         this.comparisonGpxParser = new GPXParser();
         this.comparisonGpxParser.trackPoints = comparisonTrackData.trackPoints;
         this.comparisonGpxParser.stats = comparisonTrackData.stats;
+        this.timeOverlap = timeOverlap;
+
+        console.log('📊 Stored data in MapRenderer:', {
+            comparisonTrackData: !!this.comparisonTrackData,
+            comparisonGpxParser: !!this.comparisonGpxParser,
+            timeOverlap: this.timeOverlap,
+            hasOverlap: this.timeOverlap?.hasOverlap
+        });
 
         if (!this.map.loaded()) {
             this.map.on('load', () => this.setupComparisonLayers());
         } else {
             this.setupComparisonLayers();
         }
+
+        // Initialize comparison marker position immediately
+        this.updateComparisonPosition();
     }
 
     setupComparisonLayers() {
@@ -2710,7 +2796,7 @@ export class MapRenderer {
                 'line-cap': 'round'
             },
             paint: {
-                'line-color': '#FF4444', // Red color for comparison
+                'line-color': this.comparisonTrackColor, // Use dynamic color
                 'line-width': 3,
                 'line-opacity': 0.8
             }
@@ -2738,13 +2824,14 @@ export class MapRenderer {
                 'line-cap': 'round'
             },
             paint: {
-                'line-color': '#FF0000', // Brighter red for completed
+                'line-color': this.comparisonTrackColor, // Use dynamic color
                 'line-width': 4,
                 'line-opacity': 1.0
             }
         });
 
         // Add comparison position marker
+        const startPoint = comparisonCoordinates[0] || [0, 0];
         this.map.addSource('comparison-position', {
             type: 'geojson',
             data: {
@@ -2752,7 +2839,7 @@ export class MapRenderer {
                 properties: {},
                 geometry: {
                     type: 'Point',
-                    coordinates: comparisonCoordinates[0] || [0, 0]
+                    coordinates: startPoint
                 }
             }
         });
@@ -2762,8 +2849,8 @@ export class MapRenderer {
             type: 'circle',
             source: 'comparison-position',
             paint: {
-                'circle-radius': 15,
-                'circle-color': '#FF4444',
+                'circle-radius': 15 * this.markerSize,
+                'circle-color': this.comparisonTrackColor,
                 'circle-opacity': 0.3,
                 'circle-blur': 1
             }
@@ -2775,27 +2862,119 @@ export class MapRenderer {
             data: {
                 type: 'Feature',
                 properties: {
-                    icon: '🚴‍♀️' // Different icon for comparison
+                    icon: '🚴‍♀️', // Different icon for comparison
+                    speedComparisonText: ''
                 },
                 geometry: {
                     type: 'Point',
-                    coordinates: comparisonCoordinates[0] || [0, 0]
+                    coordinates: startPoint
                 }
             }
         });
 
-        this.map.addLayer({
-            id: 'comparison-activity-icon',
-            type: 'symbol',
-            source: 'comparison-activity-icon',
-            layout: {
-                'text-field': '🚴‍♀️',
-                'text-size': 20,
-                'text-allow-overlap': true,
-                'text-ignore-placement': true,
-                'text-anchor': 'center'
+        try {
+            this.map.addLayer({
+                id: 'comparison-activity-icon',
+                type: 'symbol',
+                source: 'comparison-activity-icon',
+                layout: {
+                    'text-field': '🚴‍♀️',
+                    'text-size': 20,
+                    'text-allow-overlap': true,
+                    'text-ignore-placement': true,
+                    'text-anchor': 'center'
+                },
+                paint: {
+                    'text-color': '#FFFFFF',
+                    'text-halo-color': '#000000',
+                    'text-halo-width': 1
+                }
+            });
+            console.log('✅ Comparison activity icon layer added');
+        } catch (error) {
+            console.warn('⚠️ Failed to add comparison activity icon layer:', error.message);
+            // Continue without text layer - marker will still work
+        }
+
+        // Add speed comparison indicator
+        this.map.addSource('comparison-speed-indicator', {
+            type: 'geojson',
+            data: {
+                type: 'Feature',
+                properties: {
+                    speedComparisonText: ''
+                },
+                geometry: {
+                    type: 'Point',
+                    coordinates: startPoint
+                }
             }
         });
+
+        try {
+            this.map.addLayer({
+                id: 'comparison-speed-indicator',
+                type: 'symbol',
+                source: 'comparison-speed-indicator',
+                layout: {
+                    'text-field': ['get', 'speedComparisonText'],
+                    'text-size': 12,
+                    'text-offset': [0, -3.5], // Position below the main icon
+                    'text-allow-overlap': true,
+                    'text-ignore-placement': true,
+                    'text-anchor': 'center'
+                },
+                paint: {
+                    'text-color': this.comparisonTrackColor,
+                    'text-halo-color': '#FFFFFF',
+                    'text-halo-width': 2
+                }
+            });
+            console.log('✅ Comparison speed indicator layer added');
+        } catch (error) {
+            console.warn('⚠️ Failed to add comparison speed indicator layer:', error.message);
+            // Continue without text layer
+        }
+
+        // Add track label for comparison track
+        this.map.addSource('comparison-track-label', {
+            type: 'geojson',
+            data: {
+                type: 'Feature',
+                properties: {
+                    label: 'Track 2'
+                },
+                geometry: {
+                    type: 'Point',
+                    coordinates: startPoint
+                }
+            }
+        });
+
+        try {
+            this.map.addLayer({
+                id: 'comparison-track-label',
+                type: 'symbol',
+                source: 'comparison-track-label',
+                layout: {
+                    'text-field': 'Track 2',
+                    'text-size': 10,
+                    'text-offset': [0, 3.5], // Position above the marker
+                    'text-allow-overlap': true,
+                    'text-ignore-placement': true,
+                    'text-anchor': 'center'
+                },
+                paint: {
+                    'text-color': this.comparisonTrackColor,
+                    'text-halo-color': '#FFFFFF',
+                    'text-halo-width': 2
+                }
+            });
+            console.log('✅ Comparison track label layer added');
+        } catch (error) {
+            console.warn('⚠️ Failed to add comparison track label layer:', error.message);
+            // Continue without text layer
+        }
 
         console.log('Comparison track layers added to map');
     }
@@ -2807,14 +2986,18 @@ export class MapRenderer {
             'comparison-activity-icon',
             'comparison-position-glow',
             'comparison-trail-completed',
-            'comparison-trail-line'
+            'comparison-trail-line',
+            'comparison-speed-indicator',
+            'comparison-track-label'
         ];
 
         const sourcesToRemove = [
             'comparison-activity-icon',
             'comparison-position',
             'comparison-trail-completed',
-            'comparison-trail'
+            'comparison-trail',
+            'comparison-speed-indicator',
+            'comparison-track-label'
         ];
 
         layersToRemove.forEach(layerId => {
@@ -2836,60 +3019,425 @@ export class MapRenderer {
     }
 
     updateComparisonPosition() {
-        if (!this.comparisonTrackData || !this.comparisonGpxParser || !this.map.loaded()) return;
+        // Debug: Check why method might be returning early
+        const hasTrackData = !!this.comparisonTrackData;
+        const hasParser = !!this.comparisonGpxParser;
+        const mapExists = !!this.map;
+        const mapLoaded = mapExists ? this.map.loaded() : false;
 
-        // Use the same progress as the main track for time-synchronized comparison
-        const progress = this.animationProgress;
-        const comparisonPoint = this.comparisonGpxParser.getInterpolatedPoint(progress);
-        
+        // Allow updates even if map is in loading state, as long as map exists
+        // The main marker works during loading, so comparison should too
+        if (!hasTrackData || !hasParser) {
+            if (this.animationProgress > 0 && this.animationProgress < 0.01) { // Log only at start
+                console.log('🚫 updateComparisonPosition early return:', {
+                    hasTrackData,
+                    hasParser,
+                    mapExists,
+                    mapLoaded,
+                    animationProgress: this.animationProgress.toFixed(3),
+                    comparisonMode: this.comparisonMode
+                });
+            }
+            return;
+        }
+
+        // Only log the map loading state occasionally to avoid spam
+        if (this.animationProgress > 0 && this.animationProgress < 0.01 && !mapLoaded) {
+            console.log('⚠️ Map still loading but proceeding with comparison updates');
+        }
+
+        // Debug: Method is being called
+        if (this.animationProgress < 0.01) {
+            console.log('✅ updateComparisonPosition called at animation start');
+        }
+
+        let comparisonProgress = this.animationProgress;
+
+        // One-time debug at animation start
+        if (this.animationProgress < 0.01 && this.timeOverlap && this.timeOverlap.hasOverlap) {
+            console.log('🎯 Animation start - comparison track setup:', {
+                compStart: this.timeOverlap.compStart?.toLocaleTimeString(),
+                compEnd: this.timeOverlap.compEnd?.toLocaleTimeString(),
+                overlapStart: this.timeOverlap.overlapStart?.toLocaleTimeString(),
+                overlapEnd: this.timeOverlap.overlapEnd?.toLocaleTimeString(),
+                compTrackPoints: this.comparisonTrackData?.trackPoints?.length,
+                hasTimeData: this.comparisonTrackData?.trackPoints?.some(p => p.time)
+            });
+        }
+
+        // Enhanced time-synchronized animation for overlapping tracks
+        if (this.timeOverlap && this.timeOverlap.hasOverlap) {
+            comparisonProgress = this.calculateComparisonProgress();
+
+            // Periodic logging (every 60 frames to avoid spam)
+            if (Math.floor(this.animationProgress * 100) % 60 === 0) {
+                console.log('🎯 Comparison progress:', {
+                    mainProgress: this.animationProgress.toFixed(3),
+                    compProgress: comparisonProgress.toFixed(3),
+                    progressDiff: (comparisonProgress - this.animationProgress).toFixed(3)
+                });
+            }
+        } else if (this.timeOverlap && this.timeOverlap.spatialOnly) {
+            // For spatial-only comparison, use same progress as main track
+            comparisonProgress = this.animationProgress;
+        }
+
+        const comparisonPoint = this.comparisonGpxParser.getInterpolatedPoint(comparisonProgress);
+
         if (!comparisonPoint || isNaN(comparisonPoint.lat) || isNaN(comparisonPoint.lon)) {
             return;
         }
 
-        // Update comparison position marker
-        this.map.getSource('comparison-position').setData({
-            type: 'Feature',
-            geometry: {
-                type: 'Point',
-                coordinates: [comparisonPoint.lon, comparisonPoint.lat]
-            },
-            properties: {
-                elevation: comparisonPoint.elevation,
-                speed: comparisonPoint.speed,
-                distance: comparisonPoint.distance
+        // Update comparison position marker with speed comparison data
+        const speedData = this.calculateSpeedComparison(comparisonPoint);
+
+        // Update all comparison layers
+        try {
+            // Position marker
+            if (this.map.getSource('comparison-position')) {
+                this.map.getSource('comparison-position').setData({
+                    type: 'Feature',
+                    geometry: {
+                        type: 'Point',
+                        coordinates: [comparisonPoint.lon, comparisonPoint.lat]
+                    },
+                    properties: {
+                        elevation: comparisonPoint.elevation,
+                        speed: comparisonPoint.speed,
+                        distance: comparisonPoint.distance,
+                        speedDifference: speedData.speedDifference,
+                        isFaster: speedData.isFaster,
+                        speedComparisonText: speedData.speedComparisonText
+                    }
+                });
             }
-        });
 
-        // Update comparison activity icon
-        this.map.getSource('comparison-activity-icon').setData({
-            type: 'Feature',
-            properties: {
-                icon: '🚴‍♀️'
-            },
-            geometry: {
-                type: 'Point',
-                coordinates: [comparisonPoint.lon, comparisonPoint.lat]
+            // Activity icon
+            if (this.map.getSource('comparison-activity-icon')) {
+                this.map.getSource('comparison-activity-icon').setData({
+                    type: 'Feature',
+                    properties: {
+                        icon: '🚴‍♀️',
+                        speedComparisonText: speedData.speedComparisonText
+                    },
+                    geometry: {
+                        type: 'Point',
+                        coordinates: [comparisonPoint.lon, comparisonPoint.lat]
+                    }
+                });
             }
-        });
 
-        // Update comparison completed trail
-        const currentIndex = Math.floor(progress * (this.comparisonTrackData.trackPoints.length - 1));
-        const completedCoordinates = this.comparisonTrackData.trackPoints
-            .slice(0, currentIndex + 1)
-            .map(point => [point.lon, point.lat]);
+            // Speed indicator
+            if (this.map.getSource('comparison-speed-indicator')) {
+                this.map.getSource('comparison-speed-indicator').setData({
+                    type: 'Feature',
+                    properties: {
+                        speedComparisonText: speedData.speedComparisonText
+                    },
+                    geometry: {
+                        type: 'Point',
+                        coordinates: [comparisonPoint.lon, comparisonPoint.lat]
+                    }
+                });
+            }
 
-        if (completedCoordinates.length > 1) {
-            // Add the interpolated current position as the last point
-            completedCoordinates.push([comparisonPoint.lon, comparisonPoint.lat]);
+            // Track label
+            if (this.map.getSource('comparison-track-label')) {
+                this.map.getSource('comparison-track-label').setData({
+                    type: 'Feature',
+                    geometry: {
+                        type: 'Point',
+                        coordinates: [comparisonPoint.lon, comparisonPoint.lat]
+                    },
+                    properties: {
+                        label: 'Track 2'
+                    }
+                });
+            }
+
+            // Completed trail
+            if (this.map.getSource('comparison-trail-completed')) {
+                const currentIndex = Math.floor(comparisonProgress * (this.comparisonTrackData.trackPoints.length - 1));
+                const completedCoordinates = this.comparisonTrackData.trackPoints
+                    .slice(0, currentIndex + 1)
+                    .map(point => [point.lon, point.lat]);
+
+                if (completedCoordinates.length > 1) {
+                    completedCoordinates.push([comparisonPoint.lon, comparisonPoint.lat]);
+                }
+
+                this.map.getSource('comparison-trail-completed').setData({
+                    type: 'Feature',
+                    properties: {},
+                    geometry: {
+                        type: 'LineString',
+                        coordinates: completedCoordinates
+                    }
+                });
+            }
+
+        } catch (error) {
+            console.error('❌ Error updating comparison layers:', error);
+        }
+    }
+
+    // Calculate comparison track progress based on time synchronization
+    calculateComparisonProgress() {
+        // Debug: Method is being called
+        if (this.animationProgress < 0.01) {
+            console.log('🔄 calculateComparisonProgress called at animation start');
         }
 
-        this.map.getSource('comparison-trail-completed').setData({
-            type: 'Feature',
-            properties: {},
-            geometry: {
-                type: 'LineString',
-                coordinates: completedCoordinates
+        if (!this.timeOverlap || !this.timeOverlap.hasOverlap) {
+            console.log('🎯 No time overlap - using main progress');
+            return this.animationProgress;
+        }
+
+        const mainTrackData = this.trackData;
+        if (!mainTrackData || !mainTrackData.trackPoints || mainTrackData.trackPoints.length === 0) {
+            console.log('🎯 No main track data - using main progress');
+            return this.animationProgress;
+        }
+
+        // Get current main track point to find its timestamp
+        const mainPoint = this.gpxParser.getInterpolatedPoint(this.animationProgress);
+        if (!mainPoint || !mainPoint.time) {
+            console.log('🎯 No main point time - using main progress');
+            return this.animationProgress;
+        }
+
+        const currentTime = mainPoint.time.getTime();
+        console.log('🎯 Main track time:', new Date(currentTime).toLocaleTimeString());
+
+        // Check if current time is within the overlap period
+        const overlapStart = this.timeOverlap.overlapStart.getTime();
+        const overlapEnd = this.timeOverlap.overlapEnd.getTime();
+
+        console.log('🎯 Overlap range:', new Date(overlapStart).toLocaleTimeString(), 'to', new Date(overlapEnd).toLocaleTimeString());
+
+        if (currentTime < overlapStart || currentTime > overlapEnd) {
+            console.log('🎯 Outside overlap period - using main progress');
+            // Outside overlap period - use standard progress
+            return this.animationProgress;
+        }
+
+        // Calculate progress for comparison track based on time
+        const compStart = this.timeOverlap.compStart.getTime();
+        const compEnd = this.timeOverlap.compEnd.getTime();
+        const compDuration = compEnd - compStart;
+
+        console.log('🎯 Comparison track range:', new Date(compStart).toLocaleTimeString(), 'to', new Date(compEnd).toLocaleTimeString());
+        console.log('🎯 Comparison track duration:', compDuration / 1000 / 60, 'minutes');
+
+        if (compDuration <= 0) {
+            console.log('🎯 Invalid comparison duration');
+            return 0;
+        }
+
+        // Calculate what progress the comparison track should be at for this timestamp
+        const timeIntoCompTrack = currentTime - compStart;
+        const comparisonProgress = Math.max(0, Math.min(1, timeIntoCompTrack / compDuration));
+
+        console.log('🎯 Time into comparison track:', timeIntoCompTrack / 1000 / 60, 'minutes');
+        console.log('🎯 Comparison progress calculated:', comparisonProgress);
+
+        return comparisonProgress;
+    }
+
+    // Calculate speed comparison between main and comparison tracks
+    calculateSpeedComparison(comparisonPoint) {
+        // Default return if no comparison mode or spatial-only mode
+        if (!this.comparisonMode) {
+            return {
+                speedDifference: 0,
+                isFaster: false,
+                speedComparisonText: ''
+            };
+        }
+
+        // For spatial-only comparison, show basic info
+        if (this.timeOverlap && this.timeOverlap.spatialOnly) {
+            return {
+                speedDifference: 0,
+                isFaster: false,
+                speedComparisonText: 'Spatial comparison'
+            };
+        }
+
+        // Default return if no time overlap
+        if (!this.timeOverlap || !this.timeOverlap.hasOverlap) {
+            return {
+                speedDifference: 0,
+                isFaster: false,
+                speedComparisonText: ''
+            };
+        }
+
+        // Get current main track point to compare speeds
+        const mainPoint = this.gpxParser.getInterpolatedPoint(this.animationProgress);
+
+        if (!mainPoint || !mainPoint.speed || !comparisonPoint.speed) {
+            return {
+                speedDifference: 0,
+                isFaster: false,
+                speedComparisonText: ''
+            };
+        }
+
+        const speedDifference = comparisonPoint.speed - mainPoint.speed;
+        const isFaster = speedDifference > 0.5; // 0.5 km/h threshold to avoid minor fluctuations
+        const isSlower = speedDifference < -0.5;
+
+        let speedComparisonText = '';
+        if (isFaster) {
+            speedComparisonText = `+${speedDifference.toFixed(1)} km/h faster`;
+        } else if (isSlower) {
+            speedComparisonText = `${speedDifference.toFixed(1)} km/h slower`;
+        } else {
+            speedComparisonText = 'Similar pace';
+        }
+
+        return {
+            speedDifference,
+            isFaster: isFaster,
+            isSlower: isSlower,
+            speedComparisonText
+        };
+    }
+
+    // Calculate center point for dual marker centering during comparison mode
+    calculateDualMarkerCenter(mainPoint) {
+        // If not in comparison mode or no time overlap, return main point
+        if (!this.comparisonMode || !this.comparisonTrackData || !this.timeOverlap || !this.timeOverlap.hasOverlap) {
+            return mainPoint;
+        }
+
+        // Get comparison track point
+        const comparisonProgress = this.calculateComparisonProgress();
+        const comparisonPoint = this.comparisonGpxParser.getInterpolatedPoint(comparisonProgress);
+
+        if (!comparisonPoint || isNaN(comparisonPoint.lat) || isNaN(comparisonPoint.lon)) {
+            return mainPoint;
+        }
+
+        // Calculate distance between points using Haversine formula
+        const distance = this.calculateDistanceBetweenPoints(
+            mainPoint.lat, mainPoint.lon,
+            comparisonPoint.lat, comparisonPoint.lon
+        );
+
+        // If markers are close together (within 500 meters), center between them
+        const centerThreshold = 0.5; // km
+        if (distance <= centerThreshold) {
+            console.log(`📍 Dual marker centering: ${distance.toFixed(2)}km apart`);
+
+            return {
+                lat: (mainPoint.lat + comparisonPoint.lat) / 2,
+                lon: (mainPoint.lon + comparisonPoint.lon) / 2,
+                elevation: (mainPoint.elevation + comparisonPoint.elevation) / 2,
+                speed: (mainPoint.speed + comparisonPoint.speed) / 2,
+                distance: (mainPoint.distance + comparisonPoint.distance) / 2,
+                index: mainPoint.index
+            };
+        }
+
+        // If markers are far apart, follow the main track
+        return mainPoint;
+    }
+
+    // Calculate distance between two points using Haversine formula
+    calculateDistanceBetweenPoints(lat1, lon1, lat2, lon2) {
+        const R = 6371; // Earth's radius in kilometers
+        const dLat = this.toRadians(lat2 - lat1);
+        const dLon = this.toRadians(lon2 - lon1);
+        const a =
+            Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(this.toRadians(lat1)) * Math.cos(this.toRadians(lat2)) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
+    }
+
+    // Convert degrees to radians
+    toRadians(degrees) {
+        return degrees * (Math.PI / 180);
+    }
+
+    // Configure track colors for comparison mode
+    setTrackColors(mainColor, comparisonColor) {
+        this.mainTrackColor = mainColor || this.pathColor; // Use original path color as default
+        this.comparisonTrackColor = comparisonColor || '#DC2626'; // Red
+
+        console.log(`🎨 Track colors configured: Main=${this.mainTrackColor}, Comparison=${this.comparisonTrackColor}`);
+
+        // Update existing layers if they exist
+        if (this.map && this.map.getLayer('current-position-glow')) {
+            this.map.setPaintProperty('current-position-glow', 'circle-color', this.mainTrackColor);
+        }
+        if (this.map && this.map.getLayer('comparison-position-glow')) {
+            this.map.setPaintProperty('comparison-position-glow', 'circle-color', this.comparisonTrackColor);
+        }
+        if (this.map && this.map.getLayer('comparison-speed-indicator')) {
+            this.map.setPaintProperty('comparison-speed-indicator', 'text-color', this.comparisonTrackColor);
+        }
+        if (this.map && this.map.getLayer('main-track-label')) {
+            this.map.setPaintProperty('main-track-label', 'text-color', mainColor || this.pathColor);
+        }
+        if (this.map && this.map.getLayer('comparison-track-label')) {
+            this.map.setPaintProperty('comparison-track-label', 'text-color', this.comparisonTrackColor);
+        }
+
+        // Update comparison track line colors (full trail and completed portion)
+        if (this.map && this.map.getLayer('comparison-trail-line')) {
+            this.map.setPaintProperty('comparison-trail-line', 'line-color', this.comparisonTrackColor);
+        }
+        if (this.map && this.map.getLayer('comparison-trail-completed')) {
+            this.map.setPaintProperty('comparison-trail-completed', 'line-color', this.comparisonTrackColor);
+        }
+
+        // Update the pathColor used by other parts of the system
+        if (mainColor) {
+            this.pathColor = mainColor;
+        }
+    }
+
+    // Update track label on the map
+    updateTrackLabel(trackNumber, label) {
+        console.log(`🏷️ Updating track ${trackNumber} label to: "${label}"`);
+
+        try {
+            if (trackNumber === 1) {
+                // Update main track label
+                if (this.map.getLayer('main-track-label')) {
+                    this.map.setLayoutProperty('main-track-label', 'text-field', label);
+                }
+                if (this.map.getSource('main-track-label')) {
+                    // Update the source data to include the new label
+                    const source = this.map.getSource('main-track-label');
+                    const currentData = source._data;
+                    if (currentData && currentData.features && currentData.features[0]) {
+                        currentData.features[0].properties.label = label;
+                        source.setData(currentData);
+                    }
+                }
+            } else if (trackNumber === 2) {
+                // Update comparison track label
+                if (this.map.getLayer('comparison-track-label')) {
+                    this.map.setLayoutProperty('comparison-track-label', 'text-field', label);
+                }
+                if (this.map.getSource('comparison-track-label')) {
+                    // Update the source data to include the new label
+                    const source = this.map.getSource('comparison-track-label');
+                    const currentData = source._data;
+                    if (currentData && currentData.features && currentData.features[0]) {
+                        currentData.features[0].properties.label = label;
+                        source.setData(currentData);
+                    }
+                }
             }
-        });
+            console.log(`✅ Track ${trackNumber} label updated successfully`);
+        } catch (error) {
+            console.warn(`⚠️ Failed to update track ${trackNumber} label:`, error.message);
+        }
     }
 } 

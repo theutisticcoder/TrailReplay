@@ -180,7 +180,9 @@ export class JourneyController {
 
                             const originalPoint = segment.data.data.trackPoints[pointInSegment];
                             speed = originalPoint.speed || 0;
-                            time = originalPoint.time || null;
+                            // IMPORTANT: Preserve time data even if null - don't default to null
+                            time = originalPoint.time;
+                            console.log(`Preserving time data for point ${index}:`, time);
                         } else if (segment.type === 'track' && segment.data && segment.data.stats) {
                             // Estimate speed from segment stats
                             const segmentStats = segment.data.stats;

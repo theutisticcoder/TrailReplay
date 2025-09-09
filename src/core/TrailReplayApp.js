@@ -41,6 +41,7 @@ export class TrailReplayApp {
         this.comparisonMode = false;
         this.comparisonTrackData = null;
         this.comparisonGpxParser = null;
+        this.timeOverlap = null;
 
         // Stats selection properties
         this.selectedEndStats = ['distance', 'elevation', 'duration', 'speed', 'pace', 'maxelevation', 'minelevation'];
@@ -167,15 +168,39 @@ export class TrailReplayApp {
                 this.timeline.migrateExistingEvents();
             }, 100);
         });
+
+        // Expose configuration functions to window for easy access
+        window.forceSyntheticTimeData = () => this.forceSyntheticTimeData();
+        window.setTrackColors = (mainColor, comparisonColor) => {
+            if (this.mapRenderer) {
+                this.mapRenderer.setTrackColors(mainColor, comparisonColor);
+            } else {
+                console.error('MapRenderer not available for color configuration');
+            }
+        };
+        window.debugComparisonTrack = () => this.debugComparisonTrack();
+        window.testTranslations = () => this.testTranslations();
     }
 
     // Temporary methods to maintain compatibility during refactoring
     updatePlaceholders() {
         // This will be moved to a UI controller later
-        const elements = document.querySelectorAll('[data-translate-placeholder]');
-        elements.forEach(element => {
+
+        // Handle old format
+        const oldElements = document.querySelectorAll('[data-translate-placeholder]');
+        oldElements.forEach(element => {
             const key = element.dataset.translatePlaceholder;
             element.placeholder = t(key);
+        });
+
+        // Handle new format (data-i18n-placeholder)
+        const newElements = document.querySelectorAll('[data-i18n-placeholder]');
+        newElements.forEach(element => {
+            const key = element.getAttribute('data-i18n-placeholder');
+            const translation = t(key);
+            if (translation) {
+                element.placeholder = translation;
+            }
         });
     }
 
@@ -1263,35 +1288,535 @@ export class TrailReplayApp {
     // Comparison Mode Methods
     async loadComparisonTrack(file) {
         try {
+            console.log('🔍 Starting comparison track load process...');
+
+            // Check if we have a main track loaded
+            if (!this.currentTrackData) {
+                const errorMsg = 'Please load a main GPX track first before loading a comparison track.';
+                console.error('❌', errorMsg);
+                alert(errorMsg);
+                return;
+            }
+
+            console.log('✅ Main track found:', this.currentTrackData.filename || 'unnamed track');
+            console.log('📁 Loading comparison track:', file.name);
+
             // Create a new GPX parser for the comparison track
             this.comparisonGpxParser = new (await import('../gpxParser.js')).GPXParser();
             
             // Parse the comparison track
             this.comparisonTrackData = await this.comparisonGpxParser.parseFile(file);
             
-            console.log('Comparison track loaded:', this.comparisonTrackData.stats);
+            console.log('✅ Comparison track loaded successfully:', this.comparisonTrackData.stats);
+
+            // Check if comparison track has time data
+            const compPointsWithTime = this.comparisonTrackData.trackPoints.filter(p => p.time).length;
+            console.log(`⏱️ Comparison track time analysis: ${compPointsWithTime}/${this.comparisonTrackData.trackPoints.length} points have time data`);
+
+            if (compPointsWithTime === 0) {
+                console.log('⚠️ Comparison track has no time data - prompting user for synthetic generation');
+                this.comparisonTrackData.stats.hasTimeData = false;
+                this.comparisonTrackData.stats.startTime = null;
+                this.comparisonTrackData.stats.endTime = null;
+
+                // Show user-friendly message with option to generate time data
+                console.log('🔄 About to show confirm dialog...');
+                let generateTimeData;
+
+                try {
+                    generateTimeData = confirm(
+                        'The comparison track has no time data. Would you like to generate estimated time data based on distance and speed?\n\n' +
+                        'This will allow synchronized animation. If you choose "Cancel", tracks will play at the same pace for route comparison only.'
+                    );
+                    console.log('🔄 User choice for synthetic time generation:', generateTimeData);
+                } catch (error) {
+                    console.error('❌ Error showing confirm dialog:', error);
+                    // Fallback: assume user wants synthetic time data if dialog fails
+                    generateTimeData = true;
+                    console.log('🔄 Dialog failed, defaulting to synthetic time generation');
+                }
+
+                // If dialog was blocked or user didn't see it, show a message and default to generating time data
+                if (generateTimeData === undefined) {
+                    console.log('⚠️ Confirm dialog may have been blocked, defaulting to time generation');
+                    this.showMessage?.('Generating synthetic time data for synchronized animation...', 'info');
+                    generateTimeData = true;
+                }
+
+                if (generateTimeData) {
+                    console.log('🔧 Generating synthetic time data for comparison track...');
+                    this.generateSyntheticTimeData(this.comparisonTrackData);
+                    console.log('✅ Synthetic time data generation completed');
+                    console.log('🔍 Comparison track stats after synthetic generation:', this.comparisonTrackData.stats);
+                    this.showMessage?.('Time data generated successfully! Tracks will now play in sync.', 'success');
+                } else {
+                    console.log('🔄 Using spatial comparison mode');
+                    this.showMessage?.('Using spatial comparison mode. Both tracks will play at the same pace.', 'info');
+                }
+            }
+
+            // Check for time overlap with main track
+            console.log('🔍 Checking for time overlap...');
+            const overlapResult = this.checkTimeOverlap();
+            console.log('🔍 checkTimeOverlap() returned:', overlapResult);
+            console.log('🔍 this.timeOverlap after checkTimeOverlap():', this.timeOverlap);
+
+            if (overlapResult) {
+                console.log('✅ Time overlap found:', overlapResult);
+            } else {
+                console.log('⚠️ No time overlap detected');
+                console.log('🔍 overlapResult type:', typeof overlapResult);
+                console.log('🔍 overlapResult value:', overlapResult);
+            }
             
             // Enable comparison mode
+            console.log('🔧 Enabling comparison mode...');
             this.enableComparisonMode();
             
+            console.log('🎉 Comparison mode setup complete!');
+
         } catch (error) {
-            console.error('Error loading comparison track:', error);
+            console.error('❌ Error loading comparison track:', error);
             alert('Error loading comparison track: ' + error.message);
         }
     }
 
     enableComparisonMode() {
-        if (!this.comparisonTrackData) {
-            console.warn('Cannot enable comparison mode: no comparison track loaded');
+        console.log('🔄 Enabling comparison mode...');
+        console.log('📊 Current state:', {
+            hasCurrentTrack: !!this.currentTrackData,
+            hasComparisonTrack: !!this.comparisonTrackData,
+            hasJourney: !!this.journey,
+            comparisonMode: this.comparisonMode,
+            hasMapRenderer: !!this.mapRenderer
+        });
+
+        // If we have a journey loaded but no main track, try to extract the track from journey
+        if (!this.currentTrackData && this.journey && this.journey.journeyData && this.journey.journeyData.segments) {
+            console.log('📋 Attempting to extract track from journey for comparison mode...');
+            const extracted = this.extractTrackFromJourney();
+
+            if (extracted && this.currentTrackData) {
+                // Load the extracted track to the map
+                console.log('🗺️ Loading extracted track to map...');
+                this.map.loadTrackData(this.currentTrackData);
+                this.showVisualizationSection();
+                this.updateStats(this.currentTrackData.stats);
+                this.generateElevationProfile();
+                this.updateStats(this.currentTrackData.stats);
+            }
+        }
+
+        if (!this.currentTrackData) {
+            console.warn('Cannot enable comparison mode: no main track data available');
+            alert('Please load a GPX track first before enabling comparison mode.');
+            return;
+        }
+
+        if (!this.mapRenderer) {
+            console.error('Cannot enable comparison mode: MapRenderer not available');
+            alert('Map is not ready yet. Please wait for the map to load completely.');
             return;
         }
 
         this.comparisonMode = true;
-        
-        // Add comparison track to map
-        this.mapRenderer.addComparisonTrack(this.comparisonTrackData);
-        
-        console.log('Comparison mode enabled');
+        console.log('✅ Comparison mode flag set to true');
+
+        // Initialize track customizations if not already done
+        this.initializeTrackCustomizations();
+
+        // Update translations for the newly visible comparison elements
+        setTimeout(() => {
+            if (typeof updatePageTranslations === 'function') {
+                updatePageTranslations();
+            }
+            // Also update placeholders
+            this.updatePlaceholders();
+        }, 50);
+
+        // If we have a comparison track, enable it
+        if (this.comparisonTrackData) {
+            console.log('🔧 Setting up comparison track with data:', {
+                trackPoints: this.comparisonTrackData.trackPoints?.length,
+                hasTimeData: this.comparisonTrackData.trackPoints?.some(p => p.time),
+                timeOverlap: !!this.timeOverlap
+            });
+
+            console.log('🔧 Passing data to map renderer:', {
+                comparisonTrackData: !!this.comparisonTrackData,
+                timeOverlap: this.timeOverlap,
+                timeOverlapType: typeof this.timeOverlap,
+                hasOverlap: this.timeOverlap?.hasOverlap,
+                spatialOnly: this.timeOverlap?.spatialOnly
+            });
+
+            try {
+                // Add comparison track to map with time overlap data
+                this.mapRenderer.addComparisonTrack(this.comparisonTrackData, this.timeOverlap);
+                console.log('✅ Comparison mode enabled successfully');
+            } catch (error) {
+                console.error('❌ Error enabling comparison mode:', error);
+                alert('Error enabling comparison mode: ' + error.message);
+                this.comparisonMode = false;
+            }
+        } else {
+            console.log('ℹ️ Comparison mode enabled - ready to load comparison track');
+        }
+
+        // Verify the setup
+        console.log('🔍 Verification after setup:', {
+            comparisonMode: this.comparisonMode,
+            mapRendererComparisonData: !!this.mapRenderer?.comparisonTrackData,
+            mapRendererComparisonParser: !!this.mapRenderer?.comparisonGpxParser
+        });
+    }
+
+    // Generate synthetic time data for tracks without time stamps
+    generateSyntheticTimeData(trackData) {
+        if (!trackData || !trackData.trackPoints || trackData.trackPoints.length === 0) {
+            console.error('Cannot generate synthetic time data: invalid track data');
+            return;
+        }
+
+        console.log('🔧 Generating synthetic time data for track...');
+
+        const points = trackData.trackPoints;
+
+        // Use main track's time range if available for synchronization
+        let startTime;
+        if (this.currentTrackData && this.currentTrackData.stats.startTime) {
+            // Synchronize with main track by using the same time range
+            const mainDuration = this.currentTrackData.stats.totalDuration || 1; // hours
+            const trackDuration = trackData.stats.totalDuration || (trackData.stats.totalDistance / 8); // estimate
+            const timeRatio = trackDuration / mainDuration;
+
+            startTime = new Date(this.currentTrackData.stats.startTime);
+            console.log('🔄 Synchronizing with main track time range');
+        } else {
+            // Fallback to current time
+            startTime = new Date();
+        }
+
+        let cumulativeTime = 0; // seconds
+
+        // Estimate average speed based on activity type (could be made configurable)
+        const estimatedSpeed = 8; // km/h - reasonable for walking/hiking
+
+        for (let i = 0; i < points.length; i++) {
+            const point = points[i];
+
+            if (i === 0) {
+                // First point starts at startTime
+                point.time = new Date(startTime);
+            } else {
+                // Calculate time based on distance from previous point
+                const prevPoint = points[i - 1];
+                const distanceKm = Math.max(0, point.distance - prevPoint.distance);
+
+                if (distanceKm > 0) {
+                    const timeForSegment = distanceKm / estimatedSpeed; // hours
+                    cumulativeTime += timeForSegment * 3600; // convert to seconds
+                }
+
+                point.time = new Date(startTime.getTime() + (cumulativeTime * 1000));
+            }
+
+            // Also update speed if not present
+            if (!point.speed || point.speed === 0) {
+                point.speed = estimatedSpeed;
+            }
+        }
+
+        // Update track statistics
+        const endTime = points[points.length - 1].time;
+        const durationHours = (endTime - startTime) / (1000 * 60 * 60);
+
+        trackData.stats.startTime = startTime;
+        trackData.stats.endTime = endTime;
+        trackData.stats.totalDuration = durationHours;
+        trackData.stats.hasTimeData = true;
+
+        console.log('✅ Synthetic time data generated:', {
+            startTime: startTime.toISOString(),
+            endTime: endTime.toISOString(),
+            duration: durationHours.toFixed(2) + ' hours',
+            avgSpeed: estimatedSpeed + ' km/h',
+            synchronized: this.currentTrackData?.stats.startTime ? 'with main track' : 'standalone'
+        });
+
+        // Verify the time data was applied correctly
+        const pointsWithTimeAfter = points.filter(p => p.time).length;
+        console.log(`🔍 Verification: ${pointsWithTimeAfter}/${points.length} points now have time data`);
+
+        if (pointsWithTimeAfter === 0) {
+            console.error('❌ ERROR: No time data was applied to track points!');
+        }
+    }
+
+    // Debug function to force synthetic time data generation
+    forceSyntheticTimeData() {
+        console.log('🔧 Force generating synthetic time data...');
+
+        if (!this.comparisonTrackData) {
+            console.error('❌ No comparison track data available');
+            alert('Please load a comparison track first');
+            return;
+        }
+
+        // Generate synthetic time data
+        this.generateSyntheticTimeData(this.comparisonTrackData);
+
+        // Re-check time overlap
+        console.log('🔍 Re-checking time overlap after forced generation...');
+        const overlapResult = this.checkTimeOverlap();
+
+        if (overlapResult) {
+            console.log('✅ Time overlap detected after forced generation:', overlapResult);
+
+            // Re-enable comparison mode with new time data
+            this.enableComparisonMode();
+
+            this.showMessage?.('Synthetic time data generated and comparison mode updated!', 'success');
+        } else {
+            console.log('⚠️ Still no time overlap after forced generation');
+            this.showMessage?.('Time data generated but no overlap detected', 'warning');
+        }
+    }
+
+    // Debug function to inspect comparison track data
+    debugComparisonTrack() {
+        console.log('🔍 Comparison Track Debug Info:');
+        console.log('================================');
+
+        if (!this.comparisonTrackData) {
+            console.log('❌ No comparison track data loaded');
+            return;
+        }
+
+        const points = this.comparisonTrackData.trackPoints || [];
+        const pointsWithTime = points.filter(p => p.time);
+        const stats = this.comparisonTrackData.stats || {};
+
+        console.log('📊 Basic Info:');
+        console.log('  Total points:', points.length);
+        console.log('  Points with time:', pointsWithTime.length);
+        console.log('  Has time data:', !!(stats.startTime && stats.endTime));
+
+        console.log('⏱️ Time Range:');
+        console.log('  Start time:', stats.startTime ? stats.startTime.toLocaleString() : 'null');
+        console.log('  End time:', stats.endTime ? stats.endTime.toLocaleString() : 'null');
+        console.log('  Duration:', stats.totalDuration ? stats.totalDuration.toFixed(2) + ' hours' : 'null');
+
+        if (pointsWithTime.length > 0) {
+            console.log('🔍 Time Data Samples:');
+            console.log('  First point time:', pointsWithTime[0].time?.toLocaleString());
+            console.log('  Last point time:', pointsWithTime[pointsWithTime.length - 1].time?.toLocaleString());
+            console.log('  Middle point time:', pointsWithTime[Math.floor(pointsWithTime.length / 2)].time?.toLocaleString());
+        }
+
+        console.log('🎯 Overlap Info:');
+        console.log('  Time overlap object:', this.timeOverlap);
+        console.log('  Has overlap:', this.timeOverlap?.hasOverlap);
+        console.log('  Spatial only:', this.timeOverlap?.spatialOnly);
+
+        console.log('================================');
+    }
+
+    // Track customization methods
+    updateTrackName(trackNumber, name) {
+        if (!name || name.trim() === '') {
+            name = trackNumber === 1 ? 'Track 1' : 'Track 2';
+        }
+
+        console.log(`📝 Updating track ${trackNumber} name to: "${name}"`);
+
+        // Update the map renderer
+        if (this.mapRenderer) {
+            this.mapRenderer.updateTrackLabel(trackNumber, name);
+        }
+
+        // Store the customization
+        if (!this.trackCustomizations) {
+            this.trackCustomizations = {};
+        }
+        this.trackCustomizations[`track${trackNumber}Name`] = name;
+    }
+
+    updateTrackColor(trackNumber, color) {
+        console.log(`🎨 Updating track ${trackNumber} color to: ${color}`);
+
+        // For now, only track 2 color is customizable
+        if (trackNumber === 2) {
+            if (this.mapRenderer) {
+                this.mapRenderer.setTrackColors(null, color);
+            }
+
+            // Store the customization
+            if (!this.trackCustomizations) {
+                this.trackCustomizations = {};
+            }
+            this.trackCustomizations.track2Color = color;
+        }
+    }
+
+    applyTrackCustomizations(options) {
+        console.log('🎯 Applying track customizations:', options);
+
+        const { track1Name, track2Name, track2Color } = options;
+
+        // Apply name changes
+        if (track1Name) {
+            this.updateTrackName(1, track1Name);
+        }
+        if (track2Name) {
+            this.updateTrackName(2, track2Name);
+        }
+
+        // Apply color changes
+        if (track2Color) {
+            this.updateTrackColor(2, track2Color);
+        }
+
+        // Update UI inputs to reflect applied changes
+        this.updateCustomizationInputs();
+
+        this.showMessage?.('Track customizations applied successfully!', 'success');
+    }
+
+    initializeTrackCustomizations() {
+        // Initialize track customizations with defaults if not already set
+        if (!this.trackCustomizations) {
+            this.trackCustomizations = {
+                track1Name: 'Track 1',
+                track2Name: 'Track 2',
+                track2Color: '#DC2626' // Default red color
+            };
+        }
+
+        // Update the UI inputs with current customizations
+        this.updateCustomizationInputs();
+
+        console.log('🎨 Track customizations initialized:', this.trackCustomizations);
+    }
+
+    updateCustomizationInputs() {
+        // Update input fields to reflect current customizations
+        const track1NameInput = document.getElementById('track1Name');
+        const track2NameInput = document.getElementById('track2Name');
+        const track2ColorPicker = document.getElementById('track2Color');
+        const track2ColorHex = document.getElementById('track2ColorHex');
+
+        if (this.trackCustomizations) {
+            if (track1NameInput) {
+                track1NameInput.value = this.trackCustomizations.track1Name || 'Track 1';
+            }
+            if (track2NameInput) {
+                track2NameInput.value = this.trackCustomizations.track2Name || 'Track 2';
+            }
+            if (track2ColorPicker) {
+                track2ColorPicker.value = this.trackCustomizations.track2Color || '#DC2626';
+            }
+            if (track2ColorHex) {
+                track2ColorHex.value = this.trackCustomizations.track2Color || '#DC2626';
+            }
+        }
+    }
+
+    // Debug function to test translation system
+    testTranslations() {
+        console.log('🔍 Translation System Test:');
+        console.log('================================');
+
+        // Test some known working translations
+        const testKeys = [
+            'controls.comparisonSettings',
+            'controls.enableComparison',
+            'controls.secondTrack',
+            'controls.selectTrack'
+        ];
+
+        testKeys.forEach(key => {
+            const translation = t(key);
+            console.log(`${key}: "${translation}"`);
+        });
+
+        console.log('================================');
+        console.log('New comparison keys:');
+
+        // Test the new comparison keys
+        const newKeys = [
+            'controls.comparisonInstructionsTitle',
+            'controls.comparisonInstructionsStep1',
+            'controls.comparisonNamesTitle',
+            'controls.comparisonColorTitle',
+            'controls.comparisonColorReset'
+        ];
+
+        newKeys.forEach(key => {
+            const translation = t(key);
+            console.log(`${key}: "${translation}"`);
+        });
+
+        console.log('================================');
+    }
+
+    // Extract track data from journey for comparison mode
+    extractTrackFromJourney() {
+        if (!this.journey || !this.journey.journeyData || !this.journey.journeyData.segments) {
+            console.log('❌ No journey data available to extract');
+            return false;
+        }
+
+        console.log('📋 Extracting track from journey:', this.journey.journeyData.segments);
+
+        // Look for the first track segment
+        const trackSegment = this.journey.journeyData.segments.find(seg => seg.type === 'track');
+
+        if (trackSegment && trackSegment.data && trackSegment.data.data && trackSegment.data.data.trackPoints) {
+            console.log('✅ Found track segment with original data');
+
+            // Extract the original track data
+            this.currentTrackData = {
+                trackPoints: trackSegment.data.data.trackPoints,
+                stats: trackSegment.data.stats || trackSegment.stats,
+                filename: trackSegment.data.filename || trackSegment.name,
+                bounds: this.calculateBounds(trackSegment.data.data.trackPoints)
+            };
+
+            console.log('📊 Extracted track data:', {
+                points: this.currentTrackData.trackPoints.length,
+                hasTimeData: this.currentTrackData.trackPoints.some(p => p.time),
+                filename: this.currentTrackData.filename
+            });
+
+            return true;
+        }
+
+        console.log('⚠️ Could not find suitable track segment in journey');
+        return false;
+    }
+
+    // Calculate bounds from track points
+    calculateBounds(trackPoints) {
+        if (!trackPoints || trackPoints.length === 0) return null;
+
+        const validPoints = trackPoints.filter(p => !isNaN(p.lat) && !isNaN(p.lon));
+
+        if (validPoints.length === 0) return null;
+
+        const lats = validPoints.map(p => p.lat);
+        const lons = validPoints.map(p => p.lon);
+
+        return {
+            north: Math.max(...lats),
+            south: Math.min(...lats),
+            east: Math.max(...lons),
+            west: Math.min(...lons),
+            center: [
+                (Math.min(...lons) + Math.max(...lons)) / 2,
+                (Math.min(...lats) + Math.max(...lats)) / 2
+            ]
+        };
     }
 
     // Stats selection methods
@@ -1341,6 +1866,7 @@ export class TrailReplayApp {
     }
 
     disableComparisonMode() {
+        console.log('🔄 Disabling comparison mode...');
         this.comparisonMode = false;
         
         // Remove comparison track from map
@@ -1352,7 +1878,261 @@ export class TrailReplayApp {
         this.comparisonTrackData = null;
         this.comparisonGpxParser = null;
         
-        console.log('Comparison mode disabled');
+        // If we have journey data, we might need to reload it
+        if (this.journey && this.journey.journeyData) {
+            console.log('📋 Journey data exists - comparison mode disabled, journey mode active');
+            // The journey should still be available for normal playback
+        }
+
+        console.log('✅ Comparison mode disabled');
+    }
+
+    // Debug method to check current app state
+    debugAppState() {
+        console.log('🔍 App State Debug:');
+        console.log('  - Current Track Data:', this.currentTrackData ? '✅ Loaded' : '❌ Not loaded');
+        console.log('  - Comparison Mode:', this.comparisonMode ? '✅ Enabled' : '❌ Disabled');
+        console.log('  - Comparison Track Data:', this.comparisonTrackData ? '✅ Loaded' : '❌ Not loaded');
+        console.log('  - Map Renderer:', this.mapRenderer ? '✅ Available' : '❌ Not available');
+        console.log('  - Time Overlap:', this.timeOverlap ? '✅ Detected' : '❌ Not detected');
+
+        if (this.currentTrackData) {
+            console.log('  - Main track stats:', this.currentTrackData.stats);
+        }
+        if (this.comparisonTrackData) {
+            console.log('  - Comparison track stats:', this.comparisonTrackData.stats);
+        }
+        if (this.timeOverlap) {
+            console.log('  - Time overlap info:', this.timeOverlap);
+        }
+    }
+
+    // Test comparison mode elements
+    testComparisonMode() {
+        console.log('🧪 Testing comparison mode setup...');
+        const enableToggle = document.getElementById('enableComparison');
+        const fileInput = document.getElementById('comparisonFile');
+        const loadBtn = document.getElementById('loadComparisonBtn');
+        const fileGroup = document.getElementById('comparisonFileGroup');
+        const selectBtn = document.querySelector('#comparisonFileGroup .upload-btn');
+
+        console.log('🔍 Elements found:');
+        console.log('  - Enable toggle:', enableToggle ? '✅' : '❌');
+        console.log('  - File input:', fileInput ? '✅' : '❌');
+        console.log('  - Select button:', selectBtn ? '✅' : '❌');
+        console.log('  - Load button:', loadBtn ? '✅' : '❌');
+        console.log('  - File group:', fileGroup ? '✅' : '❌');
+        console.log('  - File group display:', fileGroup ? fileGroup.style.display : 'N/A');
+
+        if (fileInput) {
+            console.log('  - File input visibility:', window.getComputedStyle(fileInput).display);
+            console.log('  - File input files:', fileInput.files);
+            console.log('  - File input files length:', fileInput.files ? fileInput.files.length : 'N/A');
+        }
+
+        return {
+            enableToggle: !!enableToggle,
+            fileInput: !!fileInput,
+            selectBtn: !!selectBtn,
+            loadBtn: !!loadBtn,
+            fileGroup: !!fileGroup,
+            fileGroupVisible: fileGroup && fileGroup.style.display !== 'none',
+            fileInputVisible: fileInput && window.getComputedStyle(fileInput).display !== 'none'
+        };
+    }
+
+    // Check for time overlap between main and comparison tracks
+    checkTimeOverlap() {
+        if (!this.currentTrackData || !this.comparisonTrackData) {
+            console.log('Cannot check time overlap: missing track data');
+            return null;
+        }
+
+        const mainStart = this.currentTrackData.stats.startTime;
+        const mainEnd = this.currentTrackData.stats.endTime;
+        const compStart = this.comparisonTrackData.stats.startTime;
+        const compEnd = this.comparisonTrackData.stats.endTime;
+
+        // Debug: Log time data for both tracks
+        console.log('🔍 Time data check:');
+        console.log('  Main track startTime:', mainStart, 'endTime:', mainEnd);
+        console.log('  Comparison track startTime:', compStart, 'endTime:', compEnd);
+        console.log('  Main track points with time:', this.currentTrackData.trackPoints.filter(p => p.time).length);
+        console.log('  Comparison track points with time:', this.comparisonTrackData.trackPoints.filter(p => p.time).length);
+
+        // Additional debugging for main track
+        console.log('  Main track stats object:', this.currentTrackData.stats);
+        console.log('  Main track stats keys:', Object.keys(this.currentTrackData.stats || {}));
+
+        // If main track has time data in points but not in stats, recalculate
+        if (!mainStart && this.currentTrackData.trackPoints.some(p => p.time)) {
+            console.log('🔧 Main track has time data in points but not in stats - recalculating...');
+            const mainTimes = this.currentTrackData.trackPoints.filter(p => p.time).map(p => p.time.getTime());
+            if (mainTimes.length > 0) {
+                this.currentTrackData.stats.startTime = new Date(Math.min(...mainTimes));
+                this.currentTrackData.stats.endTime = new Date(Math.max(...mainTimes));
+                console.log('✅ Recalculated main track stats:', {
+                    startTime: this.currentTrackData.stats.startTime,
+                    endTime: this.currentTrackData.stats.endTime
+                });
+            }
+        }
+
+        // Update local variables with recalculated times
+        const finalMainStart = this.currentTrackData.stats.startTime || mainStart;
+        const finalMainEnd = this.currentTrackData.stats.endTime || mainEnd;
+
+        // Check if both tracks have SOME time data - be more lenient
+        const mainHasTime = (finalMainStart && finalMainEnd) || this.currentTrackData.trackPoints.some(p => p.time);
+        const compHasTime = (compStart && compEnd) || this.comparisonTrackData.trackPoints.some(p => p.time);
+
+        if (!mainHasTime || !compHasTime) {
+            console.log('⚠️ Time overlap check: One or both tracks missing time data');
+            console.log('  Main track has time:', mainHasTime, 'Comp track has time:', compHasTime);
+
+            if (!mainHasTime && !compHasTime) {
+                console.log('🔄 Both tracks missing time data - enabling spatial comparison mode');
+                this.showMessage('Both tracks are missing time data. Enabling spatial comparison mode (no time synchronization).', 'info');
+
+                // Enable comparison mode without time overlap for spatial comparison
+                return {
+                    hasOverlap: false,
+                    spatialOnly: true,
+                    mainStart: null,
+                    mainEnd: null,
+                    compStart: null,
+                    compEnd: null,
+                    overlapDuration: 0
+                };
+            } else if (!compHasTime) {
+                console.log('🔄 Comparison track missing time data - enabling spatial comparison mode');
+                this.showMessage('Comparison track missing time data. Enabling spatial comparison mode.', 'info');
+
+                // Enable comparison mode without time overlap for spatial comparison
+                return {
+                    hasOverlap: false,
+                    spatialOnly: true,
+                    mainStart: finalMainStart,
+                    mainEnd: finalMainEnd,
+                    compStart: null,
+                    compEnd: null,
+                    overlapDuration: 0
+                };
+            } else {
+                this.showMessage('Main track is missing time data. Try loading a different GPX file with time information.', 'warning');
+            }
+            return null;
+        }
+
+        // For tracks without proper stats, try to estimate time ranges
+        let finalCompStart = compStart;
+        let finalCompEnd = compEnd;
+
+        if (!compStart && this.comparisonTrackData.trackPoints.some(p => p.time)) {
+            console.log('🔧 Comparison track has time data in points but not in stats - estimating...');
+            const compTimes = this.comparisonTrackData.trackPoints.filter(p => p.time).map(p => p.time.getTime());
+            if (compTimes.length > 0) {
+                finalCompStart = new Date(Math.min(...compTimes));
+                finalCompEnd = new Date(Math.max(...compTimes));
+                console.log('✅ Estimated comparison track time range:', finalCompStart, 'to', finalCompEnd);
+            }
+        }
+
+        // Calculate overlap using final times
+        const mainStartTime = finalMainStart;
+        const mainEndTime = finalMainEnd;
+        const compStartTime = finalCompStart;
+        const compEndTime = finalCompEnd;
+
+        if (!mainStartTime || !mainEndTime || !compStartTime || !compEndTime) {
+            console.log('⚠️ Still missing time data after calculation attempts');
+            return null;
+        }
+
+        const overlapStart = Math.max(mainStartTime.getTime(), compStartTime.getTime());
+        const overlapEnd = Math.min(mainEndTime.getTime(), compEndTime.getTime());
+
+        const hasOverlap = overlapStart < overlapEnd;
+        const overlapDuration = hasOverlap ? (overlapEnd - overlapStart) / 1000 / 60 : 0;
+
+        const overlap = {
+            hasOverlap: hasOverlap,
+            overlapStart: new Date(overlapStart),
+            overlapEnd: new Date(overlapEnd),
+            overlapDuration: overlapDuration, // minutes
+            mainStart: mainStartTime,
+            mainEnd: mainEndTime,
+            compStart: compStartTime,
+            compEnd: compEndTime
+        };
+
+        console.log('🔍 Raw overlap calculation:', {
+            overlapStart: overlapStart,
+            overlapEnd: overlapEnd,
+            hasOverlap: hasOverlap,
+            overlapDuration: overlapDuration
+        });
+
+        console.log('🎯 Final overlap calculation:');
+        console.log('  Main track:', mainStartTime.toLocaleTimeString(), 'to', mainEndTime.toLocaleTimeString());
+        console.log('  Comparison track:', compStartTime.toLocaleTimeString(), 'to', compEndTime.toLocaleTimeString());
+        console.log('  Overlap duration:', overlap.overlapDuration.toFixed(1), 'minutes');
+
+        if (overlap.hasOverlap) {
+            console.log('✅ Time overlap detected:', {
+                overlapMinutes: overlap.overlapDuration.toFixed(1),
+                mainTrack: `${mainStartTime.toLocaleTimeString()} - ${mainEndTime.toLocaleTimeString()}`,
+                comparisonTrack: `${compStartTime.toLocaleTimeString()} - ${compEndTime.toLocaleTimeString()}`
+            });
+
+            console.log('🔍 Overlap object details:', {
+                hasOverlap: overlap.hasOverlap,
+                overlapDuration: overlap.overlapDuration,
+                isTruthy: !!overlap,
+                objectKeys: Object.keys(overlap)
+            });
+
+            this.showMessage(`Time overlap detected: ${overlap.overlapDuration.toFixed(1)} minutes - simultaneous playback enabled!`, 'success');
+
+            // Store overlap data for the map renderer
+            this.timeOverlap = overlap;
+            console.log('🔄 Stored timeOverlap data:', this.timeOverlap);
+
+            // Verify time data is preserved in track points
+            const mainTimePoints = this.currentTrackData.trackPoints.filter(p => p.time).length;
+            const compTimePoints = this.comparisonTrackData.trackPoints.filter(p => p.time).length;
+            console.log(`📊 Time data verification: Main track has ${mainTimePoints}/${this.currentTrackData.trackPoints.length} points with time`);
+            console.log(`📊 Time data verification: Comparison track has ${compTimePoints}/${this.comparisonTrackData.trackPoints.length} points with time`);
+
+            console.log('✅ Returning overlap object:', overlap);
+            console.log('🔍 About to return from checkTimeOverlap method');
+            return overlap;
+        } else if (overlap.spatialOnly) {
+            console.log('✅ Spatial comparison enabled (no time overlap)');
+            this.showMessage('Spatial comparison enabled - tracks will play at the same pace for route comparison', 'success');
+
+            // Store overlap data for the map renderer
+            this.timeOverlap = overlap;
+            console.log('🔄 Stored timeOverlap data:', this.timeOverlap);
+
+            // Verify time data is preserved in track points
+            const mainTimePoints = this.currentTrackData.trackPoints.filter(p => p.time).length;
+            const compTimePoints = this.comparisonTrackData.trackPoints.filter(p => p.time).length;
+            console.log(`📊 Time data verification: Main track has ${mainTimePoints}/${this.currentTrackData.trackPoints.length} points with time`);
+            console.log(`📊 Time data verification: Comparison track has ${compTimePoints}/${this.comparisonTrackData.trackPoints.length} points with time`);
+
+            console.log('✅ Returning overlap object:', overlap);
+            console.log('🔍 About to return from checkTimeOverlap method');
+            return overlap;
+        } else {
+            console.log('❌ No time overlap between tracks');
+            if (mainStartTime && mainEndTime && compStartTime && compEndTime) {
+                console.log('  Main track range:', mainStartTime.toLocaleTimeString(), 'to', mainEndTime.toLocaleTimeString());
+                console.log('  Comparison track range:', compStartTime.toLocaleTimeString(), 'to', compEndTime.toLocaleTimeString());
+            }
+            this.showMessage('No time overlap between tracks - tracks will play sequentially', 'info');
+            return null;
+        }
     }
 
 
