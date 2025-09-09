@@ -1,5 +1,6 @@
 import { GPXParser } from '../gpxParser.js';
 import { AnalyticsTracker } from '../utils/analytics.js';
+import { t } from '../translations.js';
 
 export class URLController {
     constructor(app) {
@@ -128,19 +129,19 @@ export class URLController {
                 // Show platform-specific success message with detailed instructions
                 const platform = this.detectPlatform(downloadPageUrl);
                 if (platform === 'strava') {
-                    this.showStatus('Strava activity opened! Click the 3 dots (⋯) next to the activity title, then select "Export GPX" to download your file.', 'success');
+                    this.showStatus(`${t('upload.platformInstructions.strava.title')} ${t('upload.urlStatus.pageOpened').toLowerCase()} ${t('upload.stravaInstructions')}`, 'success');
                 } else if (platform === 'wikiloc') {
-                    this.showStatus('Download page opened! Click the "File" tab, then select "Download GPX" to get your file.', 'success');
+                    this.showStatus(`${t('upload.urlStatus.pageOpened')} ${t('upload.wikilocInstructions')}`, 'success');
                 } else if (platform === 'garmin') {
-                    this.showStatus('Garmin activity opened! Click the "Export" button, then select "GPX Track" to download your file.', 'success');
+                    this.showStatus(`Garmin ${t('upload.urlStatus.pageOpened').toLowerCase()} ${t('upload.platformInstructions.otherPlatforms.step3')}`, 'success');
                 } else if (platform === 'alltrails') {
-                    this.showStatus('AllTrails trail opened! Click "Download GPX" or "Export" to get your file.', 'success');
+                    this.showStatus(`AllTrails ${t('upload.urlStatus.pageOpened').toLowerCase()} ${t('upload.platformInstructions.otherPlatforms.step3')}`, 'success');
                 } else if (platform === 'komoot') {
-                    this.showStatus('Komoot tour opened! Click the "Export" button, then select "GPX" to download your file.', 'success');
+                    this.showStatus(`Komoot ${t('upload.urlStatus.pageOpened').toLowerCase()} ${t('upload.platformInstructions.otherPlatforms.step3')}`, 'success');
                 } else if (platform === 'dropbox' || platform === 'google-drive') {
-                    this.showStatus('File page opened! Download the GPX file and upload it to TrailReplay.', 'success');
+                    this.showStatus(`${t('upload.urlStatus.pageOpened')} ${t('upload.platformInstructions.otherPlatforms.step5')}`, 'success');
                 } else {
-                    this.showStatus('Page opened! Look for the GPX download option on the page.', 'success');
+                    this.showStatus(`${t('upload.urlStatus.pageOpened')} ${t('upload.platformInstructions.otherPlatforms.step3')}`, 'success');
                 }
 
                 return true;
@@ -239,88 +240,88 @@ export class URLController {
 
         if (error) {
             message = `<div class="status-error">
-                <p>❌ <strong>Could not process URL:</strong> ${error}</p>
-                <p>Please make sure you're using a valid URL from:</p>
+                <p>❌ <strong>${t('messages.urlProcessingError')}:</strong> ${error}</p>
+                <p>${t('messages.validUrlsFrom')}:</p>
                 <ul>
-                    <li><strong>Wikiloc:</strong> <code>https://www.wikiloc.com/trails/view/123456</code></li>
-                    <li><strong>Strava:</strong> <code>https://www.strava.com/activities/1234567890</code></li>
+                    <li><strong>${t('upload.platformInstructions.wikiloc.title')}:</strong> <code>https://www.wikiloc.com/trails/view/123456</code></li>
+                    <li><strong>${t('upload.platformInstructions.strava.title')}:</strong> <code>https://www.strava.com/activities/1234567890</code></li>
                 </ul>
             </div>`;
         } else {
             if (platform === 'strava') {
                 message = `<div class="status-info">
-                    <p>📋 <strong>How to download GPX from Strava:</strong></p>
+                    <p>📋 <strong>${t('upload.platformInstructions.strava.title')}:</strong></p>
                     <ol>
-                        <li>Paste a Strava activity URL like: <code>https://www.strava.com/activities/1234567890</code></li>
-                        <li>Click "🔗 Open Download Page" above</li>
-                        <li>On the Strava page, click the 3 dots (⋯) next to the activity title</li>
-                        <li>Select "Export GPX" from the menu</li>
-                        <li>Upload the downloaded GPX file to TrailReplay</li>
+                        <li>${t('upload.platformInstructions.strava.step1')}</li>
+                        <li>${t('upload.platformInstructions.strava.step2')}</li>
+                        <li>${t('upload.platformInstructions.strava.step3')}</li>
+                        <li>${t('upload.platformInstructions.strava.step4')}</li>
+                        <li>${t('upload.platformInstructions.strava.step5')}</li>
                     </ol>
-                    <p class="tip">💡 <strong>Tip:</strong> Copy the URL from any Strava activity page.</p>
+                    <p class="tip">💡 <strong>${t('upload.platformInstructions.strava.tryIt')}:</strong> ${t('upload.platformInstructions.strava.exampleActivity')}</p>
                 </div>`;
             } else if (platform === 'wikiloc') {
                 message = `<div class="status-info">
-                    <p>📋 <strong>How to download GPX from Wikiloc:</strong></p>
+                    <p>📋 <strong>${t('upload.platformInstructions.wikiloc.title')}:</strong></p>
                     <ol>
-                        <li>Paste a Wikiloc trail URL like: <code>https://www.wikiloc.com/trails/view/123456</code></li>
-                        <li>Click "🔗 Open Download Page" above</li>
-                        <li>On the Wikiloc page, click the "File" tab</li>
-                        <li>Click "Download GPX" to get your file</li>
-                        <li>Upload the downloaded GPX file to TrailReplay</li>
+                        <li>${t('upload.platformInstructions.wikiloc.step1')}</li>
+                        <li>${t('upload.platformInstructions.wikiloc.step2')}</li>
+                        <li>${t('upload.platformInstructions.wikiloc.step3')}</li>
+                        <li>${t('upload.platformInstructions.wikiloc.step4')}</li>
+                        <li>${t('upload.platformInstructions.wikiloc.step5')}</li>
                     </ol>
-                    <p class="tip">💡 <strong>Tip:</strong> Copy the URL from any Wikiloc trail page.</p>
+                    <p class="tip">💡 <strong>${t('upload.platformInstructions.wikiloc.otherExamples')}:</strong> ${t('upload.platformInstructions.wikiloc.santFeliuRace')}, ${t('upload.platformInstructions.wikiloc.anotherTrail')}</p>
                 </div>`;
             } else if (platform === 'garmin') {
                 message = `<div class="status-info">
-                    <p>📋 <strong>How to download GPX from Garmin Connect:</strong></p>
+                    <p>📋 <strong>${t('upload.platformInstructions.otherPlatforms.title')} (Garmin Connect):</strong></p>
                     <ol>
-                        <li>Paste a Garmin activity URL like: <code>https://connect.garmin.com/modern/activity/1234567890</code></li>
-                        <li>Click "🔗 Open Download Page" above</li>
-                        <li>On the Garmin page, click the "Export" button</li>
-                        <li>Select "GPX Track" from the export options</li>
-                        <li>Upload the downloaded GPX file to TrailReplay</li>
+                        <li>${t('upload.platformInstructions.otherPlatforms.step1')}</li>
+                        <li>${t('upload.platformInstructions.otherPlatforms.step2')}</li>
+                        <li>${t('upload.platformInstructions.otherPlatforms.step3')}</li>
+                        <li>${t('upload.platformInstructions.otherPlatforms.step4')}</li>
+                        <li>${t('upload.platformInstructions.otherPlatforms.step5')}</li>
                     </ol>
-                    <p class="tip">💡 <strong>Tip:</strong> Garmin Connect supports multiple export formats.</p>
+                    <p class="tip">💡 <strong>${t('upload.platformInstructions.otherPlatforms.supported')}:</strong> ${t('upload.platformInstructions.otherPlatforms.supportedPlatforms')}</p>
                 </div>`;
             } else if (platform === 'alltrails') {
                 message = `<div class="status-info">
-                    <p>📋 <strong>How to download GPX from AllTrails:</strong></p>
+                    <p>📋 <strong>${t('upload.platformInstructions.otherPlatforms.title')} (AllTrails):</strong></p>
                     <ol>
-                        <li>Paste an AllTrails trail URL like: <code>https://www.alltrails.com/trail/us/california/trail-name</code></li>
-                        <li>Click "🔗 Open Download Page" above</li>
-                        <li>On the AllTrails page, click "Download GPX" or "Export"</li>
-                        <li>Save the GPX file to your device</li>
-                        <li>Upload the downloaded GPX file to TrailReplay</li>
+                        <li>${t('upload.platformInstructions.otherPlatforms.step1')}</li>
+                        <li>${t('upload.platformInstructions.otherPlatforms.step2')}</li>
+                        <li>${t('upload.platformInstructions.otherPlatforms.step3')}</li>
+                        <li>${t('upload.platformInstructions.otherPlatforms.step4')}</li>
+                        <li>${t('upload.platformInstructions.otherPlatforms.step5')}</li>
                     </ol>
-                    <p class="tip">💡 <strong>Tip:</strong> AllTrails has detailed trail information and photos.</p>
+                    <p class="tip">💡 <strong>${t('upload.platformInstructions.otherPlatforms.supported')}:</strong> ${t('upload.platformInstructions.otherPlatforms.supportedPlatforms')}</p>
                 </div>`;
             } else if (platform === 'komoot') {
                 message = `<div class="status-info">
-                    <p>📋 <strong>How to download GPX from Komoot:</strong></p>
+                    <p>📋 <strong>${t('upload.platformInstructions.otherPlatforms.title')} (Komoot):</strong></p>
                     <ol>
-                        <li>Paste a Komoot tour URL like: <code>https://www.komoot.com/tour/123456789</code></li>
-                        <li>Click "🔗 Open Download Page" above</li>
-                        <li>On the Komoot page, click the "Export" button</li>
-                        <li>Select "GPX" as the export format</li>
-                        <li>Upload the downloaded GPX file to TrailReplay</li>
+                        <li>${t('upload.platformInstructions.otherPlatforms.step1')}</li>
+                        <li>${t('upload.platformInstructions.otherPlatforms.step2')}</li>
+                        <li>${t('upload.platformInstructions.otherPlatforms.step3')}</li>
+                        <li>${t('upload.platformInstructions.otherPlatforms.step4')}</li>
+                        <li>${t('upload.platformInstructions.otherPlatforms.step5')}</li>
                     </ol>
-                    <p class="tip">💡 <strong>Tip:</strong> Komoot has excellent route planning features.</p>
+                    <p class="tip">💡 <strong>${t('upload.platformInstructions.otherPlatforms.supported')}:</strong> ${t('upload.platformInstructions.otherPlatforms.supportedPlatforms')}</p>
                 </div>`;
             } else {
                 message = `<div class="status-info">
-                    <p>📋 <strong>Supported Platforms:</strong></p>
-                    <p>This tool works with URLs from:</p>
+                    <p>📋 <strong>${t('upload.externalImport')}:</strong></p>
+                    <p>${t('upload.platformInstructions.otherPlatforms.supported')}:</p>
                     <ul>
-                        <li><strong>🏃‍♂️ Strava:</strong> Click 3 dots (⋯) → "Export GPX"</li>
-                        <li><strong>🥾 Wikiloc:</strong> Click "File" tab → "Download GPX"</li>
-                        <li><strong>🏔️ Garmin Connect:</strong> Click "Export" → "GPX Track"</li>
-                        <li><strong>🌲 AllTrails:</strong> Click "Download GPX"</li>
-                        <li><strong>🚴 Komoot:</strong> Click "Export" → "GPX"</li>
-                        <li><strong>📁 Dropbox/Google Drive:</strong> Download GPX file</li>
-                        <li><strong>📱 Suunto/Polar/Coros:</strong> Export from app</li>
+                        <li><strong>🏃‍♂️ ${t('upload.platformInstructions.strava.title')}:</strong> ${t('upload.stravaInstructions')}</li>
+                        <li><strong>🥾 ${t('upload.platformInstructions.wikiloc.title')}:</strong> ${t('upload.wikilocInstructions')}</li>
+                        <li><strong>🏔️ Garmin Connect:</strong> ${t('upload.platformInstructions.otherPlatforms.step3')}</li>
+                        <li><strong>🌲 AllTrails:</strong> ${t('upload.platformInstructions.otherPlatforms.step3')}</li>
+                        <li><strong>🚴 Komoot:</strong> ${t('upload.platformInstructions.otherPlatforms.step3')}</li>
+                        <li><strong>📁 Dropbox/Google Drive:</strong> ${t('upload.platformInstructions.otherPlatforms.step5')}</li>
+                        <li><strong>📱 Suunto/Polar/Coros:</strong> ${t('upload.platformInstructions.otherPlatforms.step5')}</li>
                     </ul>
-                    <p class="tip">💡 <strong>Tip:</strong> Paste any activity or trail URL from these platforms.</p>
+                    <p class="tip">💡 <strong>Tip:</strong> ${t('upload.platformInstructions.otherPlatforms.step1')}</p>
                 </div>`;
             }
         }

@@ -258,4 +258,4 @@ function setupDragAndDrop(app) {
     dropZone.addEventListener('drop', (e) => {
         app.file.handleDrop(e);
     }, false);
-} 
+}

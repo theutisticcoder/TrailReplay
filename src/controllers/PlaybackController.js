@@ -1,4 +1,5 @@
 import { AnalyticsTracker } from '../utils/analytics.js';
+import { FeedbackSolicitation } from '../ui/feedbackSolicitation.js';
 
 export class PlaybackController {
     constructor(app) {
@@ -23,6 +24,9 @@ export class PlaybackController {
         const duration = this.getTrackDuration();
         AnalyticsTracker.trackPlayback('play', duration);
 
+        // Track activity for feedback solicitation
+        FeedbackSolicitation.trackActivity('play');
+
         this.app.state.isPlaying = true;
         this.app.isPlaying = true; // Legacy compatibility
         
@@ -43,6 +47,9 @@ export class PlaybackController {
         // Track playback action
         AnalyticsTracker.trackPlayback('pause');
 
+        // Track activity for feedback solicitation
+        FeedbackSolicitation.trackActivity('pause');
+
         this.app.state.isPlaying = false;
         this.app.isPlaying = false; // Legacy compatibility
         
@@ -61,6 +68,9 @@ export class PlaybackController {
     reset() {
         // Track playback action
         AnalyticsTracker.trackPlayback('reset');
+
+        // Track activity for feedback solicitation
+        FeedbackSolicitation.trackActivity('reset');
 
         this.pause();
         

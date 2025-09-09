@@ -561,7 +561,9 @@ export const translations = {
             exportVideoPrepare: "Preparing video export. Please wait...",
             exportVideoRecording: "Recording animation... Please wait until complete.",
             exportError: "Error during video export",
-            
+            urlProcessingError: "Could not process URL",
+            validUrlsFrom: "Please make sure you're using a valid URL from:",
+
             // Video export confirmation dialog
             exportVideoTitle: "Export Trail Animation Video",
             exportVideoWhatHappens: "Here's what will happen during the export:",
@@ -678,6 +680,13 @@ export const translations = {
             error: "Something went wrong. Please try again later.",
             validation: {
                 messageShort: "Message too short"
+            },
+            solicitation: {
+                title: "Enjoying TrailReplay?",
+                message: "Would you mind giving us some feedback on how to improve it further?",
+                yes: "Yes, I'd love to help!",
+                no: "Maybe later",
+                dontShowAgain: "Don't show this again"
             }
         },
         
@@ -1427,7 +1436,9 @@ export const translations = {
             exportVideoPrepare: "Preparando la exportación del video. Por favor espera...",
             exportVideoRecording: "Grabando animación... Por favor espera hasta que termine.",
             exportError: "Error durante la exportación del video",
-            
+            urlProcessingError: "No se pudo procesar la URL",
+            validUrlsFrom: "Asegúrate de que estés usando una URL válida de:",
+
             // Video export confirmation dialog
             exportVideoTitle: "Exportar Video de Animación de Ruta",
             exportVideoWhatHappens: "Esto es lo que pasará durante la exportación:",
@@ -1544,6 +1555,13 @@ export const translations = {
             error: "Algo salió mal. Intenta de nuevo más tarde.",
             validation: {
                 messageShort: "Mensaje demasiado corto"
+            },
+            solicitation: {
+                title: "¿Disfrutando TrailReplay?",
+                message: "¿Te importaría darnos algunos comentarios sobre cómo mejorarlo aún más?",
+                yes: "¡Sí, me encantaría ayudar!",
+                no: "Quizá más tarde",
+                dontShowAgain: "No mostrar de nuevo"
             }
         },
         
@@ -2294,6 +2312,8 @@ export const translations = {
                 exportVideoPrepare: "Preparant l'exportació del vídeo. Si us plau espera...",
                 exportVideoRecording: "Gravando animació... Si us plau espera fins que acabi.",
                 exportError: "Error durant l'exportació del vídeo",
+                urlProcessingError: "No s'ha pogut processar l'URL",
+                validUrlsFrom: "Assegura't que utilitzes una URL vàlida de:",
 
                 // Video export confirmation dialog
                 exportVideoTitle: "Exportar Vídeo d'Animació de Ruta",
@@ -2411,6 +2431,13 @@ export const translations = {
                 error: "Alguna cosa ha sortit malament. Intenta-ho de nou més tard.",
                 validation: {
                     messageShort: "Missatge massa curt"
+                },
+                solicitation: {
+                    title: "Gaudeixes de TrailReplay?",
+                    message: "Et faria res donar-nos alguns comentaris sobre com millorar-ho encara més?",
+                    yes: "Sí, m'encantaria ajudar!",
+                    no: "Potser més tard",
+                    dontShowAgain: "No mostrar de nou"
                 }
             },
             

@@ -1,5 +1,6 @@
 import { GPXParser } from '../gpxParser.js';
 import { AnalyticsTracker } from '../utils/analytics.js';
+import { FeedbackSolicitation } from '../ui/feedbackSolicitation.js';
 
 export class FileController {
     constructor(app) {
@@ -40,6 +41,9 @@ export class FileController {
     async handleGPXFiles(gpxFiles) {
         // Track file upload
         AnalyticsTracker.trackFileUpload(gpxFiles.length, gpxFiles.length === 1 ? 'single' : 'multiple');
+
+        // Track activity for feedback solicitation
+        FeedbackSolicitation.trackActivity('file_upload');
 
         try {
             // Show loading state
@@ -112,6 +116,9 @@ export class FileController {
     }
 
     async handleImageFiles(imageFiles) {
+        // Track activity for feedback solicitation
+        FeedbackSolicitation.trackActivity('image_upload');
+
         try {
             console.log(`Processing ${imageFiles.length} image files for annotations...`);
             

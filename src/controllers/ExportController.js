@@ -1,4 +1,5 @@
 import { t } from '../translations.js';
+import { FeedbackSolicitation } from '../ui/feedbackSolicitation.js';
 
 export class ExportController {
     constructor(app) {
@@ -8,6 +9,9 @@ export class ExportController {
     }
 
     async exportVideo(mode = 'auto-webm') {
+        // Track activity for feedback solicitation
+        FeedbackSolicitation.trackActivity('video_export');
+
         // Enhanced validation with better debugging
         console.log('Export video validation:');
         console.log('- mapRenderer exists:', !!this.app.mapRenderer);

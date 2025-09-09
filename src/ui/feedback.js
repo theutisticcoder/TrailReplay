@@ -2,6 +2,7 @@
 // Independent of app controllers; localized via existing translations system
 
 import { t, updatePageTranslations } from '../translations.js';
+import { FeedbackSolicitation } from './feedbackSolicitation.js';
 
 function getEl(id) {
     return document.getElementById(id);
@@ -105,6 +106,9 @@ export function setupFeedbackForm() {
     // Try now
     wireHandlersOnce();
     try { updatePageTranslations(); } catch (e) {}
+
+    // Initialize feedback solicitation system
+    FeedbackSolicitation.init();
 
     // Observe footer injection if link not yet present
     if (!getEl('feedbackLink')) {
