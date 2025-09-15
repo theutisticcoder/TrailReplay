@@ -4,6 +4,8 @@ import { FeedbackSolicitation } from '../ui/feedbackSolicitation.js';
 export class PlaybackController {
     constructor(app) {
         this.app = app;
+        // Prevent double-starts while waiting for tiles
+        this.isPreparingPlayback = false;
     }
 
     toggle() {
@@ -14,11 +16,18 @@ export class PlaybackController {
         }
     }
 
-    play() {
+    async play() {
         if (!this.app.currentTrackData && !this.app.journeyData) {
             console.warn('No track data loaded');
             return;
         }
+
+        // Avoid duplicate play requests while preparing
+        if (this.isPreparingPlayback || this.app.state.isPlaying) {
+            return;
+        }
+
+        this.isPreparingPlayback = true;
 
         // Track playback action
         const duration = this.getTrackDuration();
@@ -27,19 +36,45 @@ export class PlaybackController {
         // Track activity for feedback solicitation
         FeedbackSolicitation.trackActivity('play');
 
-        this.app.state.isPlaying = true;
-        this.app.isPlaying = true; // Legacy compatibility
-        
-        // Update UI
+        // Give the user immediate feedback and avoid flicker by waiting for tiles
         const playBtn = document.getElementById('playBtn');
+        const originalBtnHTML = playBtn ? playBtn.innerHTML : null;
         if (playBtn) {
-            playBtn.innerHTML = '<i class="fa fa-pause"></i> Pause';
+            playBtn.disabled = true;
+            playBtn.innerHTML = '<span>Loading…</span>';
         }
 
-        // Start the animation through map controller
-        if (this.app.map && this.app.map.mapRenderer) {
-            this.app.map.mapRenderer.startAnimation();
-            this.app.startProgressUpdate();
+        try {
+            // Wait for current viewport tiles to finish loading before starting
+            if (typeof this.app.waitForMapTilesToLoadWithTimeout === 'function') {
+                await this.app.waitForMapTilesToLoadWithTimeout(8000);
+            } else {
+                // Fallback small delay if helper is unavailable
+                await new Promise(r => setTimeout(r, 300));
+            }
+
+            // Now mark as playing and update UI
+            this.app.state.isPlaying = true;
+            this.app.isPlaying = true; // Legacy compatibility
+
+            if (playBtn) {
+                playBtn.innerHTML = '<i class="fa fa-pause"></i> Pause';
+            }
+
+            // Start the animation through map controller
+            if (this.app.map && this.app.map.mapRenderer) {
+                this.app.map.mapRenderer.startAnimation();
+                this.app.startProgressUpdate();
+            }
+        } finally {
+            if (playBtn) {
+                playBtn.disabled = false;
+                // Ensure button shows Pause if we started, otherwise restore
+                if (!this.app.state.isPlaying && originalBtnHTML) {
+                    playBtn.innerHTML = originalBtnHTML;
+                }
+            }
+            this.isPreparingPlayback = false;
         }
     }
 

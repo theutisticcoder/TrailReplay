@@ -1374,7 +1374,7 @@ export class TrailReplayApp {
             this.enableComparisonMode();
             
             console.log('🎉 Comparison mode setup complete!');
-
+            
         } catch (error) {
             console.error('❌ Error loading comparison track:', error);
             alert('Error loading comparison track: ' + error.message);
@@ -1624,8 +1624,12 @@ export class TrailReplayApp {
 
     // Track customization methods
     updateTrackName(trackNumber, name) {
-        if (!name || name.trim() === '') {
-            name = trackNumber === 1 ? 'Track 1' : 'Track 2';
+        const trimmed = (name ?? '').trim();
+        // Track 1 keeps a default; Track 2 allows empty to hide label
+        if (trackNumber === 1) {
+            name = trimmed || 'Track 1';
+        } else if (trackNumber === 2) {
+            name = trimmed; // may be empty string to indicate hidden
         }
 
         console.log(`📝 Updating track ${trackNumber} name to: "${name}"`);
@@ -1708,10 +1712,11 @@ export class TrailReplayApp {
 
         if (this.trackCustomizations) {
             if (track1NameInput) {
-                track1NameInput.value = this.trackCustomizations.track1Name || 'Track 1';
+                track1NameInput.value = (this.trackCustomizations.track1Name ?? 'Track 1') || 'Track 1';
             }
             if (track2NameInput) {
-                track2NameInput.value = this.trackCustomizations.track2Name || 'Track 2';
+                // Preserve empty string if user cleared it
+                track2NameInput.value = (this.trackCustomizations.track2Name ?? '');
             }
             if (track2ColorPicker) {
                 track2ColorPicker.value = this.trackCustomizations.track2Color || '#DC2626';

@@ -117,7 +117,7 @@ export function setupEventListeners(app) {
         if (applyTrackChangesBtn) {
             applyTrackChangesBtn.addEventListener('click', () => {
                 const track1Name = track1NameInput.value || 'Track 1';
-                const track2Name = track2NameInput.value || 'Track 2';
+                const track2Name = track2NameInput.value; // allow empty to hide
                 const track2Color = track2ColorPicker.value;
 
                 app.applyTrackCustomizations({
@@ -190,6 +190,26 @@ export function setupEventListeners(app) {
         pathColorInput.addEventListener('change', (e) => {
             app.map.setPathColor(e.target.value);
         });
+    }
+
+    // Main track letters toggle
+    const showTrackLettersToggle = byId('showTrackLetters');
+    if (showTrackLettersToggle) {
+        const track1NameWrapper = byId('track1NameWrapper');
+
+        const syncTrackLettersUI = (enabled) => {
+            app.map.setShowTrackLabel(enabled);
+            if (track1NameWrapper) {
+                track1NameWrapper.style.display = enabled ? 'block' : 'none';
+            }
+        };
+
+        showTrackLettersToggle.addEventListener('change', (e) => {
+            syncTrackLettersUI(e.target.checked);
+        });
+
+        // Ensure UI/map state matches toggle at startup
+        syncTrackLettersUI(showTrackLettersToggle.checked);
     }
 
     // Color presets

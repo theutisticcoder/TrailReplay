@@ -28,11 +28,13 @@ export class MapRenderer {
         this.showCircle = true;
         this.showMarker = false; // Disabled by default for more professional look
         this.showEndStats = true;
+        this.showTrackLabel = false; // Hide "Track 1" letters by default
         
         // Comparison mode properties
         this.comparisonTrackData = null;
         this.comparisonGpxParser = null;
         this.timeOverlap = null;
+        this.additionalComparisons = []; // extra overlapping tracks
 
         // Track colors for comparison mode
         this.mainTrackColor = '#2563EB'; // Blue for main track
@@ -85,6 +87,53 @@ export class MapRenderer {
         }, 100);
         this.preloadedTiles = new Set(); // Track preloaded tile URLs
         this.currentMapStyle = 'satellite'; // Track current style for preloading
+    }
+
+    // Safely compute interpolated time (ms since epoch) at a given progress for a track's points
+    getTimeAtProgressMs(trackData, progress) {
+        try {
+            const points = trackData?.trackPoints;
+            if (!points || points.length === 0) return null;
+            const total = points.length;
+            const target = Math.min(Math.max(progress, 0), 1) * (total - 1);
+            const i = Math.floor(target);
+            const f = target - i;
+            const p0 = points[i];
+            const p1 = points[Math.min(i + 1, total - 1)];
+            if (p0?.time && p1?.time) {
+                const t0 = p0.time.getTime();
+                const t1 = p1.time.getTime();
+                return t0 + (t1 - t0) * f;
+            }
+            // Fallback to stats window if per-point time missing
+            const start = trackData?.stats?.startTime?.getTime?.();
+            const end = trackData?.stats?.endTime?.getTime?.();
+            if (typeof start === 'number' && typeof end === 'number' && end > start) {
+                return start + (end - start) * Math.min(Math.max(progress, 0), 1);
+            }
+            return null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    // Resolve start/end timestamps (ms) for a track (from stats or point times)
+    getTrackTimeWindowMs(trackData) {
+        try {
+            const statsStart = trackData?.stats?.startTime?.getTime?.();
+            const statsEnd = trackData?.stats?.endTime?.getTime?.();
+            if (typeof statsStart === 'number' && typeof statsEnd === 'number' && statsEnd > statsStart) {
+                return { start: statsStart, end: statsEnd };
+            }
+            const pts = trackData?.trackPoints || [];
+            const times = pts.filter(p => p.time).map(p => p.time.getTime());
+            if (times.length > 0) {
+                const start = Math.min(...times);
+                const end = Math.max(...times);
+                if (end > start) return { start, end };
+            }
+        } catch (e) {}
+        return { start: null, end: null };
     }
 
     initializeMap() {
@@ -359,10 +408,11 @@ export class MapRenderer {
                 'text-offset': [0, 2.5], // Position above the marker
                 'text-allow-overlap': true,
                 'text-ignore-placement': true,
-                'text-anchor': 'center'
+                'text-anchor': 'center',
+                'visibility': this.showTrackLabel ? 'visible' : 'none'
             },
             paint: {
-                'text-color': this.mainTrackColor,
+                'text-color': this.pathColor,
                 'text-halo-color': '#FFFFFF',
                 'text-halo-width': 2
             }
@@ -544,6 +594,9 @@ export class MapRenderer {
             this.map.setPaintProperty('trail-line', 'line-color', color);
             this.map.setPaintProperty('trail-completed', 'line-color', color);
             this.map.setPaintProperty('current-position-glow', 'circle-color', color);
+            if (this.map.getLayer('main-track-label')) {
+                this.map.setPaintProperty('main-track-label', 'text-color', color);
+            }
         }
         
         // Update elevation profile progress color
@@ -554,6 +607,14 @@ export class MapRenderer {
         
         // Update elevation profile gradient colors
         this.updateElevationGradient(color);
+    }
+
+    // Toggle visibility of the main track label ("Track 1" letters)
+    setShowTrackLabel(enabled) {
+        this.showTrackLabel = !!enabled;
+        if (this.map && this.map.getLayer('main-track-label')) {
+            this.map.setLayoutProperty('main-track-label', 'visibility', this.showTrackLabel ? 'visible' : 'none');
+        }
     }
 
     updateElevationGradient(baseColor) {
@@ -851,6 +912,8 @@ export class MapRenderer {
             console.log('🔄 Calling updateComparisonPosition from animation loop');
         }
         this.updateComparisonPosition();
+        // Update any additional overlapping tracks
+        this.updateAdditionalComparisons();
 
         // Update completed trail
         const completedCoordinates = this.trackData.trackPoints
@@ -931,6 +994,18 @@ export class MapRenderer {
         if (!this.trackData || this.isAnimating || !this.segmentTimings) {
             return;
         }
+
+        // Ensure visible tiles are loaded before starting to avoid flicker
+        if (this.map && typeof this.map.loaded === 'function' && !this.map.loaded()) {
+            try {
+                await new Promise((resolve) => {
+                    const onIdle = () => resolve();
+                    this.map.once('idle', onIdle);
+                });
+            } catch (_) {
+                // Non-fatal: proceed even if waiting fails
+            }
+        }
         
         if (this.segmentTimings && this.segmentTimings.totalDuration && this.journeyElapsedTime === 0) {
             this.journeyElapsedTime = this.animationProgress * this.segmentTimings.totalDuration;
@@ -963,6 +1038,12 @@ export class MapRenderer {
         if (this.map.getLayer('trail-line')) {
             this.map.setPaintProperty('trail-line', 'line-opacity', 0);
         }
+        // Hide the full comparison line during animation - only show its completed portion
+        if (this.map.getLayer('comparison-trail-line')) {
+            this.map.setPaintProperty('comparison-trail-line', 'line-opacity', 0);
+        }
+        // Hide all overlapping tracks full lines during animation
+        this.applyOverlapLineVisibilityDuringAnimation(true);
         
         // If in follow-behind mode, disable all map interactions during animation
         if (this.cameraMode === 'followBehind') {
@@ -1021,6 +1102,12 @@ export class MapRenderer {
                     0.8
                 ]);
             }
+            // Show the full comparison line again when animation completes
+            if (this.map.getLayer('comparison-trail-line')) {
+                this.map.setPaintProperty('comparison-trail-line', 'line-opacity', 0.8);
+            }
+            // Show overlapping tracks full lines again when animation completes
+            this.applyOverlapLineVisibilityDuringAnimation(false);
             
             // Trigger stats end animation
             this.triggerStatsEndAnimation();
@@ -1082,6 +1169,12 @@ export class MapRenderer {
                 0.8
             ]);
         }
+        // Show the full comparison line again when animation stops
+        if (this.map.getLayer('comparison-trail-line')) {
+            this.map.setPaintProperty('comparison-trail-line', 'line-opacity', 0.8);
+        }
+        // Show overlapping tracks full lines when animation stops
+        this.applyOverlapLineVisibilityDuringAnimation(false);
         
         // If in follow-behind mode, allow zooming when paused
         if (this.cameraMode === 'followBehind') {
@@ -1117,6 +1210,12 @@ export class MapRenderer {
                 0.8
             ]);
         }
+        // Show the full comparison line when animation is reset
+        if (this.map.getLayer('comparison-trail-line')) {
+            this.map.setPaintProperty('comparison-trail-line', 'line-opacity', 0.8);
+        }
+        // Show overlapping tracks full lines when animation is reset
+        this.applyOverlapLineVisibilityDuringAnimation(false);
         
         this.updateCurrentPosition();
         
@@ -1519,6 +1618,19 @@ export class MapRenderer {
         const finalStatsContent = overlay.querySelector('.final-stats-content');
         if (finalStatsContent) {
             finalStatsContent.style.display = 'none';
+        }
+    }
+
+    // Toggle all overlapping tracks full-line visibility (hide during animation)
+    applyOverlapLineVisibilityDuringAnimation(hide) {
+        if (!this.additionalComparisons) return;
+        for (let i = 0; i < this.additionalComparisons.length; i++) {
+            const entry = this.additionalComparisons[i];
+            if (!entry) continue;
+            const layerId = `overlap-${entry.index}-trail-line`;
+            if (this.map.getLayer(layerId)) {
+                this.map.setPaintProperty(layerId, 'line-opacity', hide ? 0 : 0.8);
+            }
         }
     }
 
@@ -2942,7 +3054,7 @@ export class MapRenderer {
             data: {
                 type: 'Feature',
                 properties: {
-                    label: 'Track 2'
+                    label: (this.app?.trackCustomizations?.track2Name ?? 'Track 2')
                 },
                 geometry: {
                     type: 'Point',
@@ -2952,17 +3064,20 @@ export class MapRenderer {
         });
 
         try {
+            const initialLabel = (this.app?.trackCustomizations?.track2Name ?? 'Track 2');
+            const initialTrimmed = (initialLabel || '').trim();
             this.map.addLayer({
                 id: 'comparison-track-label',
                 type: 'symbol',
                 source: 'comparison-track-label',
                 layout: {
-                    'text-field': 'Track 2',
+                    'text-field': initialTrimmed || 'Track 2',
                     'text-size': 10,
                     'text-offset': [0, 3.5], // Position above the marker
                     'text-allow-overlap': true,
                     'text-ignore-placement': true,
-                    'text-anchor': 'center'
+                    'text-anchor': 'center',
+                    'visibility': initialTrimmed ? 'visible' : 'none'
                 },
                 paint: {
                     'text-color': this.comparisonTrackColor,
@@ -2977,6 +3092,114 @@ export class MapRenderer {
         }
 
         console.log('Comparison track layers added to map');
+    }
+
+    // --- Multiple overlapping tracks API ---
+    addAdditionalComparisonTrack(trackData, { index, name, color, overlap } = {}) {
+        console.log('🗺️ addAdditionalComparisonTrack called', { index, name, color, hasOverlap: !!overlap?.hasOverlap });
+        try {
+            if (!trackData || !trackData.trackPoints || trackData.trackPoints.length === 0) return;
+            const idx = typeof index === 'number' ? index : (this.additionalComparisons?.length || 0);
+            const idBase = `overlap-${idx}`;
+
+            if (!this.additionalComparisons) this.additionalComparisons = [];
+            const gpxParser = new GPXParser();
+            gpxParser.trackPoints = trackData.trackPoints;
+            gpxParser.stats = trackData.stats;
+            const icons = ['🏃', '🚴', '🥾', '🏃‍♀️', '🚴‍♀️', '🚶', '🏇', '⛹️'];
+            const entry = { index: idx, name: name || `Team ${idx + 1}`, color: color || '#3B82F6', gpxParser, trackData, overlap, icon: icons[idx % icons.length] };
+            this.additionalComparisons[idx] = entry;
+            console.log('🗺️ Overlap entry stored', entry);
+
+            const coords = trackData.trackPoints.map(p => [p.lon, p.lat]);
+            // Full trail
+            this.map.addSource(`${idBase}-trail`, { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: coords } } });
+            this.map.addLayer({ id: `${idBase}-trail-line`, type: 'line', source: `${idBase}-trail`, layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': entry.color, 'line-width': 3, 'line-opacity': 0.8 } });
+
+            // Completed trail
+            this.map.addSource(`${idBase}-trail-completed`, { type: 'geojson', data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [] } } });
+            this.map.addLayer({ id: `${idBase}-trail-completed`, type: 'line', source: `${idBase}-trail-completed`, layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': entry.color, 'line-width': 4, 'line-opacity': 1.0 } });
+
+            // Position + glow
+            const start = coords[0] || [0, 0];
+            this.map.addSource(`${idBase}-position`, { type: 'geojson', data: { type: 'Feature', geometry: { type: 'Point', coordinates: start }, properties: {} } });
+            this.map.addLayer({ id: `${idBase}-position-glow`, type: 'circle', source: `${idBase}-position`, paint: { 'circle-radius': 15 * this.markerSize, 'circle-color': entry.color, 'circle-opacity': 0.3, 'circle-blur': 1 } });
+
+            // Label
+            this.map.addSource(`${idBase}-label`, { type: 'geojson', data: { type: 'Feature', properties: { label: entry.name }, geometry: { type: 'Point', coordinates: start } } });
+            this.map.addLayer({ id: `${idBase}-label`, type: 'symbol', source: `${idBase}-label`, layout: { 'text-field': entry.name || '', 'text-size': 10, 'text-offset': [0, 3.5], 'text-allow-overlap': true, 'text-ignore-placement': true, 'text-anchor': 'center', 'visibility': (entry.name || '').trim() ? 'visible' : 'none' }, paint: { 'text-color': entry.color, 'text-halo-color': '#FFFFFF', 'text-halo-width': 2 } });
+            console.log('🗺️ Overlap layers added for', idBase);
+
+            // Activity icon for this overlapping track
+            this.map.addSource(`${idBase}-activity-icon`, {
+                type: 'geojson',
+                data: {
+                    type: 'Feature',
+                    properties: { icon: entry.icon },
+                    geometry: { type: 'Point', coordinates: start }
+                }
+            });
+            try {
+                this.map.addLayer({
+                    id: `${idBase}-activity-icon`,
+                    type: 'symbol',
+                    source: `${idBase}-activity-icon`,
+                    layout: {
+                        'text-field': entry.icon,
+                        'text-size': 18,
+                        'text-allow-overlap': true,
+                        'text-ignore-placement': true,
+                        'text-anchor': 'center'
+                    },
+                    paint: {
+                        'text-color': '#FFFFFF',
+                        'text-halo-color': '#000000',
+                        'text-halo-width': 1
+                    }
+                });
+            } catch (e) {
+                console.warn('Failed to add overlap activity icon layer', e);
+            }
+        } catch (e) {
+            console.warn('Failed to add overlapping track layers:', e);
+        }
+    }
+
+    updateAdditionalComparisonName(index, name) {
+        const entry = this.additionalComparisons?.[index];
+        if (!entry) return;
+        entry.name = name;
+        const base = `overlap-${index}`;
+        const trimmed = (name || '').trim();
+        if (this.map.getLayer(`${base}-label`)) {
+            this.map.setLayoutProperty(`${base}-label`, 'visibility', trimmed ? 'visible' : 'none');
+            if (trimmed) this.map.setLayoutProperty(`${base}-label`, 'text-field', trimmed);
+        }
+        const src = this.map.getSource(`${base}-label`);
+        if (src) {
+            const data = src._data;
+            if (data?.features?.[0]) { data.features[0].properties.label = trimmed; src.setData(data); }
+        }
+    }
+
+    updateAdditionalComparisonColor(index, color) {
+        const entry = this.additionalComparisons?.[index];
+        if (!entry) return;
+        entry.color = color;
+        const base = `overlap-${index}`;
+        if (this.map.getLayer(`${base}-trail-line`)) this.map.setPaintProperty(`${base}-trail-line`, 'line-color', color);
+        if (this.map.getLayer(`${base}-trail-completed`)) this.map.setPaintProperty(`${base}-trail-completed`, 'line-color', color);
+        if (this.map.getLayer(`${base}-position-glow`)) this.map.setPaintProperty(`${base}-position-glow`, 'circle-color', color);
+        if (this.map.getLayer(`${base}-label`)) this.map.setPaintProperty(`${base}-label`, 'text-color', color);
+    }
+
+    removeAdditionalComparisonTrack(index) {
+        const base = `overlap-${index}`;
+        const layers = [`${base}-label`, `${base}-activity-icon`, `${base}-position-glow`, `${base}-trail-completed`, `${base}-trail-line`];
+        const sources = [`${base}-label`, `${base}-activity-icon`, `${base}-position`, `${base}-trail-completed`, `${base}-trail`];
+        layers.forEach(id => { try { if (this.map.getLayer(id)) this.map.removeLayer(id); } catch(e){} });
+        sources.forEach(id => { try { if (this.map.getSource(id)) this.map.removeSource(id); } catch(e){} });
+        if (this.additionalComparisons) this.additionalComparisons[index] = null;
     }
 
     removeComparisonTrack() {
@@ -3141,7 +3364,8 @@ export class MapRenderer {
                 });
             }
 
-            // Track label
+            // Track label: update position and hide/show based on current name
+            const labelText = (this.app?.trackCustomizations?.track2Name ?? '').trim();
             if (this.map.getSource('comparison-track-label')) {
                 this.map.getSource('comparison-track-label').setData({
                     type: 'Feature',
@@ -3150,9 +3374,17 @@ export class MapRenderer {
                         coordinates: [comparisonPoint.lon, comparisonPoint.lat]
                     },
                     properties: {
-                        label: 'Track 2'
+                        label: labelText
                     }
                 });
+            }
+            if (this.map.getLayer('comparison-track-label')) {
+                if (!labelText) {
+                    this.map.setLayoutProperty('comparison-track-label', 'visibility', 'none');
+                } else {
+                    this.map.setLayoutProperty('comparison-track-label', 'visibility', 'visible');
+                    this.map.setLayoutProperty('comparison-track-label', 'text-field', labelText);
+                }
             }
 
             // Completed trail
@@ -3181,67 +3413,84 @@ export class MapRenderer {
         }
     }
 
+    updateAdditionalComparisons() {
+        if (!this.additionalComparisons || this.additionalComparisons.length === 0) return;
+        const mainProgress = this.animationProgress;
+        const currentTimeMs = this.getTimeAtProgressMs(this.trackData, mainProgress);
+        for (let i = 0; i < this.additionalComparisons.length; i++) {
+            try {
+                const entry = this.additionalComparisons[i];
+                if (!entry) continue;
+                const base = `overlap-${entry.index}`;
+                const parser = entry.gpxParser;
+                // Determine per-track progress from its own time window (independent pacing)
+                let progress = mainProgress;
+                if (typeof currentTimeMs === 'number') {
+                    const { start, end } = this.getTrackTimeWindowMs(entry.trackData);
+                    if (typeof start === 'number' && typeof end === 'number' && end > start) {
+                        progress = Math.max(0, Math.min(1, (currentTimeMs - start) / (end - start)));
+                    }
+                }
+                const pt = parser.getInterpolatedPoint(progress);
+                if (!pt || isNaN(pt.lat) || isNaN(pt.lon)) continue;
+
+                // Update position
+                const posSrc = this.map.getSource(`${base}-position`);
+                if (posSrc) {
+                    posSrc.setData({ type: 'Feature', geometry: { type: 'Point', coordinates: [pt.lon, pt.lat] }, properties: {} });
+                }
+
+                // Update activity icon position
+                const iconSrc = this.map.getSource(`${base}-activity-icon`);
+                if (iconSrc) {
+                    iconSrc.setData({ type: 'Feature', properties: { icon: entry.icon || '🏃' }, geometry: { type: 'Point', coordinates: [pt.lon, pt.lat] } });
+                }
+
+                // Update completed path
+                const total = entry.trackData.trackPoints.length;
+                const currentIndex = Math.floor(progress * (total - 1));
+                const completedCoords = entry.trackData.trackPoints.slice(0, currentIndex + 1).map(p => [p.lon, p.lat]);
+                if (completedCoords.length > 1) completedCoords.push([pt.lon, pt.lat]);
+                const compSrc = this.map.getSource(`${base}-trail-completed`);
+                if (compSrc) {
+                    compSrc.setData({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: completedCoords } });
+                }
+
+                // Update label
+                const lblSrc = this.map.getSource(`${base}-label`);
+                if (lblSrc) {
+                    const labelText = (entry.name || '').trim();
+                    lblSrc.setData({ type: 'Feature', properties: { label: labelText }, geometry: { type: 'Point', coordinates: [pt.lon, pt.lat] } });
+                    if (this.map.getLayer(`${base}-label`)) {
+                        this.map.setLayoutProperty(`${base}-label`, 'visibility', labelText ? 'visible' : 'none');
+                        if (labelText) this.map.setLayoutProperty(`${base}-label`, 'text-field', labelText);
+                    }
+                }
+            } catch (err) {
+                console.warn('⚠️ updateAdditionalComparisons error for index', i, err);
+            }
+        }
+    }
+
     // Calculate comparison track progress based on time synchronization
     calculateComparisonProgress() {
-        // Debug: Method is being called
-        if (this.animationProgress < 0.01) {
-            console.log('🔄 calculateComparisonProgress called at animation start');
-        }
-
-        if (!this.timeOverlap || !this.timeOverlap.hasOverlap) {
-            console.log('🎯 No time overlap - using main progress');
-            return this.animationProgress;
-        }
-
+        // Use main track's interpolated timestamp
         const mainTrackData = this.trackData;
-        if (!mainTrackData || !mainTrackData.trackPoints || mainTrackData.trackPoints.length === 0) {
-            console.log('🎯 No main track data - using main progress');
+        if (!this.timeOverlap || !this.timeOverlap.hasOverlap || !mainTrackData?.trackPoints?.length) {
             return this.animationProgress;
         }
 
-        // Get current main track point to find its timestamp
-        const mainPoint = this.gpxParser.getInterpolatedPoint(this.animationProgress);
-        if (!mainPoint || !mainPoint.time) {
-            console.log('🎯 No main point time - using main progress');
+        const currentTime = this.getTimeAtProgressMs(mainTrackData, this.animationProgress);
+        if (typeof currentTime !== 'number') {
             return this.animationProgress;
         }
 
-        const currentTime = mainPoint.time.getTime();
-        console.log('🎯 Main track time:', new Date(currentTime).toLocaleTimeString());
-
-        // Check if current time is within the overlap period
-        const overlapStart = this.timeOverlap.overlapStart.getTime();
-        const overlapEnd = this.timeOverlap.overlapEnd.getTime();
-
-        console.log('🎯 Overlap range:', new Date(overlapStart).toLocaleTimeString(), 'to', new Date(overlapEnd).toLocaleTimeString());
-
-        if (currentTime < overlapStart || currentTime > overlapEnd) {
-            console.log('🎯 Outside overlap period - using main progress');
-            // Outside overlap period - use standard progress
-            return this.animationProgress;
-        }
-
-        // Calculate progress for comparison track based on time
         const compStart = this.timeOverlap.compStart.getTime();
         const compEnd = this.timeOverlap.compEnd.getTime();
         const compDuration = compEnd - compStart;
+        if (compDuration <= 0) return 0;
 
-        console.log('🎯 Comparison track range:', new Date(compStart).toLocaleTimeString(), 'to', new Date(compEnd).toLocaleTimeString());
-        console.log('🎯 Comparison track duration:', compDuration / 1000 / 60, 'minutes');
-
-        if (compDuration <= 0) {
-            console.log('🎯 Invalid comparison duration');
-            return 0;
-        }
-
-        // Calculate what progress the comparison track should be at for this timestamp
-        const timeIntoCompTrack = currentTime - compStart;
-        const comparisonProgress = Math.max(0, Math.min(1, timeIntoCompTrack / compDuration));
-
-        console.log('🎯 Time into comparison track:', timeIntoCompTrack / 1000 / 60, 'minutes');
-        console.log('🎯 Comparison progress calculated:', comparisonProgress);
-
-        return comparisonProgress;
+        return Math.max(0, Math.min(1, (currentTime - compStart) / compDuration));
     }
 
     // Calculate speed comparison between main and comparison tracks
@@ -3403,34 +3652,40 @@ export class MapRenderer {
 
     // Update track label on the map
     updateTrackLabel(trackNumber, label) {
-        console.log(`🏷️ Updating track ${trackNumber} label to: "${label}"`);
+        const safeLabel = typeof label === 'string' ? label : '';
+        console.log(`🏷️ Updating track ${trackNumber} label to: "${safeLabel}"`);
 
         try {
             if (trackNumber === 1) {
                 // Update main track label
                 if (this.map.getLayer('main-track-label')) {
-                    this.map.setLayoutProperty('main-track-label', 'text-field', label);
+                    this.map.setLayoutProperty('main-track-label', 'text-field', safeLabel || 'Track 1');
                 }
                 if (this.map.getSource('main-track-label')) {
-                    // Update the source data to include the new label
                     const source = this.map.getSource('main-track-label');
                     const currentData = source._data;
                     if (currentData && currentData.features && currentData.features[0]) {
-                        currentData.features[0].properties.label = label;
+                        currentData.features[0].properties.label = safeLabel || 'Track 1';
                         source.setData(currentData);
                     }
                 }
             } else if (trackNumber === 2) {
-                // Update comparison track label
-                if (this.map.getLayer('comparison-track-label')) {
-                    this.map.setLayoutProperty('comparison-track-label', 'text-field', label);
+                const trimmed = safeLabel.trim();
+                const layerId = 'comparison-track-label';
+                // Hide or show based on label content
+                if (this.map.getLayer(layerId)) {
+                    if (!trimmed) {
+                        this.map.setLayoutProperty(layerId, 'visibility', 'none');
+                    } else {
+                        this.map.setLayoutProperty(layerId, 'visibility', 'visible');
+                        this.map.setLayoutProperty(layerId, 'text-field', trimmed);
+                    }
                 }
-                if (this.map.getSource('comparison-track-label')) {
-                    // Update the source data to include the new label
-                    const source = this.map.getSource('comparison-track-label');
+                if (this.map.getSource(layerId)) {
+                    const source = this.map.getSource(layerId);
                     const currentData = source._data;
                     if (currentData && currentData.features && currentData.features[0]) {
-                        currentData.features[0].properties.label = label;
+                        currentData.features[0].properties.label = trimmed;
                         source.setData(currentData);
                     }
                 }

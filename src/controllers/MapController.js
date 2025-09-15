@@ -95,6 +95,12 @@ export class MapController {
         }
     }
 
+    setShowTrackLabel(enabled) {
+        if (this.mapRenderer && this.mapRenderer.setShowTrackLabel) {
+            this.mapRenderer.setShowTrackLabel(enabled);
+        }
+    }
+
     setCameraMode(mode) {
         console.log('🎬 MapController.setCameraMode called with:', mode);
         if (this.mapRenderer) {

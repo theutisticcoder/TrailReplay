@@ -402,6 +402,19 @@
                                 <span class="color-preset" data-color="#ffe66d" title="Yellow">🟡</span>
                                 <span class="color-preset" data-color="#dc3545" title="Red">🔴</span>
                             </div>
+                            <!-- Main Track Letters (under color picker) -->
+                            <div class="track-letters-group" style="margin-top: 8px;">
+                                <label data-i18n="controls.track1Letters">Track Letters</label>
+                                <div style="display: flex; gap: 8px; align-items: center;">
+                                    <div id="track1NameWrapper" style="flex: 1; display: none;">
+                                        <input type="text" id="track1Name" value="Track 1" placeholder="Track 1" style="width: 100%; padding: 4px 6px; font-size: 11px; border: 1px solid #ccc; border-radius: 3px;" data-i18n-placeholder="controls.comparisonNamesTrack1Placeholder">
+                                    </div>
+                                    <div class="toggle-switch" title="Show letters on main track" data-i18n-title="controls.showTrackLettersTitle">
+                                        <input type="checkbox" id="showTrackLetters">
+                                        <label for="showTrackLetters" class="toggle-slider"></label>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Marker Controls Section -->
@@ -582,28 +595,24 @@
                                     <span data-i18n="controls.comparisonTracksTrack1">• Track 1: Main track (blue)</span><br>
                                     <span data-i18n="controls.comparisonTracksTrack2">• Track 2: Comparison track</span>
                                 </div>
-                                <label data-i18n="controls.secondTrack">Second Track</label>
-                                <input type="file" id="comparisonFile" accept=".gpx" class="file-input">
-                                <button class="upload-btn" onclick="document.getElementById('comparisonFile').click()">
-                                    <span data-i18n="controls.selectTrack">Select GPX File</span>
-                                </button>
+                                <!-- Track file input -->
+                                <div class="control-group">
+                                    <label data-i18n="controls.secondTrack">Second Track</label>
+                                    <input type="file" id="comparisonFile" accept=".gpx" class="file-input">
+                                    <button class="upload-btn" onclick="document.getElementById('comparisonFile').click()">
+                                        <span data-i18n="controls.selectTrack">Select GPX File</span>
+                                    </button>
+                                </div>
 
-                                <!-- Track Names -->
-                                <div style="margin-top: 8px;">
-                                    <label style="font-size: 11px; color: #666; display: block; margin-bottom: 4px;" data-i18n="controls.comparisonNamesTitle">Track Names</label>
-                                    <div style="display: flex; gap: 6px;">
-                                        <div style="flex: 1;">
-                                            <input type="text" id="track1Name" value="Track 1" placeholder="Track 1" style="width: 100%; padding: 4px 6px; font-size: 11px; border: 1px solid #ccc; border-radius: 3px;" data-i18n-placeholder="controls.comparisonNamesTrack1Placeholder">
-                                        </div>
-                                        <div style="flex: 1;">
-                                            <input type="text" id="track2Name" value="Track 2" placeholder="Track 2" style="width: 100%; padding: 4px 6px; font-size: 11px; border: 1px solid #ccc; border-radius: 3px;" data-i18n-placeholder="controls.comparisonNamesTrack2Placeholder">
-                                        </div>
-                                    </div>
+                                <!-- Track 2 Name -->
+                                <div class="control-group">
+                                    <label data-i18n="controls.track2Name">Track 2 Name</label>
+                                    <input type="text" id="track2Name" value="Track 2" placeholder="Track 2" style="width: 100%; padding: 4px 6px; font-size: 11px; border: 1px solid #ccc; border-radius: 3px;" data-i18n-placeholder="controls.comparisonNamesTrack2Placeholder">
                                 </div>
 
                                 <!-- Track 2 Color -->
-                                <div style="margin-top: 8px;">
-                                    <label style="font-size: 11px; color: #666; display: block; margin-bottom: 4px;" data-i18n="controls.comparisonColorTitle">Track 2 Color</label>
+                                <div class="control-group">
+                                    <label data-i18n="controls.comparisonColorTitle">Track 2 Color</label>
                                     <div style="display: flex; gap: 6px; align-items: center;">
                                         <input type="color" id="track2Color" value="#DC2626" style="width: 36px; height: 24px; border: 1px solid #ccc; border-radius: 3px; cursor: pointer;">
                                         <input type="text" id="track2ColorHex" value="#DC2626" style="flex: 1; padding: 4px 6px; font-size: 11px; border: 1px solid #ccc; border-radius: 3px;" readonly>
