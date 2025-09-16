@@ -25,7 +25,7 @@ const FOLLOW_BEHIND_SETTINGS = {
     ZOOM_OUT_DELAY: 2000,       // Delay before zoom-out starts (ms) - increased for stats visibility
     
     // Camera movement smoothing
-    CAMERA_UPDATE_DURATION: 100,  // Duration for smooth camera updates during animation (ms)
+    CAMERA_UPDATE_DURATION: 100,  // Base duration for updates; increased in 3D for stability
     BEARING_SMOOTHING: 0.01,      // Bearing smoothing factor (0-1, lower = smoother)
     BEARING_LOOK_AHEAD: 0.05,     // How far ahead to look for bearing calculation
     
@@ -56,6 +56,14 @@ export class FollowBehindCamera {
         this.currentPreset = 'MEDIUM';
         this.lastBearing = 0;
         this.targetBearing = 0;
+    }
+
+    /**
+     * Camera update duration, scaled for 3D to reduce tile churn
+     */
+    getCameraUpdateDuration() {
+        const base = FOLLOW_BEHIND_SETTINGS.CAMERA_UPDATE_DURATION;
+        return this.mapRenderer.is3DMode ? Math.round(base * 1.6) : base;
     }
     
     /**
@@ -161,8 +169,17 @@ export class FollowBehindCamera {
 
         console.log(`🎬 Starting smooth zoom from current zoom ${currentZoom.toFixed(1)} to ${preset.name}: zoom=${adjustedZoom.toFixed(1)}, pitch=${preset.PITCH}° (${FOLLOW_BEHIND_SETTINGS.CINEMATIC_DURATION/1000}s)`);
 
+        // Proactively preload tiles for the target view to avoid white flashes
+        try {
+            const pitch = this.map.getPitch();
+            const bufferScale = 1.3 + Math.min(pitch, 60) / 120; // ~1.3..1.8
+            this.mapRenderer.preloadTilesAtPosition(startPoint.lat, startPoint.lon, adjustedZoom, this.mapRenderer.currentMapStyle, { bufferScale });
+        } catch (_) {}
+
         // Return promise that resolves when zoom-in completes
         return new Promise((resolve) => {
+            // Give the preloading a short head start
+            setTimeout(() => {
             // Smooth transition from current position to animation position with elevation-adjusted zoom
             this.map.easeTo({
                 center: [startPoint.lon, startPoint.lat],
@@ -172,6 +189,7 @@ export class FollowBehindCamera {
                 duration: FOLLOW_BEHIND_SETTINGS.CINEMATIC_DURATION,
                 easing: (t) => 1 - Math.pow(1 - t, 3) // Smooth ease-out cubic
             });
+            }, 120);
 
             // Resolve when zoom-in completes
             setTimeout(() => {
@@ -218,13 +236,20 @@ export class FollowBehindCamera {
         // Normalize bearing to 0-360 range
         smoothedBearing = ((smoothedBearing % 360) + 360) % 360;
         
+        // Preload upcoming tiles before moving the camera
+        try {
+            const pitch = this.map.getPitch();
+            const bufferScale = 1.25 + Math.min(pitch, 60) / 120; // scale with pitch for horizon coverage
+            this.mapRenderer.preloadTilesAtPosition(currentPoint.lat, currentPoint.lon, preset.ZOOM, this.mapRenderer.currentMapStyle, { bufferScale });
+        } catch (_) {}
+
         // Use smooth easeTo instead of instant jumpTo for smoother movement
         this.map.easeTo({
             center: [currentPoint.lon, currentPoint.lat],
             zoom: preset.ZOOM,
             pitch: preset.PITCH,
             bearing: smoothedBearing,
-            duration: FOLLOW_BEHIND_SETTINGS.CAMERA_UPDATE_DURATION,
+            duration: this.getCameraUpdateDuration(),
             easing: (t) => t * (2 - t) // Smooth easing function (ease-out)
         });
         
@@ -614,6 +639,13 @@ export class FollowBehindCamera {
         this.lastBearing = bearing;
 
         console.log(`🎬 Video export: zooming from overview (zoom 5) to ${preset.name}: zoom=${adjustedZoom.toFixed(1)}, pitch=${preset.PITCH}° (${FOLLOW_BEHIND_SETTINGS.CINEMATIC_DURATION/1000}s)`);
+
+        // Preload tiles for target zoom and DEM if needed
+        try {
+            const pitch = this.map.getPitch();
+            const bufferScale = 1.3 + Math.min(pitch, 60) / 120;
+            this.mapRenderer.preloadTilesAtPosition(startPoint.lat, startPoint.lon, adjustedZoom, this.mapRenderer.currentMapStyle, { bufferScale });
+        } catch (_) {}
 
         // Return promise that resolves when zoom-in completes
         return new Promise((resolve) => {

@@ -46,8 +46,7 @@ export class FileController {
         FeedbackSolicitation.trackActivity('file_upload');
 
         try {
-            // Show loading state
-            this.app.showLoading(true);
+            // No global loading overlay; proceed immediately
             
             if (gpxFiles.length === 1) {
                 // Single file - load directly
@@ -173,8 +172,7 @@ export class FileController {
             this.app.showMessage?.('Error processing comparison files: ' + error.message, 'error');
         }
 
-        // Hide loading indicator
-        this.app.showLoading(false);
+        // No global loading overlay to hide
     }
 
     async handleImageFiles(imageFiles) {

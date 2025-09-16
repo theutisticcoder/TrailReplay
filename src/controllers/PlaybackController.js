@@ -36,46 +36,22 @@ export class PlaybackController {
         // Track activity for feedback solicitation
         FeedbackSolicitation.trackActivity('play');
 
-        // Give the user immediate feedback and avoid flicker by waiting for tiles
+        // Immediately mark as playing and update UI (no tile loading wait)
+        this.app.state.isPlaying = true;
+        this.app.isPlaying = true; // Legacy compatibility
+
         const playBtn = document.getElementById('playBtn');
-        const originalBtnHTML = playBtn ? playBtn.innerHTML : null;
         if (playBtn) {
-            playBtn.disabled = true;
-            playBtn.innerHTML = '<span>Loading…</span>';
+            playBtn.innerHTML = '<i class="fa fa-pause"></i> Pause';
         }
 
-        try {
-            // Wait for current viewport tiles to finish loading before starting
-            if (typeof this.app.waitForMapTilesToLoadWithTimeout === 'function') {
-                await this.app.waitForMapTilesToLoadWithTimeout(8000);
-            } else {
-                // Fallback small delay if helper is unavailable
-                await new Promise(r => setTimeout(r, 300));
-            }
-
-            // Now mark as playing and update UI
-            this.app.state.isPlaying = true;
-            this.app.isPlaying = true; // Legacy compatibility
-
-            if (playBtn) {
-                playBtn.innerHTML = '<i class="fa fa-pause"></i> Pause';
-            }
-
-            // Start the animation through map controller
-            if (this.app.map && this.app.map.mapRenderer) {
-                this.app.map.mapRenderer.startAnimation();
-                this.app.startProgressUpdate();
-            }
-        } finally {
-            if (playBtn) {
-                playBtn.disabled = false;
-                // Ensure button shows Pause if we started, otherwise restore
-                if (!this.app.state.isPlaying && originalBtnHTML) {
-                    playBtn.innerHTML = originalBtnHTML;
-                }
-            }
-            this.isPreparingPlayback = false;
+        // Start the animation through map controller right away
+        if (this.app.map && this.app.map.mapRenderer) {
+            this.app.map.mapRenderer.startAnimation();
+            this.app.startProgressUpdate();
         }
+
+        this.isPreparingPlayback = false;
     }
 
     pause() {

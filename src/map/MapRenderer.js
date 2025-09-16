@@ -213,11 +213,23 @@ export class MapRenderer {
             bearing: 0,
             maxPitch: 85,
             antialias: true,
-            preserveDrawingBuffer: true
+            preserveDrawingBuffer: true,
+            // Improve cache behavior to reduce tile thrash across zooms
+            maxTileCacheZoomLevels: 10,
+            // Keep label fade minimal; raster fade is set per-layer below
+            fadeDuration: 150
         });
 
         this.map.on('load', () => {
             this.setupMapLayers();
+            // Reduce raster cross-fade to avoid visible washout during fast moves
+            try {
+                ['background','opentopomap','street','carto-labels'].forEach(layerId => {
+                    if (this.map.getLayer(layerId)) {
+                        this.map.setPaintProperty(layerId, 'raster-fade-duration', 100);
+                    }
+                });
+            } catch (_) {}
             // Allow zooming before animation starts in follow-behind mode
             if (this.cameraMode === 'followBehind' && !this.isAnimating) {
                 this.enableZoomOnlyInteractions();
@@ -1149,7 +1161,9 @@ export class MapRenderer {
                 lookAheadZoom = this.followBehindCamera.getCurrentPresetSettings().ZOOM || 14;
             }
             if (lookAheadPoint && lookAheadPoint.lat && lookAheadPoint.lon) {
-                this.preloadTilesAtPosition(lookAheadPoint.lat, lookAheadPoint.lon, Math.round(lookAheadZoom), this.currentMapStyle);
+                const pitch = this.map.getPitch ? this.map.getPitch() : 0;
+                const bufferScale = 1.25 + Math.min(pitch, 60) / 120; // widen with pitch
+                this.preloadTilesAtPosition(lookAheadPoint.lat, lookAheadPoint.lon, Math.round(lookAheadZoom), this.currentMapStyle, { bufferScale });
             }
         }
 
@@ -1918,35 +1932,54 @@ export class MapRenderer {
     // 3D Terrain functionality
     enable3DTerrain() {
         if (!this.map || this.is3DMode) return;
-        
-        this.is3DMode = true;
-        
+
+        const wasAnimating = this.isAnimating;
+        const currentProgress = this.animationProgress;
+
         try {
-            const wasAnimating = this.isAnimating;
-            const currentProgress = this.animationProgress;
-            
-            this.map.easeTo({
-                pitch: 30,
-                duration: 500
-            });
-            
-            setTimeout(() => {
-                try {
-                    this.setupTerrainSourceMinimal();
-                    
-                    if (wasAnimating && currentProgress !== undefined) {
-                        setTimeout(() => {
-                            this.setAnimationProgress(currentProgress);
-                            if (wasAnimating) {
-                                this.startAnimation();
-                            }
-                        }, 100);
-                    }
-                } catch (terrainError) {
-                    console.warn('Could not add terrain elevation:', terrainError);
-                }
-            }, 600);
-            
+            // 1) Ensure DEM source exists
+            if (!this.map.getSource('terrain-dem')) {
+                this.addTerrainSource(this.currentTerrainSource);
+            }
+
+            // 2) Apply terrain immediately
+            try {
+                this.map.setTerrain({ source: 'terrain-dem', exaggeration: 0.8 });
+            } catch (terrainError) {
+                console.warn('Could not apply terrain elevation immediately:', terrainError);
+            }
+
+            // 3) Preload DEM around current center at current zoom to reduce flashes
+            try {
+                const center = this.map.getCenter();
+                const z = Math.round(this.map.getZoom());
+                this.preloadTerrainTilesAtPosition(center.lat, center.lng, z);
+            } catch (_) {}
+
+            // 4) After the map goes idle (or short delay), pitch up
+            const pitchUp = () => {
+                this.map.easeTo({ pitch: 30, duration: 500 });
+            };
+
+            // Prefer idle, but fall back to timeout if it doesn't fire soon
+            let pitched = false;
+            const onIdle = () => { if (!pitched) { pitched = true; pitchUp(); } };
+            try {
+                this.map.once('idle', onIdle);
+                setTimeout(() => { if (!pitched) { pitched = true; pitchUp(); } }, 400);
+            } catch (_) {
+                setTimeout(pitchUp, 300);
+            }
+
+            this.is3DMode = true;
+
+            // Restore animation state if needed
+            if (wasAnimating && currentProgress !== undefined) {
+                setTimeout(() => {
+                    this.setAnimationProgress(currentProgress);
+                    if (wasAnimating) this.startAnimation();
+                }, 200);
+            }
         } catch (error) {
             console.error('Error enabling 3D terrain:', error);
             this.is3DMode = false;
@@ -2775,56 +2808,121 @@ export class MapRenderer {
     /**
      * Preload all tiles covering the viewport at a given lat/lon/zoom for the current style
      */
-    preloadTilesAtPosition(lat, lon, zoom, style) {
-        // Determine tile URL template for the style
-        const tileTemplates = {
-            satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-            opentopomap: 'https://a.tile.opentopomap.org/{z}/{x}/{y}.png',
-            'opensnowmap-pistes': 'https://tiles.opensnowmap.org/pistes/{z}/{x}/{y}.png',
-            street: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-        };
-        const template = tileTemplates[style] || tileTemplates['satellite'];
-        if (!template) return;
-
-        // Get viewport bounds in lat/lon
+    preloadTilesAtPosition(lat, lon, zoom, style, options = {}) {
         if (!this.map) return;
-        const map = this.map;
-        const canvas = map.getCanvas();
-        const width = canvas.width;
-        const height = canvas.height;
+        const bufferScale = options.bufferScale || 1.25; // preload slightly beyond viewport
+        const z = Math.max(0, Math.round(zoom));
 
-        // Calculate bounds in lat/lon for the viewport at the given center/zoom
-        // Use maplibre's projection utilities
-        const center = [lon, lat];
-        const originalZoom = map.getZoom();
-        const originalCenter = map.getCenter();
-        // Project corners at the given zoom/center
-        const project = (lng, lat) => map.project([lng, lat]);
-        const unproject = (x, y) => map.unproject([x, y]);
-        // Calculate pixel offsets for corners
-        const halfW = width / 2;
-        const halfH = height / 2;
-        // Center in screen pixels
-        const centerPx = map.project(center);
-        // Corners in screen pixels
-        const nwPx = { x: centerPx.x - halfW, y: centerPx.y - halfH };
-        const sePx = { x: centerPx.x + halfW, y: centerPx.y + halfH };
-        // Unproject to lat/lon
-        const nw = map.unproject([nwPx.x, nwPx.y]);
-        const se = map.unproject([sePx.x, sePx.y]);
-        // Calculate tile x/y ranges
-        const minX = MapUtils.lngToTile(nw.lng, zoom);
-        const maxX = MapUtils.lngToTile(se.lng, zoom);
-        const minY = MapUtils.latToTile(se.lat, zoom);
-        const maxY = MapUtils.latToTile(nw.lat, zoom);
-        // Preload all tiles in the range
-        for (let x = minX; x <= maxX; x++) {
-            for (let y = minY; y <= maxY; y++) {
-                const url = template.replace('{z}', zoom).replace('{x}', x).replace('{y}', y);
-                if (!this.preloadedTiles.has(url)) {
-                    this.preloadedTiles.add(url);
-                    const img = new window.Image();
-                    img.src = url;
+        // Determine tile URL templates for the style
+        const tileTemplates = {
+            satellite: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+            opentopomap: ['https://a.tile.opentopomap.org/{z}/{x}/{y}.png'],
+            street: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+            hybrid: [
+                'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                'https://cartodb-basemaps-a.global.ssl.fastly.net/light_only_labels/{z}/{x}/{y}.png'
+            ]
+        };
+        const templates = tileTemplates[style] || tileTemplates['satellite'];
+
+        // Viewport size in CSS pixels (not device pixels)
+        const canvas = this.map.getCanvas();
+        const viewportWidth = canvas.clientWidth || canvas.width / window.devicePixelRatio;
+        const viewportHeight = canvas.clientHeight || canvas.height / window.devicePixelRatio;
+        const halfW = (viewportWidth / 2) * bufferScale;
+        const halfH = (viewportHeight / 2) * bufferScale;
+
+        // Convert center to world pixel coordinates at zoom z
+        const n = 256 * Math.pow(2, z);
+        const lonNorm = (lon + 180) / 360;
+        const sinLat = Math.sin(lat * Math.PI / 180);
+        const xPx = lonNorm * n;
+        const yPx = (0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI)) * n;
+
+        const minXpx = xPx - halfW;
+        const maxXpx = xPx + halfW;
+        const minYpx = yPx - halfH;
+        const maxYpx = yPx + halfH;
+
+        const minX = Math.max(0, Math.floor(minXpx / 256));
+        const maxX = Math.min((1 << z) - 1, Math.floor(maxXpx / 256));
+        const minY = Math.max(0, Math.floor(minYpx / 256));
+        const maxY = Math.min((1 << z) - 1, Math.floor(maxYpx / 256));
+
+        // Also fetch a coarser zoom (z-1) as a guaranteed fallback placeholder
+        const extraZooms = [z - 1].filter(v => v >= 0);
+
+        const fetchTile = (tmpl, zVal, x, y) => {
+            const url = tmpl.replace('{z}', zVal).replace('{x}', x).replace('{y}', y);
+            if (!this.preloadedTiles.has(url)) {
+                this.preloadedTiles.add(url);
+                const img = new window.Image();
+                img.crossOrigin = 'anonymous';
+                img.src = url;
+            }
+        };
+
+        for (const tmpl of templates) {
+            for (let x = minX; x <= maxX; x++) {
+                for (let y = minY; y <= maxY; y++) {
+                    fetchTile(tmpl, z, x, y);
+                }
+            }
+            for (const zCoarse of extraZooms) {
+                const scale = Math.pow(2, z - zCoarse);
+                const minXc = Math.max(0, Math.floor(minX / scale));
+                const maxXc = Math.min((1 << zCoarse) - 1, Math.floor(maxX / scale));
+                const minYc = Math.max(0, Math.floor(minY / scale));
+                const maxYc = Math.min((1 << zCoarse) - 1, Math.floor(maxY / scale));
+                for (let x = minXc; x <= maxXc; x++) {
+                    for (let y = minYc; y <= maxYc; y++) {
+                        fetchTile(tmpl, zCoarse, x, y);
+                    }
+                }
+            }
+        }
+
+        // Preload DEM tiles when 3D terrain is enabled/likely needed
+        if (this.is3DMode) {
+            this.preloadTerrainTilesAtPosition(lat, lon, Math.min(15, z));
+        }
+    }
+
+    preloadTerrainTilesAtPosition(lat, lon, zoom) {
+        const z = Math.max(0, Math.round(Math.min(15, zoom)));
+        const demTemplates = {
+            mapzen: ['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],
+            opentopo: ['https://cloud.sdsc.edu/v1/AUTH_opentopography/Raster/SRTM_GL1/{z}/{x}/{y}.png']
+        };
+        const templates = demTemplates[this.currentTerrainSource] || demTemplates['mapzen'];
+
+        const canvas = this.map.getCanvas();
+        const viewportWidth = canvas.clientWidth || canvas.width / window.devicePixelRatio;
+        const viewportHeight = canvas.clientHeight || canvas.height / window.devicePixelRatio;
+        const n = 256 * Math.pow(2, z);
+        const xPx = ((lon + 180) / 360) * n;
+        const sinLat = Math.sin(lat * Math.PI / 180);
+        const yPx = (0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI)) * n;
+        const halfW = (viewportWidth / 2) * 1.25;
+        const halfH = (viewportHeight / 2) * 1.25;
+        const minX = Math.max(0, Math.floor((xPx - halfW) / 256));
+        const maxX = Math.min((1 << z) - 1, Math.floor((xPx + halfW) / 256));
+        const minY = Math.max(0, Math.floor((yPx - halfH) / 256));
+        const maxY = Math.min((1 << z) - 1, Math.floor((yPx + halfH) / 256));
+
+        const fetchTile = (tmpl, zVal, x, y) => {
+            const url = tmpl.replace('{z}', zVal).replace('{x}', x).replace('{y}', y);
+            if (!this.preloadedTiles.has(url)) {
+                this.preloadedTiles.add(url);
+                const img = new window.Image();
+                img.crossOrigin = 'anonymous';
+                img.src = url;
+            }
+        };
+        for (const tmpl of templates) {
+            for (let x = minX; x <= maxX; x++) {
+                for (let y = minY; y <= maxY; y++) {
+                    fetchTile(tmpl, z, x, y);
                 }
             }
         }
