@@ -538,6 +538,22 @@
                                 </div>
                             </div>
 
+                            <div class="control-group">
+                                <label data-i18n="controls.showSegmentSpeeds">Show Segment Speeds</label>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="showSegmentSpeeds">
+                                    <label for="showSegmentSpeeds" class="toggle-slider"></label>
+                                </div>
+                            </div>
+
+                            <div id="speedUnitToggleGroup" class="control-group" style="display: none;">
+                                <label data-i18n="controls.speedAsPace">Show pace (min/km)</label>
+                                <div class="toggle-switch">
+                                    <input type="checkbox" id="speedAsPace">
+                                    <label for="speedAsPace" class="toggle-slider"></label>
+                                </div>
+                            </div>
+
                             <!-- Stats Selection -->
                             <div id="statsSelectionContainer" class="control-group" style="display: none; margin-top: 1rem;">
                                 <label style="margin-bottom: 0.5rem; display: block;">Select Stats to Show at End:</label>
@@ -663,6 +679,16 @@
                                             <span class="live-stat-full-label" data-i18n="controls.elevation"></span>
                                             <span class="live-stat-value" id="liveElevation">0 m</span>
                                         </div>
+                                        <div class="live-stat-item" id="liveSpeedItem" style="display: none;">
+                                            <span class="live-stat-label" id="liveSpeedLabel">S:</span>
+                                            <span class="live-stat-full-label" data-i18n="stats.currentSpeed"></span>
+                                            <span class="live-stat-value" id="liveSpeed">0.0 km/h</span>
+                                        </div>
+                                    </div>
+
+                                    <div id="liveSpeedSegments" class="live-speed-segments" style="display: none;">
+                                        <div class="live-speed-segments-title" data-i18n="stats.speedPerKm"></div>
+                                        <div id="liveSpeedSegmentsList" class="live-speed-segments-list"></div>
                                     </div>
 
                                     <!-- Final stats for end animation -->
@@ -816,6 +842,7 @@
                             <div class="stat-label" data-i18n="stats.minElevation">Min Elev</div>
                         </div>
                     </div>
+
                 </section>
 
 

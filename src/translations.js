@@ -444,6 +444,8 @@ export const translations = {
         elevation: "Elevation",
         avgSpeed: "Average Speed",
     showEndStats: "Show End Stats",
+    showSegmentSpeeds: "Show Segment Speeds",
+    speedAsPace: "Show pace (min/km)",
             
             // Comparison Mode
             comparisonSettings: "🏃‍♂️ Comparison Mode",
@@ -586,7 +588,22 @@ export const translations = {
             speed: "Avg Speed",
             currentDistance: "Distance",
             currentElevation: "Elevation",
-            currentSpeed: "Speed"
+            currentSpeed: "Speed",
+            segmentSpeeds: "Segment Speeds",
+            segmentSpeedsUnavailable: "Segment speed data unavailable.",
+            segmentLabel: "Segment",
+            overallSegment: "Overall Speed",
+            speedPerKm: "Speed per km",
+            kilometerLabel: "Km {index}",
+            segmentActivities: {
+                running: "Running",
+                cycling: "Cycling",
+                swimming: "Swimming",
+                hiking: "Hiking",
+                walking: "Walking",
+                driving: "Driving",
+                default: "Activity"
+            }
         },
         
         messages: {
@@ -1365,7 +1382,9 @@ export const translations = {
             // Stats Labels
                     distance: "Distancia",
         elevation: "Elevación",
-        showEndStats: "Mostrar Estadísticas Finales",
+            showEndStats: "Mostrar Estadísticas Finales",
+            showSegmentSpeeds: "Mostrar velocidades por segmento",
+            speedAsPace: "Mostrar ritmo (min/km)",
             
             // Comparison Mode
             comparisonSettings: "🏃‍♂️ Modo Comparación",
@@ -1506,7 +1525,22 @@ export const translations = {
             speed: "Velocidad Promedio",
             currentDistance: "Distancia",
             currentElevation: "Elevación",
-            currentSpeed: "Velocidad"
+            currentSpeed: "Velocidad",
+            segmentSpeeds: "Velocidades por segmento",
+            segmentSpeedsUnavailable: "No hay datos de velocidad por segmento.",
+            segmentLabel: "Segmento",
+            overallSegment: "Velocidad general",
+            speedPerKm: "Velocidad por km",
+            kilometerLabel: "Km {index}",
+            segmentActivities: {
+                running: "Carrera",
+                cycling: "Ciclismo",
+                swimming: "Natación",
+                hiking: "Senderismo",
+                walking: "Caminata",
+                driving: "Conducción",
+                default: "Actividad"
+            }
         },
         
         messages: {
@@ -2265,7 +2299,9 @@ export const translations = {
                 // Stats Labels
                         distance: "Distància",
             elevation: "Elevació",
-            showEndStats: "Mostrar Estadístiques Finals",
+                showEndStats: "Mostrar Estadístiques Finals",
+                showSegmentSpeeds: "Mostrar velocitats per segment",
+                speedAsPace: "Mostrar ritme (min/km)",
 
                 // Comparison Mode
                 comparisonSettings: "🏃‍♂️ Mode Comparació",
@@ -2406,7 +2442,22 @@ export const translations = {
                 speed: "Velocitat promig",
                 currentDistance: "Distància",
                 currentElevation: "Elevació",
-                currentSpeed: "Velocidad"
+                currentSpeed: "Velocitat",
+                segmentSpeeds: "Velocitats per segment",
+                segmentSpeedsUnavailable: "No hi ha dades de velocitat per segment.",
+                segmentLabel: "Segment",
+                overallSegment: "Velocitat general",
+                speedPerKm: "Velocitat per km",
+                kilometerLabel: "Km {index}",
+                segmentActivities: {
+                    running: "Córrer",
+                    cycling: "Ciclisme",
+                    swimming: "Natació",
+                    hiking: "Senderisme",
+                    walking: "Caminada",
+                    driving: "Conducció",
+                    default: "Activitat"
+                }
             },
             
             messages: {

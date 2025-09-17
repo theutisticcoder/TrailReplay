@@ -3730,6 +3730,11 @@ export class VideoExportController {
         // NOTE: We need to allow some progress updates for MP4 export to work correctly
         this.app.recordingMode = true;
         this.app.overlayRecordingMode = true; // Allow progress updates during auto recording for now
+
+        if (this.app.state.showSegmentSpeeds && this.app.stats) {
+            this.app.stats.renderSpeedOverlay?.();
+            this.app.stats.updateSpeedDisplayMode?.();
+        }
     }
 
     /**
@@ -3759,6 +3764,11 @@ export class VideoExportController {
         // Set recording mode flags for manual recording (keep overlays visible)
         this.app.recordingMode = true;
         this.app.overlayRecordingMode = true; // Keep DOM progress updates visible
+
+        if (this.app.state.showSegmentSpeeds && this.app.stats) {
+            this.app.stats.renderSpeedOverlay?.();
+            this.app.stats.updateSpeedDisplayMode?.();
+        }
     }
 
     /**

@@ -22,6 +22,8 @@ export class TrailReplayApp {
         this.state = {
             isPlaying: false,
             gpxOnlyStats: DEFAULT_SETTINGS.GPX_ONLY_STATS,
+            showSegmentSpeeds: DEFAULT_SETTINGS.SHOW_SEGMENT_SPEEDS,
+            speedDisplayMode: DEFAULT_SETTINGS.SPEED_DISPLAY_MODE,
             totalAnimationTime: DEFAULT_SETTINGS.TOTAL_ANIMATION_TIME,
             currentIcon: DEFAULT_SETTINGS.DEFAULT_ICON,
             currentAnnotation: { icon: DEFAULT_SETTINGS.DEFAULT_ANNOTATION_ICON },
@@ -1868,6 +1870,28 @@ export class TrailReplayApp {
 
         // Initialize selected stats from current checkboxes
         this.updateSelectedStats();
+    }
+
+    setShowSegmentSpeeds(enabled) {
+        this.state.showSegmentSpeeds = enabled;
+
+        if (this.stats) {
+            this.stats.updateSegmentSpeedVisibility?.(enabled);
+            if (enabled) {
+                this.stats.refreshSegmentSpeedStats?.();
+                this.stats.updateSpeedDisplayMode?.();
+            }
+        }
+    }
+
+    setSpeedDisplayMode(mode) {
+        const normalized = mode === 'pace' ? 'pace' : 'speed';
+        if (this.state.speedDisplayMode === normalized) return;
+        this.state.speedDisplayMode = normalized;
+
+        if (this.stats) {
+            this.stats.updateSpeedDisplayMode?.();
+        }
     }
 
     disableComparisonMode() {

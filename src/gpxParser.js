@@ -198,10 +198,13 @@ export class GPXParser {
 
 
 
+        const activitySegments = this.detectActivitySegments();
+
         return {
             trackPoints: this.trackPoints,
             stats: this.stats,
-            bounds: this.calculateBounds()
+            bounds: this.calculateBounds(),
+            activitySegments
         };
     }
 
@@ -320,19 +323,57 @@ export class GPXParser {
             if (!currentSegment || currentSegment.activity !== activity) {
                 if (currentSegment) {
                     currentSegment.endIndex = index - 1;
+                    const lastPoint = this.trackPoints[currentSegment.endIndex];
+                    currentSegment.endDistance = lastPoint?.distance ?? currentSegment.startDistance;
+                    currentSegment.endTime = lastPoint?.time ?? null;
+                    currentSegment.pointCount = currentSegment.endIndex - currentSegment.startIndex + 1;
+                    const segmentDistance = Math.max(0, (currentSegment.endDistance || 0) - (currentSegment.startDistance || 0));
+                    currentSegment.distance = segmentDistance;
+                    if (currentSegment.startTime && currentSegment.endTime) {
+                        const durationMs = currentSegment.endTime - currentSegment.startTime;
+                        const durationHours = durationMs > 0 ? durationMs / 1000 / 3600 : 0;
+                        currentSegment.durationHours = durationHours;
+                        currentSegment.avgSpeed = durationHours > 0 ? segmentDistance / durationHours : null;
+                    } else {
+                        currentSegment.durationHours = null;
+                        currentSegment.avgSpeed = null;
+                    }
                     segments.push(currentSegment);
                 }
                 
                 currentSegment = {
                     activity,
                     startIndex: index,
-                    startDistance: point.distance
+                    startDistance: point.distance,
+                    startTime: point.time || null,
+                    pointCount: 1
                 };
+            } else {
+                currentSegment.pointCount = (currentSegment.pointCount || 0) + 1;
+            }
+
+            if (currentSegment && !currentSegment.startTime && point.time) {
+                currentSegment.startTime = point.time;
             }
         });
 
         if (currentSegment) {
             currentSegment.endIndex = this.trackPoints.length - 1;
+            const lastPoint = this.trackPoints[currentSegment.endIndex];
+            currentSegment.endDistance = lastPoint?.distance ?? currentSegment.startDistance;
+            currentSegment.endTime = lastPoint?.time ?? null;
+            currentSegment.pointCount = currentSegment.endIndex - currentSegment.startIndex + 1;
+            const segmentDistance = Math.max(0, (currentSegment.endDistance || 0) - (currentSegment.startDistance || 0));
+            currentSegment.distance = segmentDistance;
+            if (currentSegment.startTime && currentSegment.endTime) {
+                const durationMs = currentSegment.endTime - currentSegment.startTime;
+                const durationHours = durationMs > 0 ? durationMs / 1000 / 3600 : 0;
+                currentSegment.durationHours = durationHours;
+                currentSegment.avgSpeed = durationHours > 0 ? segmentDistance / durationHours : null;
+            } else {
+                currentSegment.durationHours = null;
+                currentSegment.avgSpeed = null;
+            }
             segments.push(currentSegment);
         }
 

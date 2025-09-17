@@ -1566,6 +1566,16 @@ export class MapRenderer {
         // Use the new layout detection function
         this.detectAndSetMapLayout();
 
+        const liveSpeedSegments = document.getElementById('liveSpeedSegments');
+        if (liveSpeedSegments) {
+            liveSpeedSegments.style.display = 'none';
+        }
+
+        const liveSpeedItem = document.getElementById('liveSpeedItem');
+        if (liveSpeedItem) {
+            liveSpeedItem.style.display = 'none';
+        }
+
         // Add the end animation class to trigger the CSS transition
         overlay.classList.add('end-animation');
 
@@ -3343,61 +3353,18 @@ export class MapRenderer {
         // Debug: Check why method might be returning early
         const hasTrackData = !!this.comparisonTrackData;
         const hasParser = !!this.comparisonGpxParser;
-        const mapExists = !!this.map;
-        const mapLoaded = mapExists ? this.map.loaded() : false;
 
         // Allow updates even if map is in loading state, as long as map exists
         // The main marker works during loading, so comparison should too
         if (!hasTrackData || !hasParser) {
-            if (this.animationProgress > 0 && this.animationProgress < 0.01) { // Log only at start
-                console.log('🚫 updateComparisonPosition early return:', {
-                    hasTrackData,
-                    hasParser,
-                    mapExists,
-                    mapLoaded,
-                    animationProgress: this.animationProgress.toFixed(3),
-                    comparisonMode: this.comparisonMode
-                });
-            }
             return;
-        }
-
-        // Only log the map loading state occasionally to avoid spam
-        if (this.animationProgress > 0 && this.animationProgress < 0.01 && !mapLoaded) {
-            console.log('⚠️ Map still loading but proceeding with comparison updates');
-        }
-
-        // Debug: Method is being called
-        if (this.animationProgress < 0.01) {
-            console.log('✅ updateComparisonPosition called at animation start');
         }
 
         let comparisonProgress = this.animationProgress;
 
-        // One-time debug at animation start
-        if (this.animationProgress < 0.01 && this.timeOverlap && this.timeOverlap.hasOverlap) {
-            console.log('🎯 Animation start - comparison track setup:', {
-                compStart: this.timeOverlap.compStart?.toLocaleTimeString(),
-                compEnd: this.timeOverlap.compEnd?.toLocaleTimeString(),
-                overlapStart: this.timeOverlap.overlapStart?.toLocaleTimeString(),
-                overlapEnd: this.timeOverlap.overlapEnd?.toLocaleTimeString(),
-                compTrackPoints: this.comparisonTrackData?.trackPoints?.length,
-                hasTimeData: this.comparisonTrackData?.trackPoints?.some(p => p.time)
-            });
-        }
-
         // Enhanced time-synchronized animation for overlapping tracks
         if (this.timeOverlap && this.timeOverlap.hasOverlap) {
             comparisonProgress = this.calculateComparisonProgress();
-
-            // Periodic logging (every 60 frames to avoid spam)
-            if (Math.floor(this.animationProgress * 100) % 60 === 0) {
-                console.log('🎯 Comparison progress:', {
-                    mainProgress: this.animationProgress.toFixed(3),
-                    compProgress: comparisonProgress.toFixed(3),
-                    progressDiff: (comparisonProgress - this.animationProgress).toFixed(3)
-                });
-            }
         } else if (this.timeOverlap && this.timeOverlap.spatialOnly) {
             // For spatial-only comparison, use same progress as main track
             comparisonProgress = this.animationProgress;

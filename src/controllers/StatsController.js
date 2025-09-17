@@ -1,20 +1,37 @@
+import { t } from '../translations.js';
+import { ACTIVITY_ICONS } from '../utils/constants.js';
+
 export class StatsController {
     constructor(app) {
         this.app = app;
         this.lastStatsUpdate = 0;
 
         this._elevationDataChecked = false;
+        this.segmentSpeedElements = null;
+        this.liveSpeedElement = null;
+        this.liveSpeedItem = null;
+        this.speedOverlayElements = null;
+        this.kilometerSegments = [];
+        this.lastOverlayDistance = 0;
+        this.lastLiveSpeedValue = 0;
+        this.liveSpeedLabel = null;
+        this.lastActiveSegmentIndex = null;
+        this.mapLayoutUpdateScheduled = false;
     }
 
     initialize() {
         // Initialize stats display
         this.resetLiveStats();
         this.resetStats();
+
+        this.updateSegmentSpeedVisibility(this.app.state.showSegmentSpeeds);
     }
 
     // Update the static stats section when a track is loaded
     updateStats(stats) {
         if (!stats) return;
+
+        this.kilometerSegments = [];
 
         // For journeys, use the aggregated stats directly (they've already been calculated)
         // For single tracks, recalculate from trackPoints if available
@@ -54,6 +71,672 @@ export class StatsController {
         if (averagePaceEl) averagePaceEl.textContent = paceText;
         if (maxElevationEl) maxElevationEl.textContent = maxElevationText;
         if (minElevationEl) minElevationEl.textContent = minElevationText;
+
+        this.updateSegmentSpeedStats();
+    }
+
+    ensureSegmentSpeedElements() {
+        this.segmentSpeedElements = {
+            container: null,
+            list: null,
+            empty: null
+        };
+        return this.segmentSpeedElements;
+    }
+
+    ensureSpeedOverlayElements() {
+        this.speedOverlayElements = {
+            container: document.getElementById('liveSpeedSegments'),
+            list: document.getElementById('liveSpeedSegmentsList')
+        };
+        return this.speedOverlayElements;
+    }
+
+    scheduleMapLayoutUpdate() {
+        if (this.mapLayoutUpdateScheduled) return;
+        this.mapLayoutUpdateScheduled = true;
+        requestAnimationFrame(() => {
+            this.mapLayoutUpdateScheduled = false;
+            this.app.mapRenderer?.detectAndSetMapLayout?.();
+            this.app.mapRenderer?.map?.resize?.();
+        });
+    }
+
+    updateSegmentSpeedVisibility(enabled) {
+        const elements = this.ensureSegmentSpeedElements();
+
+        if (elements.container) {
+            elements.container.style.display = enabled ? 'block' : 'none';
+            if (!enabled && elements.list) {
+                elements.list.innerHTML = '';
+            }
+            if (!enabled && elements.empty) {
+                elements.empty.style.display = 'none';
+            }
+        }
+
+        if (!this.liveSpeedItem) {
+            this.liveSpeedItem = document.getElementById('liveSpeedItem');
+        }
+
+        if (this.liveSpeedItem) {
+            this.liveSpeedItem.style.display = enabled ? 'flex' : 'none';
+        }
+        if (!this.liveSpeedElement) {
+            this.liveSpeedElement = document.getElementById('liveSpeed');
+        }
+        if (this.liveSpeedElement && !enabled) {
+            this.liveSpeedElement.textContent = '–';
+        }
+
+        if (!enabled) {
+            this.lastLiveSpeedValue = 0;
+            this.lastOverlayDistance = 0;
+            this.lastActiveSegmentIndex = null;
+        }
+
+        const overlay = this.ensureSpeedOverlayElements();
+        if (overlay.container) {
+            if (enabled && this.kilometerSegments.length > 0) {
+                overlay.container.style.display = 'flex';
+            } else {
+                overlay.container.style.display = 'none';
+            }
+        }
+
+        if (!this.liveSpeedLabel) {
+            this.liveSpeedLabel = document.getElementById('liveSpeedLabel');
+        }
+        if (this.liveSpeedLabel) {
+            this.liveSpeedLabel.textContent = this.app.state.speedDisplayMode === 'pace' ? 'P:' : 'S:';
+        }
+
+        if (enabled) {
+            this.renderSpeedOverlay();
+            this.updateSpeedDisplayMode();
+        } else {
+            this.scheduleMapLayoutUpdate();
+        }
+    }
+
+    refreshSegmentSpeedStats() {
+        this.updateSegmentSpeedStats();
+    }
+
+    updateSegmentSpeedStats() {
+        if (!this.app.state.showSegmentSpeeds) {
+            this.kilometerSegments = [];
+            this.renderSpeedOverlay();
+
+            const elements = this.ensureSegmentSpeedElements();
+            if (elements.container) {
+                elements.container.style.display = 'none';
+                if (elements.list) {
+                    elements.list.innerHTML = '';
+                }
+                if (elements.empty) {
+                    elements.empty.style.display = 'none';
+                }
+            }
+            return;
+        }
+
+        this.prepareKilometerSegments();
+        this.renderSpeedOverlay();
+        this.scheduleMapLayoutUpdate();
+
+        const elements = this.ensureSegmentSpeedElements();
+        if (elements.container) {
+            if (!this.kilometerSegments.length) {
+                if (elements.list) {
+                    elements.list.innerHTML = '';
+                    elements.list.style.display = 'none';
+                }
+                if (elements.empty) {
+                    elements.empty.textContent = t('stats.segmentSpeedsUnavailable');
+                    elements.empty.style.display = 'block';
+                }
+                elements.container.style.display = 'block';
+            } else {
+                elements.container.style.display = 'none';
+            }
+        }
+    }
+
+    collectSegmentSpeedData() {
+        if (!this.app.currentTrackData || !this.app.currentTrackData.trackPoints) {
+            return [];
+        }
+
+        if (this.app.currentTrackData.isJourney && Array.isArray(this.app.currentTrackData.segments)) {
+            return this.collectJourneySegmentSpeeds();
+        }
+
+        return this.collectSingleTrackSegmentSpeeds();
+    }
+
+    buildOverallSegmentEntry() {
+        const stats = this.app.currentTrackData?.stats;
+        if (!stats) return null;
+
+        const distance = stats.totalDistance || 0;
+        let durationHours = stats.totalDuration || 0;
+        let avgSpeed = stats.avgSpeed || 0;
+
+        if ((!avgSpeed || avgSpeed <= 0) && durationHours > 0 && distance > 0) {
+            avgSpeed = distance / durationHours;
+        }
+
+        if ((!durationHours || durationHours <= 0) && avgSpeed > 0 && distance > 0) {
+            durationHours = distance / avgSpeed;
+        }
+
+        if (!avgSpeed || avgSpeed <= 0) {
+            return null;
+        }
+
+        const activityType = (this.app.currentTrackData?.activityType || '').toLowerCase();
+
+        return {
+            label: t('stats.overallSegment'),
+            icon: this.getActivityIcon(activityType),
+            speedText: this.formatSpeed(avgSpeed),
+            distanceText: this.formatSegmentDistance(distance),
+            durationText: durationHours > 0 ? this.formatSegmentDuration(durationHours) : null,
+            rawSpeed: avgSpeed
+        };
+    }
+
+    collectJourneySegmentSpeeds() {
+        const segments = this.app.currentTrackData.segments;
+        if (!Array.isArray(segments)) return [];
+
+        const results = [];
+        let displayIndex = 1;
+
+        segments.forEach(segment => {
+            if (!segment || segment.type !== 'track') return;
+
+            const trackStats = segment.data?.stats || {};
+            let distance = trackStats.totalDistance || 0;
+            let durationHours = trackStats.totalDuration || 0;
+            let avgSpeed = trackStats.avgSpeed || 0;
+
+            const trackPoints = Array.isArray(segment.data?.data?.trackPoints)
+                ? segment.data.data.trackPoints
+                : null;
+
+            if ((!distance || distance <= 0) && trackPoints?.length) {
+                const startDistance = trackPoints[0]?.distance || 0;
+                const endDistance = trackPoints[trackPoints.length - 1]?.distance || 0;
+                distance = Math.max(0, endDistance - startDistance);
+            }
+
+            if ((!durationHours || durationHours <= 0) && Array.isArray(segment.data?.data?.trackPoints)) {
+                const firstTime = trackPoints.find(p => p.time)?.time;
+                const lastTime = [...trackPoints].reverse().find(p => p.time)?.time;
+                if (firstTime && lastTime && lastTime > firstTime) {
+                    durationHours = (lastTime - firstTime) / 1000 / 3600;
+                }
+            }
+
+            if (durationHours && durationHours > 24) {
+                durationHours = durationHours / 3600;
+            }
+
+            let avgSpeedFromPoints = 0;
+            if (trackPoints?.length) {
+                const speeds = trackPoints
+                    .map(p => p.speed || 0)
+                    .filter(speed => speed > 0);
+                if (speeds.length > 0) {
+                    avgSpeedFromPoints = speeds.reduce((sum, speed) => sum + speed, 0) / speeds.length;
+                }
+            }
+
+            if ((!avgSpeed || avgSpeed <= 0) && avgSpeedFromPoints > 0) {
+                avgSpeed = avgSpeedFromPoints;
+            }
+
+            if ((!durationHours || durationHours <= 0) && avgSpeed > 0 && distance > 0) {
+                durationHours = distance / avgSpeed;
+            }
+
+            if ((!avgSpeed || avgSpeed <= 0) && durationHours > 0 && distance > 0) {
+                avgSpeed = distance / durationHours;
+            }
+
+            if (!distance || distance <= 0 || !avgSpeed || avgSpeed <= 0) {
+                return;
+            }
+
+            const activityType = (segment.data?.data?.activityType || '').toLowerCase();
+            const segmentLabel = `${t('stats.segmentLabel')} ${displayIndex} • ${this.getSegmentActivityLabel(activityType, segment.data?.name)}`;
+
+            results.push({
+                label: segmentLabel,
+                icon: this.getActivityIcon(activityType),
+                speedText: this.formatSpeed(avgSpeed),
+                distanceText: this.formatSegmentDistance(distance),
+                durationText: durationHours > 0 ? this.formatSegmentDuration(durationHours) : null,
+                rawSpeed: avgSpeed
+            });
+
+            displayIndex++;
+        });
+
+        return results;
+    }
+
+    prepareKilometerSegments() {
+        if (!this.app.currentTrackData || !Array.isArray(this.app.currentTrackData.trackPoints)) {
+            this.kilometerSegments = [];
+            this.lastOverlayDistance = 0;
+            this.lastActiveSegmentIndex = null;
+            return;
+        }
+        this.kilometerSegments = this.computeKilometerSegments(this.app.currentTrackData.trackPoints);
+        this.lastOverlayDistance = 0;
+        this.lastActiveSegmentIndex = null;
+    }
+
+    computeKilometerSegments(trackPoints) {
+        if (!Array.isArray(trackPoints) || trackPoints.length < 2) {
+            return [];
+        }
+
+        const segments = [];
+        let segmentIndex = 1;
+        let segmentDistance = 0;
+        let segmentDuration = 0;
+        let speedDistanceSum = 0;
+        let speedDistanceWeight = 0;
+        let segmentGain = 0;
+        let segmentLoss = 0;
+        let startDistance = trackPoints[0]?.distance || 0;
+
+        for (let i = 1; i < trackPoints.length; i++) {
+            const prev = trackPoints[i - 1];
+            const curr = trackPoints[i];
+
+            let deltaDistance = Math.max(0, (curr.distance || 0) - (prev.distance || 0));
+            if (deltaDistance === 0) {
+                continue;
+            }
+
+            let deltaTime = 0;
+            if (prev.time && curr.time) {
+                deltaTime = Math.max(0, (curr.time - prev.time) / 3600000);
+            }
+
+            const representativeSpeed = curr.speed && curr.speed > 0
+                ? curr.speed
+                : (prev.speed && prev.speed > 0 ? prev.speed : 0);
+
+            let deltaElevation = (curr.elevation || 0) - (prev.elevation || 0);
+
+            while (deltaDistance > 0) {
+                const remainingDistanceToKm = Math.max(0, 1 - segmentDistance);
+                const portionDistance = Math.min(deltaDistance, remainingDistanceToKm);
+                const proportion = portionDistance / deltaDistance;
+                const portionTime = deltaTime * proportion;
+                const portionElevation = deltaElevation * proportion;
+
+                segmentDistance += portionDistance;
+                segmentDuration += portionTime;
+
+                if (representativeSpeed && representativeSpeed > 0) {
+                    speedDistanceSum += representativeSpeed * portionDistance;
+                    speedDistanceWeight += portionDistance;
+                }
+
+                if (portionElevation > 0) {
+                    segmentGain += portionElevation;
+                } else if (portionElevation < 0) {
+                    segmentLoss += Math.abs(portionElevation);
+                }
+
+                deltaDistance -= portionDistance;
+                deltaTime = Math.max(0, deltaTime - portionTime);
+                deltaElevation -= portionElevation;
+
+                const isLastPoint = i === trackPoints.length - 1 && deltaDistance <= 1e-6;
+                if (segmentDistance >= 0.999 || (isLastPoint && segmentDistance > 0)) {
+                    const avgSpeed = segmentDuration > 0 && segmentDistance > 0
+                        ? segmentDistance / segmentDuration
+                        : (speedDistanceWeight > 0 ? speedDistanceSum / speedDistanceWeight : 0);
+
+                    const endDistance = startDistance + segmentDistance;
+
+                    segments.push({
+                        index: segmentIndex,
+                        startDistance,
+                        endDistance,
+                        distanceKm: segmentDistance,
+                        durationHours: segmentDuration,
+                        avgSpeed,
+                        gain: segmentGain,
+                        loss: segmentLoss
+                    });
+
+                    segmentIndex++;
+                    startDistance = endDistance;
+                    segmentDistance = 0;
+                    segmentDuration = 0;
+                    speedDistanceSum = 0;
+                    speedDistanceWeight = 0;
+                    segmentGain = 0;
+                    segmentLoss = 0;
+                }
+            }
+        }
+
+        return segments;
+    }
+
+    renderSpeedOverlay() {
+        const overlay = this.ensureSpeedOverlayElements();
+        if (!overlay.container || !overlay.list) return;
+
+        if (!this.overlayElement) {
+            this.overlayElement = document.getElementById('liveStatsOverlay');
+        }
+
+        if (this.overlayElement && this.overlayElement.classList.contains('end-animation')) {
+            overlay.container.style.display = 'none';
+            if (this.liveSpeedItem) {
+                this.liveSpeedItem.style.display = 'none';
+            }
+            this.scheduleMapLayoutUpdate();
+            return;
+        }
+
+        if (!this.app.state.showSegmentSpeeds || !Array.isArray(this.kilometerSegments) || this.kilometerSegments.length === 0) {
+            overlay.container.style.display = 'none';
+            overlay.list.innerHTML = '';
+            this.scheduleMapLayoutUpdate();
+            return;
+        }
+
+        overlay.container.style.display = 'flex';
+
+        let item = overlay.list.querySelector('.speed-segment-item');
+        if (!item) {
+            item = document.createElement('div');
+            item.className = 'speed-segment-item';
+
+            const label = document.createElement('span');
+            label.className = 'speed-segment-label';
+
+            const values = document.createElement('div');
+            values.className = 'speed-segment-values';
+
+            const speedSpan = document.createElement('span');
+            speedSpan.className = 'speed-segment-speed';
+
+            const paceSpan = document.createElement('span');
+            paceSpan.className = 'speed-segment-pace';
+
+            values.appendChild(speedSpan);
+            values.appendChild(paceSpan);
+
+            item.appendChild(label);
+            item.appendChild(values);
+
+            overlay.list.innerHTML = '';
+            overlay.list.appendChild(item);
+        }
+
+        this.updateSpeedOverlay(this.lastOverlayDistance || 0);
+        this.scheduleMapLayoutUpdate();
+    }
+
+    updateSpeedOverlay(currentDistanceKm) {
+        if (!this.app.state.showSegmentSpeeds) return;
+        if (!Array.isArray(this.kilometerSegments) || this.kilometerSegments.length === 0) return;
+
+        this.lastOverlayDistance = currentDistanceKm;
+
+        const overlay = this.ensureSpeedOverlayElements();
+        if (!overlay.container || !overlay.list) return;
+
+        if (!this.overlayElement) {
+            this.overlayElement = document.getElementById('liveStatsOverlay');
+        }
+
+        if (this.overlayElement && this.overlayElement.classList.contains('end-animation')) {
+            overlay.container.style.display = 'none';
+            if (this.liveSpeedItem) {
+                this.liveSpeedItem.style.display = 'none';
+            }
+            this.scheduleMapLayoutUpdate();
+            return;
+        }
+
+        const item = overlay.list.querySelector('.speed-segment-item');
+        if (!item) {
+            this.renderSpeedOverlay();
+            return;
+        }
+
+        const labelEl = item.querySelector('.speed-segment-label');
+        const speedEl = item.querySelector('.speed-segment-speed');
+        const paceEl = item.querySelector('.speed-segment-pace');
+
+        const epsilon = 0.0005;
+        let segment = this.kilometerSegments.find(seg =>
+            currentDistanceKm >= seg.startDistance - epsilon &&
+            currentDistanceKm < seg.endDistance + epsilon
+        );
+
+        if (!segment && currentDistanceKm >= this.kilometerSegments[this.kilometerSegments.length - 1].endDistance - epsilon) {
+            segment = this.kilometerSegments[this.kilometerSegments.length - 1];
+        }
+
+        if (!segment) {
+            overlay.container.style.display = 'none';
+            return;
+        }
+
+        overlay.container.style.display = 'flex';
+
+        const hasSpeed = segment.avgSpeed && segment.avgSpeed > 0;
+        const speedText = hasSpeed ? this.formatSpeed(segment.avgSpeed) : '–';
+        const paceText = hasSpeed ? this.formatPace(segment.avgSpeed) : '–';
+
+        const mode = this.app.state.speedDisplayMode || 'speed';
+
+        if (labelEl) {
+            labelEl.textContent = this.formatSegmentElevationChange(segment);
+        }
+        if (speedEl) {
+            speedEl.textContent = mode === 'pace' ? paceText : speedText;
+        }
+        if (paceEl) {
+            const secondary = mode === 'pace' ? speedText : paceText;
+            paceEl.textContent = secondary;
+        }
+
+        if (this.lastActiveSegmentIndex !== segment.index) {
+            item.classList.remove('segment-change');
+            // Trigger reflow to restart animation
+            void item.offsetWidth;
+            item.classList.add('segment-change');
+            this.lastActiveSegmentIndex = segment.index;
+        }
+    }
+
+    updateSpeedDisplayMode() {
+        if (!this.liveSpeedLabel) {
+            this.liveSpeedLabel = document.getElementById('liveSpeedLabel');
+        }
+        if (this.liveSpeedLabel) {
+            this.liveSpeedLabel.textContent = this.app.state.speedDisplayMode === 'pace' ? 'P:' : 'S:';
+        }
+
+        if (this.liveSpeedElement) {
+            if (this.app.state.showSegmentSpeeds && this.lastLiveSpeedValue && this.lastLiveSpeedValue > 0.05) {
+                this.liveSpeedElement.textContent = this.app.state.speedDisplayMode === 'pace'
+                    ? this.formatPace(this.lastLiveSpeedValue)
+                    : this.formatSpeed(this.lastLiveSpeedValue);
+            } else {
+                this.liveSpeedElement.textContent = '–';
+            }
+        }
+
+        if (this.liveSpeedItem) {
+            this.liveSpeedItem.style.display = this.app.state.showSegmentSpeeds ? 'flex' : 'none';
+        }
+
+        this.renderSpeedOverlay();
+        if (this.app.state.showSegmentSpeeds) {
+            this.updateSpeedOverlay(this.lastOverlayDistance || 0);
+        }
+    }
+
+    collectSingleTrackSegmentSpeeds() {
+        const trackData = this.app.currentTrackData || {};
+        const cachedSegments = Array.isArray(trackData.activitySegments) ? trackData.activitySegments : null;
+
+        const gpxParser = this.app.mapRenderer?.gpxParser || this.app.gpxParser;
+        const fallbackSegments = (!cachedSegments && gpxParser) ? gpxParser.detectActivitySegments() : [];
+
+        const segments = cachedSegments || fallbackSegments;
+        if (!Array.isArray(segments) || segments.length === 0) {
+            return [];
+        }
+
+        const results = [];
+        let displayIndex = 1;
+
+        segments.forEach(segment => {
+            if (!segment) return;
+
+            const segmentPoints = Array.isArray(trackData.trackPoints)
+                ? trackData.trackPoints.slice(segment.startIndex, segment.endIndex + 1)
+                : (gpxParser?.trackPoints || []).slice(segment.startIndex, segment.endIndex + 1);
+
+            let distance = segment.distance || 0;
+            if ((!distance || distance <= 0) && segmentPoints.length > 1) {
+                const startDistance = segmentPoints[0]?.distance || 0;
+                const endDistance = segmentPoints[segmentPoints.length - 1]?.distance || 0;
+                distance = Math.max(0, endDistance - startDistance);
+            }
+
+            let durationHours = segment.durationHours;
+            if ((!durationHours || durationHours <= 0) && segmentPoints.length > 1) {
+                const firstTime = segmentPoints.find(p => p.time)?.time;
+                const lastTime = [...segmentPoints].reverse().find(p => p.time)?.time;
+                if (firstTime && lastTime && lastTime > firstTime) {
+                    durationHours = (lastTime - firstTime) / 1000 / 3600;
+                }
+            }
+
+            let avgSpeed = segment.avgSpeed || 0;
+            let avgSpeedFromPoints = 0;
+            if (segmentPoints.length > 0) {
+                const speeds = segmentPoints
+                    .map(p => p.speed || 0)
+                    .filter(speed => speed > 0);
+                if (speeds.length > 0) {
+                    avgSpeedFromPoints = speeds.reduce((sum, speed) => sum + speed, 0) / speeds.length;
+                }
+            }
+
+            if ((!avgSpeed || avgSpeed <= 0) && avgSpeedFromPoints > 0) {
+                avgSpeed = avgSpeedFromPoints;
+            }
+
+            if ((!durationHours || durationHours <= 0) && avgSpeed > 0 && distance > 0) {
+                durationHours = distance / avgSpeed;
+            }
+
+            if ((!avgSpeed || avgSpeed <= 0) && durationHours > 0 && distance > 0) {
+                avgSpeed = distance / durationHours;
+            }
+
+            if (!distance || distance <= 0 || !avgSpeed || avgSpeed <= 0) {
+                return;
+            }
+
+            const activityType = (segment.activity || '').toLowerCase();
+            const segmentLabel = `${t('stats.segmentLabel')} ${displayIndex} • ${this.getSegmentActivityLabel(activityType)}`;
+
+            results.push({
+                label: segmentLabel,
+                icon: this.getActivityIcon(activityType),
+                speedText: this.formatSpeed(avgSpeed),
+                distanceText: this.formatSegmentDistance(distance),
+                durationText: durationHours > 0 ? this.formatSegmentDuration(durationHours) : null,
+                rawSpeed: avgSpeed
+            });
+
+            displayIndex++;
+        });
+
+        return results;
+    }
+
+    getSegmentActivityLabel(activityType, fallbackName) {
+        const activities = t('stats.segmentActivities');
+        const normalized = activityType ? activityType.toLowerCase() : '';
+
+        if (activities && typeof activities === 'object') {
+            if (activities[normalized]) {
+                return activities[normalized];
+            }
+            if (fallbackName) {
+                return fallbackName;
+            }
+            if (activities.default) {
+                return activities.default;
+            }
+        }
+
+        if (fallbackName) return fallbackName;
+        if (!normalized) {
+            if (activities && typeof activities === 'object' && activities.default) {
+                return activities.default;
+            }
+            return 'Activity';
+        }
+        return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+    }
+
+    getActivityIcon(activityType) {
+        if (!activityType) return '';
+        const normalized = activityType.toLowerCase();
+        return ACTIVITY_ICONS[normalized] || '';
+    }
+
+    formatSegmentDistance(distance) {
+        if (!distance || distance <= 0) return null;
+        if (this.app.gpxParser?.formatDistance) {
+            return this.app.gpxParser.formatDistance(distance);
+        }
+        return `${distance.toFixed(2)} km`;
+    }
+
+    formatSegmentDuration(hours) {
+        if (!hours || hours <= 0) return null;
+        return this.formatDurationMinutes(hours);
+    }
+
+    formatSegmentElevationChange(segment) {
+        const gain = Math.max(0, segment.gain || 0);
+        const loss = Math.max(0, segment.loss || 0);
+        const net = gain - loss;
+        const netText = this.app.gpxParser?.formatElevation(Math.abs(net)) || `${Math.round(Math.abs(net))} m`;
+
+        let sign = '+';
+        if (net < -0.5) {
+            sign = '−';
+        } else if (net <= 0.5) {
+            sign = '±';
+        }
+
+        const kmIndex = Math.max(1, segment.index);
+        return `Km ${kmIndex} · ${sign}${netText}`;
     }
 
     // Update live stats during animation - this is the main method called during playback
@@ -134,7 +817,47 @@ export class StatsController {
                     this.elevationElement.textContent = formattedElevation;
                 }
             }
-            
+
+            if (!this.liveSpeedElement) {
+                this.liveSpeedElement = document.getElementById('liveSpeed');
+            }
+            if (!this.liveSpeedItem) {
+                this.liveSpeedItem = document.getElementById('liveSpeedItem');
+            }
+
+            if (!this.liveSpeedLabel) {
+                this.liveSpeedLabel = document.getElementById('liveSpeedLabel');
+            }
+            if (this.liveSpeedLabel) {
+                this.liveSpeedLabel.textContent = this.app.state.speedDisplayMode === 'pace' ? 'P:' : 'S:';
+            }
+
+            if (this.liveSpeedElement && this.liveSpeedItem) {
+                if (this.app.state.showSegmentSpeeds) {
+                    const speedValue = currentPoint.speed || 0;
+                    this.lastLiveSpeedValue = speedValue;
+                    if (speedValue > 0.05) {
+                        const formattedSpeed = this.app.state.speedDisplayMode === 'pace'
+                            ? this.formatPace(speedValue)
+                            : this.formatSpeed(speedValue);
+                        if (this.liveSpeedElement.textContent !== formattedSpeed) {
+                            this.liveSpeedElement.textContent = formattedSpeed;
+                        }
+                    } else {
+                        this.liveSpeedElement.textContent = '–';
+                    }
+                    this.liveSpeedItem.style.display = 'flex';
+                } else {
+                    this.liveSpeedElement.textContent = '–';
+                    this.liveSpeedItem.style.display = 'none';
+                }
+            }
+
+            if (this.app.state.showSegmentSpeeds) {
+                const distanceForOverlay = typeof currentPoint.distance === 'number' ? currentPoint.distance : currentDistance;
+                this.updateSpeedOverlay(distanceForOverlay);
+            }
+
         } catch (error) {
             this.setErrorState();
             console.warn('Error updating live stats:', error);
@@ -149,9 +872,22 @@ export class StatsController {
         if (!this.elevationElement) {
             this.elevationElement = document.getElementById('liveElevation');
         }
+        if (!this.liveSpeedElement) {
+            this.liveSpeedElement = document.getElementById('liveSpeed');
+        }
+        if (!this.liveSpeedItem) {
+            this.liveSpeedItem = document.getElementById('liveSpeedItem');
+        }
         
         if (this.distanceElement) this.distanceElement.textContent = '–';
         if (this.elevationElement) this.elevationElement.textContent = '–';
+        if (this.liveSpeedElement) this.liveSpeedElement.textContent = '–';
+        if (this.liveSpeedItem) this.liveSpeedItem.style.display = this.app.state.showSegmentSpeeds ? 'flex' : 'none';
+
+        const overlay = this.ensureSpeedOverlayElements();
+        if (overlay.container) {
+            overlay.container.style.display = 'none';
+        }
     }
 
     // Calculate actual elevation gain based on current progress through the track
@@ -257,6 +993,27 @@ export class StatsController {
         if (avgSpeedElement) {
             avgSpeedElement.textContent = '0 km/h';
         }
+        if (!this.liveSpeedElement) {
+            this.liveSpeedElement = document.getElementById('liveSpeed');
+        }
+        if (this.liveSpeedElement) {
+            this.liveSpeedElement.textContent = this.app.state.speedDisplayMode === 'pace'
+                ? '0:00 min/km'
+                : '0.0 km/h';
+        }
+        if (!this.liveSpeedLabel) {
+            this.liveSpeedLabel = document.getElementById('liveSpeedLabel');
+        }
+        if (this.liveSpeedLabel) {
+            this.liveSpeedLabel.textContent = this.app.state.speedDisplayMode === 'pace' ? 'P:' : 'S:';
+        }
+        const overlay = this.ensureSpeedOverlayElements();
+        if (overlay.container) {
+            overlay.container.style.display = 'none';
+        }
+        this.lastLiveSpeedValue = 0;
+        this.lastOverlayDistance = 0;
+        this.lastActiveSegmentIndex = null;
     }
 
     // Reset all static stats to default values

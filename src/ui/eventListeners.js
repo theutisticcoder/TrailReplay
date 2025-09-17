@@ -266,6 +266,43 @@ export function setupEventListeners(app) {
         });
     }
 
+    const showSegmentSpeedsToggle = byId('showSegmentSpeeds');
+    const speedUnitToggleGroup = byId('speedUnitToggleGroup');
+    const speedAsPaceToggle = byId('speedAsPace');
+
+    const updateSpeedUnitVisibility = (enabled) => {
+        if (speedUnitToggleGroup) {
+            speedUnitToggleGroup.style.display = enabled ? 'block' : 'none';
+        }
+    };
+
+    if (showSegmentSpeedsToggle) {
+        showSegmentSpeedsToggle.checked = app.state.showSegmentSpeeds;
+        updateSpeedUnitVisibility(showSegmentSpeedsToggle.checked);
+        showSegmentSpeedsToggle.addEventListener('change', (e) => {
+            if (typeof app.setShowSegmentSpeeds === 'function') {
+                app.setShowSegmentSpeeds(e.target.checked);
+            } else {
+                app.state.showSegmentSpeeds = e.target.checked;
+            }
+            updateSpeedUnitVisibility(e.target.checked);
+        });
+    } else {
+        updateSpeedUnitVisibility(app.state.showSegmentSpeeds);
+    }
+
+    if (speedAsPaceToggle) {
+        speedAsPaceToggle.checked = app.state.speedDisplayMode === 'pace';
+        speedAsPaceToggle.addEventListener('change', (e) => {
+            const mode = e.target.checked ? 'pace' : 'speed';
+            if (typeof app.setSpeedDisplayMode === 'function') {
+                app.setSpeedDisplayMode(mode);
+            } else {
+                app.state.speedDisplayMode = mode;
+            }
+        });
+    }
+
 
 
 
