@@ -19,7 +19,7 @@
     },
     {
       "source": "/strava-callback",
-      "destination": "/app.html"
+      "destination": "/index.html"
     },
     {
       "source": "/privacy",
