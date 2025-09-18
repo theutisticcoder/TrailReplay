@@ -2,7 +2,7 @@ User-agent: *
 Allow: /
 
 # Sitemap location
-Sitemap: https://trailreplay.com/sitemap.xml
+Sitemap: https://theutisticcoder.github.io/TrailReplay/sitemap.xml
 
 # Crawl-delay for respectful crawling
 Crawl-delay: 1
